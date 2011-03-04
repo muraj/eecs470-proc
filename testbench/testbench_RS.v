@@ -136,6 +136,13 @@ module testbench;
 		end
 	endtask
 
+	task CDB_fail;
+		begin
+			$display("@@@ Fail! CDB is broadcasting, but the valid bit has not been updated @ %4.0d", $time);
+			$finish;
+		end
+	endtask
+
   // Task to display RS content of an Entry
   task show_entry_content;
   begin
@@ -204,12 +211,10 @@ module testbench;
 
   
     // Test case #x.x: CDB Test
-    $display("=============================================================\n");
-    $display("@@@ Test case #x.x: CDB Test \n");
-    $display("=============================================================\n");
-    
 		@(negedge clk); 
-		
+		$display("=============================================================\n");
+    $display("@@@ Time: %4.0f  Test case: Basic CDB Test\n", $time);
+    $display("=============================================================\n");
 		reset_all(); @(negedge clk); show_entry_content();
 
     insert_ALUinst( 1, 2, 3,0,0,0); @(negedge clk); show_entry_content();
@@ -230,11 +235,17 @@ module testbench;
     insert_inst(16,17,18,0,0,0,0,1); @(negedge clk); show_entry_content();
 
     set_CDB(2, 1); @(negedge clk); show_entry_content();
-    
+		if(rs_0.entries[15].entry.pregb_rdy==1'b0 | rs_0.entries[14].entry.prega_rdy==1'b0) CDB_fail();
     set_CDB(2, 0); @(negedge clk); show_entry_content();
+		if(rs_0.entries[15].entry.pregb_rdy==1'b0 | rs_0.entries[14].entry.prega_rdy==1'b0) CDB_fail();
     set_CDB(3, 1); @(negedge clk); show_entry_content();
+		if(rs_0.entries[14].entry.pregb_rdy==1'b0 | rs_0.entries[13].entry.prega_rdy==1'b0) CDB_fail();
     set_CDB(4, 1); @(negedge clk); show_entry_content();
+		if(rs_0.entries[13].entry.pregb_rdy==1'b0 | rs_0.entries[12].entry.prega_rdy==1'b0) CDB_fail();
     set_CDB(5, 1); @(negedge clk); show_entry_content();
+		if(rs_0.entries[12].entry.pregb_rdy==1'b0 | rs_0.entries[11].entry.prega_rdy==1'b0) CDB_fail();
+   
+	 $display("@@@ Success! Basic CDB test passed");
 		
 		@(negedge clk);
 		$display("=============================================================\n");
