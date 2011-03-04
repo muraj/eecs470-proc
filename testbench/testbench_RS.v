@@ -396,7 +396,7 @@ module testbench;
 		@(negedge clk);
 
 		show_entry_content();
-		if(rs_free)
+		if(!rs_free)
     begin
       $display("@@@ Fail! Test case #5.3 failed");
       $finish;
