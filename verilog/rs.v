@@ -187,7 +187,7 @@ module rs_entry(clk, reset,
     next_prega_rdy = (prega_rdy & !next_entry_free) ? prega_rdy : ((entry_en & prega_valid) | (cdb_valid & (cdb_tag==prega_idx_out)));
     next_pregb_rdy = (pregb_rdy & !next_entry_free) ? pregb_rdy : ((entry_en & pregb_valid) | (cdb_valid & (cdb_tag==pregb_idx_out)));
    
-    entry_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy) & ((rd_mem | wr_mem)? mem_free : 
+    entry_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy) & ((rd_mem_out | wr_mem_out)? mem_free : 
                 (to_mult ? mult_free : ex_free));
   end
    
