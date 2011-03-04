@@ -473,22 +473,10 @@ module testbench;
 		@(negedge clk);
 
 		// begin test
-		insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
-		insert_ALUinst(1,4,35,0,0,0); @(negedge clk);
-		insert_ALUinst(2,7,25,0,0,1); @(negedge clk);
-		insert_ALUinst(6,1,14,0,0,1); @(negedge clk);
-		insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
-		insert_ALUinst(1,4,35,0,0,0); @(negedge clk);
-		insert_ALUinst(2,7,25,0,0,1); @(negedge clk);
-		insert_ALUinst(6,1,14,0,0,1); @(negedge clk);
-		insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
-		insert_ALUinst(1,4,35,0,0,0); @(negedge clk);
-		insert_ALUinst(2,7,25,0,0,1); @(negedge clk);
-		insert_ALUinst(6,1,14,0,0,1); @(negedge clk);
-		insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
-		insert_ALUinst(1,4,35,0,0,0); @(negedge clk);
-		insert_ALUinst(2,7,25,0,0,1); @(negedge clk);
-		insert_ALUinst(6,1,14,0,0,1); @(negedge clk);
+    for(idx=0;idx<`RS_SZ; idx=idx+1)
+    begin
+			insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
+		end
 		rs_en = 1'b0;
 		ex_free = 1'b1;
 		@(negedge clk);
@@ -560,14 +548,32 @@ module testbench;
 		ex_free = 1'b1; $display("ex is free now");
 		set_CDB(1,1); 
 		@(negedge clk);show_entry_content();
+		// first alu instruction should be out
+		if (!rs_0.entries[12].entry.entry_free)
+    begin
+      $display("@@@ Fail! Test case #5.3 failed");
+      $finish;
+    end
+
 		insert_ALUinst(4,8,4,1,1,1); 		@(negedge clk);show_entry_content();
 
 		mem_free = 1'b1; $display("mem is free now");
-		insert_ALUinst(2,6,1,1,1,1); show_entry_content();		@(negedge clk);show_entry_content();
+		insert_ALUinst(2,6,1,1,1,1); 		@(negedge clk);show_entry_content();
+		if (!rs_0.entries[14].entry.entry_free)
+    begin
+      $display("@@@ Fail! Test case #5.3 failed");
+      $finish;
+    end
 		rs_en = 1'b0;
 		mult_free = 1'b1;$display("mult is free now");
 
 		@(negedge clk);show_entry_content();
+		if (!rs_0.entries[15].entry.entry_free)
+    begin
+      $display("@@@ Fail! Test case #5.3 failed");
+      $finish;
+    end
+
 		@(negedge clk);show_entry_content();
 		@(negedge clk);show_entry_content();
 		@(negedge clk);show_entry_content();
@@ -588,8 +594,6 @@ module testbench;
 		reset_all();
 		@(negedge clk);
 		reset = 1'b1;
-		ex_free = 1'b0;
-		mult_free = 1'b0;
 		@(negedge clk);
 		reset = 1'b0;
 		@(negedge clk);
@@ -613,18 +617,32 @@ module testbench;
 
 		// this should be a CDB test case
     $display("=============================================================\n");
-    $display("@@@ Test case #5.5: FU becomes free as an inst becomes ready\n");
+    $display("@@@ Test case #5.5: As an inst comes in, FU becomes free, CDB makes it ready\n");
     $display("=============================================================\n");
 		// reset rs
 		reset_all();
 		@(negedge clk);
+		reset = 1'b1;
+		@(negedge clk);
+		reset = 1'b0;
+		@(negedge clk);
 
-		insert_ALUinst(6,0,3,0,1,1); @(negedge clk);show_entry_content();
-		insert_ALUinst(3,0,2,0,0,0); @(negedge clk);show_entry_content();
-		insert_ALUinst(4,0,4,0,1,1); @(negedge clk);show_entry_content();
-		insert_ALUinst(4,0,4,0,1,1); @(negedge clk);show_entry_content();
+		insert_ALUinst(6,2,3,0,1,1);
+		set_CDB(6,1);
+		mult_free = 1'b1;
+		@(negedge clk);show_entry_content();
+		@(negedge clk);
+		
+		if (!rs_0.entries[15].entry.entry_free)
+    begin
+      $display("@@@ Fail! Test case #5.5 failed");
+      $finish;
+    end
 
 
+
+
+		// End of test case
 
     $display("All Testcase Passed!\n"); 
     $finish; 
