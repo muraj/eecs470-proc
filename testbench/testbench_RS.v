@@ -283,12 +283,21 @@ module testbench;
     begin
       set_CDB(idx+1, 1'b1); //Send the first operand (next iteration will get the second operand
       @(posedge clk);
-      #1;
       if(!rs_rdy) begin
         $display("@@@ Fail! rs_rdy not asserted when instruction should be ready");
         $display("@@@ Limbo: %0d  rs_free: %h", limbo_inst, rs_free);
         $finish;
       end
+      if(prega_idx_out != idx || pregb_idx_out != idx+1 || pdest_idx_out != idx+2 ||
+         ALUop_out != 0 || rd_mem_out != 0 || wr_mem_out != 0 || rs_IR_out != idx+1 ||
+         npc_out != 2*(idx+1) || rob_idx_out != idx+1)
+       begin
+         $display("@@@ Fail! Instruction output does not match expected values!");
+         $display("@@@ dest: %h opA: %h opB: %h ALUop: %h rd_mem: %h wr_mem: %h IR: %h NPC: %h ROB: %h",
+                  pdest_idx_out, prega_idx_out, pregb_idx_out, ALUop_out, rd_mem_out, wr_mem_out, rs_IR_out,
+                  npc_out, rob_idx_out);
+         $finish;
+       end
       @(negedge clk);
     end
     @(posedge clk);
@@ -299,6 +308,8 @@ module testbench;
     end
     else
       $display("@@@ Success! ALU empty test passed");
+    ex_free=1'b0; //Disable ALUs
+    set_CDB(0,0); //Disable CDB
 
     
 		
