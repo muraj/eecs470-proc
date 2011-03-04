@@ -289,6 +289,145 @@ module testbench;
     else
       $display("@@@ Success! ALU empty test passed");
 
+    
+		
+		$display("=============================================================\n");
+    $display("@@@ Time: %4.0f  Test case #5.1: FU becomes free, but no inst ready\n", $time);
+    $display("=============================================================\n");
+
+		// reset rs
+		@(negedge clk);
+		reset = 1'b1;
+		ex_free = 1'b0;
+		mult_free = 1'b0;
+		@(negedge clk);
+		reset = 1'b0;
+		@(negedge clk);
+
+		// begin test
+		insert_ALUinst(5,9,21,0,0,0);
+		@(negedge clk);
+		insert_ALUinst(1,4,35,0,0,0);
+		@(negedge clk);
+		insert_ALUinst(2,7,25,0,0,1);
+		@(negedge clk);
+		insert_ALUinst(6,1,14,0,0,1);
+		@(negedge clk);
+		ex_free = 1'b1;
+		@(negedge clk);
+		@(negedge clk);
+		mult_free = 1'b1;
+		@(negedge clk);
+		@(negedge clk);
+    
+		if(rs_free)
+    begin
+      $display("@@@ Fail! Test case #5.1 failed");
+      $finish;
+    end
+
+    $display("=============================================================\n");
+    $display("@@@ Time: %4.0f  Test case #5.2: FU is free, ready instr come in\n", $time);
+    $display("=============================================================\n");
+
+		// reset rs
+		@(negedge clk);
+		reset = 1'b1;
+		ex_free = 1'b0;
+		mult_free = 1'b0;
+		@(negedge clk);
+		reset = 1'b0;
+		@(negedge clk);
+
+		// begin test
+		mult_free = 1'b1;
+		@(negedge clk);
+		insert_ALUinst(6,2,14,1,1,1);
+		@(negedge clk);
+		mult_free = 1'b0;
+		ex_free = 1'b1;
+		@(negedge clk);
+		insert_ALUinst(1,3,9,1,1,0);
+		@(negedge clk);
+    
+		if(!rs_free)
+    begin
+      $display("@@@ Fail! Test case #5.2 failed");
+      $finish;
+    end
+		
+
+    $display("=============================================================\n");
+    $display("@@@ Time: %4.0f  Test case #5.3: more than one instr's ready, FU becomes free\n", $time);
+    $display("=============================================================\n");
+
+		// reset rs
+		@(negedge clk);
+		reset = 1'b1;
+		ex_free = 1'b0;
+		mult_free = 1'b0;
+		@(negedge clk);
+		reset = 1'b0;
+		@(negedge clk);
+
+		// begin test
+		@(negedge clk);
+		insert_ALUinst(6,2,3,1,1,1);
+		@(negedge clk);
+		insert_ALUinst(3,1,2,1,0,0);
+		@(negedge clk);
+		insert_ALUinst(4,8,4,1,1,1);
+		@(negedge clk);
+		insert_ALUinst(4,8,4,1,1,1);
+		@(negedge clk);
+		mult_free = 1'b1;
+		@(negedge clk);
+		@(negedge clk);
+		@(negedge clk);
+		@(negedge clk);
+
+		if(rs_free)
+    begin
+      $display("@@@ Fail! Test case #5.3 failed");
+      $finish;
+    end
+
+
+
+    $display("=============================================================\n");
+    $display("@@@ Time: %4.0f  Test case #5.4: FU becomes free as new ready inst comes in\n", $time);
+    $display("=============================================================\n");
+		
+		// reset rs
+		@(negedge clk);
+		reset = 1'b1;
+		ex_free = 1'b0;
+		mult_free = 1'b0;
+		@(negedge clk);
+		reset = 1'b0;
+		@(negedge clk);
+
+		// begin test
+		@(negedge clk);
+		mult_free = 1'b1;
+		insert_ALUinst(6,2,3,1,1,1);
+		@(negedge clk);
+		ex_free = 1'b1;
+		insert_ALUinst(3,1,2,1,0,0);
+		@(negedge clk);
+
+		if(!rs_free)
+    begin
+      $display("@@@ Fail! Test case #5.4 failed");
+      $finish;
+    end
+
+
+		// this should be a CDB test case
+    $display("=============================================================\n");
+    $display("@@@ Test case #5.5: FU becomes free as an inst becomes ready\n");
+    $display("=============================================================\n");
+
     $display("All Testcase Passed!\n"); 
     $finish; 
   end
