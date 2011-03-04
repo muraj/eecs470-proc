@@ -296,6 +296,7 @@ module testbench;
     $display("=============================================================\n");
 
 		// reset rs
+		reset_all();
 		@(negedge clk);
 		reset = 1'b1;
 		ex_free = 1'b0;
@@ -305,20 +306,30 @@ module testbench;
 		@(negedge clk);
 
 		// begin test
-		insert_ALUinst(5,9,21,0,0,0);
-		@(negedge clk);
-		insert_ALUinst(1,4,35,0,0,0);
-		@(negedge clk);
-		insert_ALUinst(2,7,25,0,0,1);
-		@(negedge clk);
-		insert_ALUinst(6,1,14,0,0,1);
-		@(negedge clk);
+		insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
+		insert_ALUinst(1,4,35,0,0,0); @(negedge clk);
+		insert_ALUinst(2,7,25,0,0,1); @(negedge clk);
+		insert_ALUinst(6,1,14,0,0,1); @(negedge clk);
+		insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
+		insert_ALUinst(1,4,35,0,0,0); @(negedge clk);
+		insert_ALUinst(2,7,25,0,0,1); @(negedge clk);
+		insert_ALUinst(6,1,14,0,0,1); @(negedge clk);
+		insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
+		insert_ALUinst(1,4,35,0,0,0); @(negedge clk);
+		insert_ALUinst(2,7,25,0,0,1); @(negedge clk);
+		insert_ALUinst(6,1,14,0,0,1); @(negedge clk);
+		insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
+		insert_ALUinst(1,4,35,0,0,0); @(negedge clk);
+		insert_ALUinst(2,7,25,0,0,1); @(negedge clk);
+		insert_ALUinst(6,1,14,0,0,1); @(negedge clk);
 		ex_free = 1'b1;
 		@(negedge clk);
 		@(negedge clk);
 		mult_free = 1'b1;
 		@(negedge clk);
 		@(negedge clk);
+
+		show_entry_content();
     
 		if(rs_free)
     begin
@@ -331,6 +342,7 @@ module testbench;
     $display("=============================================================\n");
 
 		// reset rs
+		reset_all();
 		@(negedge clk);
 		reset = 1'b1;
 		ex_free = 1'b0;
@@ -342,14 +354,14 @@ module testbench;
 		// begin test
 		mult_free = 1'b1;
 		@(negedge clk);
-		insert_ALUinst(6,2,14,1,1,1);
-		@(negedge clk);
+		insert_ALUinst(6,2,14,1,1,1);	@(negedge clk);
 		mult_free = 1'b0;
 		ex_free = 1'b1;
 		@(negedge clk);
-		insert_ALUinst(1,3,9,1,1,0);
-		@(negedge clk);
+		insert_ALUinst(1,3,9,1,1,0);	@(negedge clk);
     
+		show_entry_content();
+
 		if(!rs_free)
     begin
       $display("@@@ Fail! Test case #5.2 failed");
@@ -362,6 +374,7 @@ module testbench;
     $display("=============================================================\n");
 
 		// reset rs
+		reset_all();
 		@(negedge clk);
 		reset = 1'b1;
 		ex_free = 1'b0;
@@ -372,20 +385,17 @@ module testbench;
 
 		// begin test
 		@(negedge clk);
-		insert_ALUinst(6,2,3,1,1,1);
-		@(negedge clk);
-		insert_ALUinst(3,1,2,1,0,0);
-		@(negedge clk);
-		insert_ALUinst(4,8,4,1,1,1);
-		@(negedge clk);
-		insert_ALUinst(4,8,4,1,1,1);
-		@(negedge clk);
+		insert_ALUinst(6,2,3,1,1,1); @(negedge clk);
+		insert_ALUinst(3,1,2,1,0,0); @(negedge clk);
+		insert_ALUinst(4,8,4,1,1,1); @(negedge clk);
+		insert_ALUinst(4,8,4,1,1,1); @(negedge clk);
 		mult_free = 1'b1;
 		@(negedge clk);
 		@(negedge clk);
 		@(negedge clk);
 		@(negedge clk);
 
+		show_entry_content();
 		if(rs_free)
     begin
       $display("@@@ Fail! Test case #5.3 failed");
@@ -399,6 +409,7 @@ module testbench;
     $display("=============================================================\n");
 		
 		// reset rs
+		reset_all();
 		@(negedge clk);
 		reset = 1'b1;
 		ex_free = 1'b0;
