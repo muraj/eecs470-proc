@@ -125,6 +125,11 @@ module testbench;
     insert_inst(rega_idx, regb_idx, dest_idx, rega_valid, regb_valid, 0, 0, mult ? `ALU_MULQ : `ALU_ADDQ);
   endtask
 
+  task insert_MEMinst;
+    input [`PRF_IDX-1:0] rega_idx, regb_idx, dest_idx;
+    input rega_valid, regb_valid, rdmem_in, wrmem_in;
+    insert_inst(rega_idx, regb_idx, dest_idx, rega_valid, regb_valid, rdmem_in, wrmem_in, 0);
+  endtask
 	// Task to set CDB Tag/Valid
 	task set_CDB;
 		input [`PRF_IDX-1:0] tag;
@@ -198,6 +203,146 @@ module testbench;
   initial
   begin
 //    $monitor("time : %4.0f,  npc: %0d, rs_free: %h, rs_rdy: %h, ex_free: %h, mem_free: %h, mult_free: %h, cdb_valid: %h, cdb_tag: %h, entry_idx: %h\n", $time, npc, rs_free, rs_rdy, ex_free, mem_free, mult_free, cdb_valid, cdb_tag, rs_0.entry_idx);
+
+// Reset RS
+    reset = 1'b1;      // Assert Reset
+    clk = 1'b0;
+    @(negedge clk);
+    reset = 1'b0;      // Deassert Reset
+    rs_en = 1'b1;  // Enable RS
+    // Initialize input signals
+    reset_all();
+
+  
+    @(negedge clk);
+    // Test case #1.1: Insert new instruction 
+   
+    $display("=============================================================\n");
+    $display("@@@ Test case #1.1: Insert ALU instruction\n");
+    $display("=============================================================\n");
+    
+
+    insert_ALUinst(1,2,3,1,1,0);
+    @(negedge clk);show_entry_content();
+    insert_ALUinst(2,3,4,1,0,0);
+    @(negedge clk);show_entry_content();
+    insert_ALUinst(3,4,5,0,0,0);
+    @(negedge clk);show_entry_content();
+    insert_ALUinst(4,5,6,0,0,0);
+    ex_free=1'b1; 
+    set_CDB(3,1); 
+    @(negedge clk);show_entry_content();
+    insert_ALUinst(5,6,7,0,0,0);
+    ex_free=1'b1; 
+    set_CDB(4,1); 
+    @(negedge clk);show_entry_content();
+    rs_en = 1'b0;  // disable RS No more Inst
+    ex_free=1'b1; 
+    set_CDB(5,1); 
+    @(negedge clk);show_entry_content();
+    ex_free=1'b1; 
+    set_CDB(6,1); 
+    @(negedge clk);show_entry_content();
+    ex_free=1'b1; 
+    set_CDB(7,1);   
+    @(negedge clk); show_entry_content();
+
+    
+    // Test case #1.2: Insert new instruction 
+    @(negedge clk);
+    // Reset RS
+    reset = 1'b1;      // Assert Reset
+    clk = 1'b0;
+    @(negedge clk);
+    reset = 1'b0;      // Deassert Reset
+    rs_en = 1'b1;  // Enable RS
+    // Initialize input signals
+    reset_all();
+    
+    $display("=============================================================\n");
+    $display("@@@ Test case #1.2: Insert MULT instruction\n");
+    $display("=============================================================\n");
+    
+    insert_ALUinst(1,2,3,1,1,1);show_entry_content();
+    @(negedge clk);
+    insert_ALUinst(2,3,4,1,0,1);show_entry_content();
+    @(negedge clk);
+    insert_ALUinst(3,4,5,0,0,1);show_entry_content();
+    @(negedge clk);
+    insert_ALUinst(4,5,6,0,0,1);show_entry_content();
+    mult_free=1'b1; 
+    set_CDB(3,1); 
+    @(negedge clk);show_entry_content();
+    insert_ALUinst(5,6,7,0,0,1);
+    mult_free=1'b1; 
+    set_CDB(4,1); 
+    @(negedge clk);show_entry_content();
+    rs_en = 1'b0;  // disable RS No more Inst
+    mult_free=1'b1; 
+    set_CDB(5,1); 
+    @(negedge clk);show_entry_content();
+    mult_free=1'b1; 
+    set_CDB(6,1); 
+    @(negedge clk);show_entry_content();
+    mult_free=1'b1; 
+    set_CDB(7,1);   
+    @(negedge clk); show_entry_content();
+
+
+    // Test case #1.3: Insert new instruction 
+    @(negedge clk);
+    // Reset RS
+    reset = 1'b1;      // Assert Reset
+    clk = 1'b0;
+    @(negedge clk);
+    reset = 1'b0;      // Deassert Reset
+    rs_en = 1'b1;  // Enable RS
+    // Initialize input signals
+    reset_all();
+    
+    $display("=============================================================\n");
+    $display("@@@ Test case #1.3: Insert MEM instruction\n");
+    $display("=============================================================\n");
+    
+    insert_MEMinst(1,2,3,1,1,1,0);
+    @(negedge clk);show_entry_content();
+    insert_MEMinst(2,3,4,1,0,1,0);
+    @(negedge clk);show_entry_content();
+    insert_MEMinst(3,4,5,0,0,1,0);
+    @(negedge clk);show_entry_content();
+    insert_MEMinst(4,5,6,0,0,1,0);
+    mem_free=1'b1; 
+    set_CDB(3,1); 
+    @(negedge clk);show_entry_content();
+    insert_MEMinst(5,6,7,0,0,1,0);
+    mem_free=1'b1; 
+    set_CDB(4,1); 
+    @(negedge clk);show_entry_content();
+    rs_en = 1'b0;  // disable RS No more Inst
+    mem_free=1'b1; 
+    set_CDB(5,1); 
+    @(negedge clk);show_entry_content();
+    mem_free=1'b1; 
+    set_CDB(6,1); 
+    @(negedge clk);show_entry_content();
+    mem_free=1'b1; 
+    set_CDB(7,1);   
+    @(negedge clk);  show_entry_content();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     // Reset RS
