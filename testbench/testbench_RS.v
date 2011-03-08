@@ -151,6 +151,9 @@ module testbench;
   // Task to display RS content of an Entry
   task show_entry_content;
   begin
+  `ifdef SYNTH
+    $display("====");
+  `else
     $display("============================================================================================ ");
     $display("Entry| ALU/RD/WR | Dest	| A Tag / Vld | B Tag	/ Vld | Free	| Ready	|	IR    | ROB#  ");
     $display("============================================================================================ ");
@@ -171,6 +174,7 @@ module testbench;
     $display("  1  |  0x%h/%d/%d |  %0d	|  %0d	/ %b   |  %0d	/ %b   | 0x%h	| 0x%h	| 0x%h  | %0d   ", rs_0.entries[1].entry.ALUop_out, rs_0.entries[1].entry.rd_mem_out, rs_0.entries[1].entry.wr_mem_out, rs_0.entries[1].entry.pdest_idx_out, rs_0.entries[1].entry.prega_idx_out, rs_0.entries[1].entry.prega_rdy, rs_0.entries[1].entry.pregb_idx_out, rs_0.entries[1].entry.pregb_rdy, rs_0.entries[1].entry.entry_free, rs_0.entries[1].entry.entry_rdy, rs_0.entries[1].entry.rs_IR_out, rs_0.entries[1].entry.rob_idx_out);
     $display("  0  |  0x%h/%d/%d |  %0d	|  %0d	/ %b   |  %0d	/ %b   | 0x%h	| 0x%h	| 0x%h  | %0d   ", rs_0.entries[0].entry.ALUop_out, rs_0.entries[0].entry.rd_mem_out, rs_0.entries[0].entry.wr_mem_out, rs_0.entries[0].entry.pdest_idx_out, rs_0.entries[0].entry.prega_idx_out, rs_0.entries[0].entry.prega_rdy, rs_0.entries[0].entry.pregb_idx_out, rs_0.entries[0].entry.pregb_rdy, rs_0.entries[0].entry.entry_free, rs_0.entries[0].entry.entry_rdy, rs_0.entries[0].entry.rs_IR_out, rs_0.entries[0].entry.rob_idx_out);
     $display("============================================================================================\n\n "); 
+   `endif
 	end
   endtask
 
@@ -360,6 +364,9 @@ module testbench;
 		$display("=============================================================\n");
     $display("@@@ Time: %4.0f  Test case: Basic CDB Test\n", $time);
     $display("=============================================================\n");
+    `ifdef SYNTH
+      $display("Test not applicable in synthesis mode");
+    `else
 		reset_all(); @(negedge clk); show_entry_content();
 
     insert_ALUinst( 1, 2, 3,0,0,0); @(negedge clk); show_entry_content();
@@ -390,9 +397,10 @@ module testbench;
     set_CDB(5, 1); @(negedge clk); show_entry_content();
 		if(rs_0.entries[12].entry.pregb_rdy==1'b0 | rs_0.entries[11].entry.prega_rdy==1'b0) CDB_fail();
    
-	 $display("@@@ Success! Basic CDB test passed");
+    $display("@@@ Success! Basic CDB test passed");
 		
 		@(negedge clk);
+    `endif
 		$display("=============================================================\n");
     $display("@@@ Time: %4.0f  Test case: Insert until full\n", $time);
     $display("=============================================================\n");
@@ -473,11 +481,22 @@ module testbench;
 		@(negedge clk);
 
 		// begin test
-    for(idx=0;idx<`RS_SZ; idx=idx+1)
-    begin
-			insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
-		end
-		rs_en = 1'b0;
+		insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
+		insert_ALUinst(1,4,35,0,0,0); @(negedge clk);
+		insert_ALUinst(2,7,25,0,0,1); @(negedge clk);
+		insert_ALUinst(6,1,14,0,0,1); @(negedge clk);
+		insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
+		insert_ALUinst(1,4,35,0,0,0); @(negedge clk);
+		insert_ALUinst(2,7,25,0,0,1); @(negedge clk);
+		insert_ALUinst(6,1,14,0,0,1); @(negedge clk);
+		insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
+		insert_ALUinst(1,4,35,0,0,0); @(negedge clk);
+		insert_ALUinst(2,7,25,0,0,1); @(negedge clk);
+		insert_ALUinst(6,1,14,0,0,1); @(negedge clk);
+		insert_ALUinst(5,9,21,0,0,0); @(negedge clk);
+		insert_ALUinst(1,4,35,0,0,0); @(negedge clk);
+		insert_ALUinst(2,7,25,0,0,1); @(negedge clk);
+		insert_ALUinst(6,1,14,0,0,1); @(negedge clk);
 		ex_free = 1'b1;
 		@(negedge clk);
 		@(negedge clk);
@@ -526,57 +545,30 @@ module testbench;
 		
 
     $display("=============================================================\n");
-    $display("@@@ Time: %4.0f  Test case #5.3: more than one instr's ready, FU/MEM becomes free\n", $time);
+    $display("@@@ Time: %4.0f  Test case #5.3: more than one instr's ready, FU becomes free\n", $time);
     $display("=============================================================\n");
 
 		// reset rs
 		reset_all();
 		@(negedge clk);
 		reset = 1'b1;
+		ex_free = 1'b0;
+		mult_free = 1'b0;
 		@(negedge clk);
 		reset = 1'b0;
 		@(negedge clk);
 
 		// begin test
 		@(negedge clk);
-		insert_ALUinst(6,2,3,1,1,1);		@(negedge clk);show_entry_content();
-    insert_MEMinst(1,2,3,1,1,1,0);	@(negedge clk);show_entry_content();
-    insert_MEMinst(2,1,4,1,0,0,1);	@(negedge clk);show_entry_content();
-		insert_ALUinst(3,1,2,1,0,0);		@(negedge clk);show_entry_content();
-		rs_en = 1'b0;
-
-		ex_free = 1'b1; $display("ex is free now");
-		set_CDB(1,1); 
-		@(negedge clk);show_entry_content();
-		// first alu instruction should be out
-		if (!rs_0.entries[12].entry.entry_free)
-    begin
-      $display("@@@ Fail! Test case #5.3 failed");
-      $finish;
-    end
-
-		insert_ALUinst(4,8,4,1,1,1); 		@(negedge clk);show_entry_content();
-
-		mem_free = 1'b1; $display("mem is free now");
-		insert_ALUinst(2,6,1,1,1,1); 		@(negedge clk);show_entry_content();
-		if (!rs_0.entries[14].entry.entry_free)
-    begin
-      $display("@@@ Fail! Test case #5.3 failed");
-      $finish;
-    end
-		rs_en = 1'b0;
-		mult_free = 1'b1;$display("mult is free now");
-
-		@(negedge clk);show_entry_content();
-		if (!rs_0.entries[15].entry.entry_free)
-    begin
-      $display("@@@ Fail! Test case #5.3 failed");
-      $finish;
-    end
-
-		@(negedge clk);show_entry_content();
-		@(negedge clk);show_entry_content();
-		@(negedge clk);show_entry_content();
+		insert_ALUinst(6,2,3,1,1,1); @(negedge clk);
+		insert_ALUinst(3,1,2,1,0,0); @(negedge clk);
+		insert_ALUinst(4,8,4,1,1,1); @(negedge clk);
+		insert_ALUinst(4,8,4,1,1,1); @(negedge clk);
+		mult_free = 1'b1;
+		@(negedge clk);
+		@(negedge clk);
+		@(negedge clk);
+		@(negedge clk);
 
 		show_entry_content();
 		if(!rs_free)
@@ -584,6 +576,7 @@ module testbench;
       $display("@@@ Fail! Test case #5.3 failed");
       $finish;
     end
+
 
 
     $display("=============================================================\n");
@@ -594,6 +587,8 @@ module testbench;
 		reset_all();
 		@(negedge clk);
 		reset = 1'b1;
+		ex_free = 1'b0;
+		mult_free = 1'b0;
 		@(negedge clk);
 		reset = 1'b0;
 		@(negedge clk);
@@ -607,7 +602,6 @@ module testbench;
 		insert_ALUinst(3,1,2,1,0,0);
 		@(negedge clk);
 
-		show_entry_content();
 		if(!rs_free)
     begin
       $display("@@@ Fail! Test case #5.4 failed");
@@ -617,32 +611,8 @@ module testbench;
 
 		// this should be a CDB test case
     $display("=============================================================\n");
-    $display("@@@ Test case #5.5: As an inst comes in, FU becomes free, CDB makes it ready\n");
+    $display("@@@ Test case #5.5: FU becomes free as an inst becomes ready\n");
     $display("=============================================================\n");
-		// reset rs
-		reset_all();
-		@(negedge clk);
-		reset = 1'b1;
-		@(negedge clk);
-		reset = 1'b0;
-		@(negedge clk);
-
-		insert_ALUinst(6,2,3,0,1,1);
-		set_CDB(6,1);
-		mult_free = 1'b1;
-		@(negedge clk);show_entry_content();
-		@(negedge clk);
-		
-		if (!rs_0.entries[15].entry.entry_free)
-    begin
-      $display("@@@ Fail! Test case #5.5 failed");
-      $finish;
-    end
-
-
-
-
-		// End of test case
 
     $display("All Testcase Passed!\n"); 
     $finish; 

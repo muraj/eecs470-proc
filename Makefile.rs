@@ -27,6 +27,10 @@ all:    simv
 TESTBENCH = 	sys_defs.vh	    \
 		testbench/testbench_RS.v
 SIMFILES =	verilog/rs.v verilog/pe.v verilog/ps.v
+SYNFILES =  synth/RS.vg
+
+synth/RS.vg:	$(SIMFILES) synth/rs.tcl
+	cd synth && dc_shell-t -f ./rs.tcl | tee synth.out
 
 #####
 # Should be no need to modify after here
@@ -43,7 +47,7 @@ vis_simv:	$(SIMFILES) $(VISTESTBENCH)
 	./vis_simv
 
 syn_simv:	$(SYNFILES) $(TESTBENCH)
-	$(VCS) $(TESTBENCH) $(SYNFILES) $(LIB) -o syn_simv 
+	$(VCS) $(TESTBENCH) $(SYNFILES) $(LIB) +define+SYNTH=1 -o syn_simv 
 
 syn:	syn_simv
 	./syn_simv | tee syn_program.out
@@ -61,3 +65,4 @@ clean:
 nuke:	clean
 	rm -f synth/*.vg synth/*.rep synth/*.db synth/*.chk synth/command.log
 	rm -f synth/*.out synth/*.ddc command.log
+	rm -rf `ls synth/* | grep -v "\.tcl"`
