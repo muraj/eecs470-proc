@@ -2,11 +2,11 @@ module RS(clk, reset,
                 //INPUTS
                 rs_en, prega_idx, pregb_idx, pdest_idx, prega_valid, pregb_valid, //RAT
                 ALUop, rd_mem, wr_mem, rs_IR,  npc, cond_branch, uncond_branch, //Issue Stage
-                mult_free, ex_free, mem_free, cdb_valid, cdb_tag, //Pipeline communication
+                mult_free, ALU_free, mem_free, cdb_valid, cdb_tag, //Pipeline communication
                 rob_idx,  //ROB
 
                 //OUTPUT
-                rs_free,  rs_rdy, //Hazard detect
+                rs_free,  ALU_rdy, mem_rdy, mult_rdy, //Hazard detect
                 pdest_idx_out, prega_idx_out, pregb_idx_out, ALUop_out, rd_mem_out,   //FU
                 wr_mem_out, rs_IR_out, npc_out, rob_idx_out                           //FU
           );
@@ -20,11 +20,12 @@ module RS(clk, reset,
   input wire  [31:0] rs_IR; 
   input wire  cond_branch, uncond_branch;
   input wire  [63:0] npc;
-  input wire  mult_free, ex_free, mem_free, cdb_valid;
-  input wire  [`PRF_IDX-1:0] cdb_tag;
+  input wire  mult_free, ALU_free, mem_free;
+	input wire	[`SCALAR-1:0] cdb_valid;
+  input wire  [`SCALAR-1:0] cdb_tag [`PRF_IDX-1:0];
   input wire  [`ROB_IDX-1:0] rob_idx;
 
-  output wire rs_free, rs_rdy;
+  output wire rs_free, ALU_rdy, mem_rdy, mult_rdy;
   output wire [`PRF_IDX-1:0] pdest_idx_out, prega_idx_out, pregb_idx_out;
   output wire [4:0] ALUop_out;
   output wire  rd_mem_out, wr_mem_out;
@@ -33,7 +34,7 @@ module RS(clk, reset,
   output wire [`ROB_IDX-1:0] rob_idx_out;
 
   wire [`RS_SZ-1:0] entry_free;
-  wire [`RS_SZ-1:0] entry_rdy;
+  wire [`RS_SZ-1:0] entry_ALU_rdy, entry_mem_rdy, entry_mult_rdy;
   wire [`PRF_IDX-1:0] pdest_idx_int [`RS_SZ-1:0];
   wire [`PRF_IDX-1:0] prega_idx_int [`RS_SZ-1:0];
   wire [`PRF_IDX-1:0] pregb_idx_int [`RS_SZ-1:0];
@@ -46,7 +47,8 @@ module RS(clk, reset,
 
   wire [`RS_IDX-1:0] entry_idx; // Output of ex encoder
   wire [`RS_SZ-1:0] entry_en; // Output of issue selector
-  wire [`RS_SZ-1:0] entry_sel; // Output of ex selector
+  wire [`RS_SZ-1:0] entry_ALU_sel, entry_mem_sel, entry_mult_sel; // Output of the encoders (ALU_sel, mem_sel, mult_sel)
+	wire [`RS_SZ-1:0] entry_sel; // selected entry for execution
 
   assign pdest_idx_out = pdest_idx_int[entry_idx];
   assign prega_idx_out = prega_idx_int[entry_idx];
@@ -58,11 +60,19 @@ module RS(clk, reset,
   assign npc_out = npc_int[entry_idx];
   assign rob_idx_out = rob_idx_int[entry_idx];
   assign rs_free = | entry_free;
-  assign rs_rdy = | entry_rdy;
+
+	assign entry_sel = (ALU_free) ? entry_ALU_sel :
+										 ((mem_free) ? entry_mem_sel :
+										 ((mult_free) ? entry_mult_sel :
+										 `RS_SZ'b0));
 
 ps #(.NUM_BITS(`RS_SZ)) issue_sel(.req(entry_free), .en(rs_en), .gnt(entry_en), .req_up()); 
-ps #(.NUM_BITS(`RS_SZ)) ex_sel(.req(entry_rdy), .en(rs_rdy), .gnt(entry_sel), .req_up());
+ps #(.NUM_BITS(`RS_SZ)) ALU_sel(.req(entry_ALU_rdy), .en(ALU_free), .gnt(entry_ALU_sel), .req_up());
+ps #(.NUM_BITS(`RS_SZ)) mem_sel(.req(entry_mem_rdy), .en(mem_free), .gnt(entry_mem_sel), .req_up());
+ps #(.NUM_BITS(`RS_SZ)) mult_sel(.req(entry_mult_rdy), .en(mult_free), .gnt(entry_mult_sel), .req_up());
 pe #(.OUT_WIDTH(`RS_IDX)) ex_encode(.gnt(entry_sel), .enc(entry_idx)); 
+
+
 
 generate
   genvar i;
@@ -93,7 +103,9 @@ generate
 
                           //OUTPUT
                                   .entry_free(entry_free[i]), 
-                                  .entry_rdy(entry_rdy[i]),
+                                  .ALU_rdy(entry_ALU_rdy[i]),
+																	.mem_rdy(entry_mem_rdy[i]),
+																	.mult_rdy(entry_mult_rdy[i]),
                                   .pdest_idx_out(pdest_idx_int[i]), 
                                   .prega_idx_out(prega_idx_int[i]), 
                                   .pregb_idx_out(pregb_idx_int[i]), 
@@ -116,7 +128,7 @@ module rs_entry(clk, reset,
                 rob_idx,  //ROB
 
                 //OUTPUT
-                entry_free, entry_rdy,  //Pipeline Communication
+                entry_free, ALU_rdy, mem_rdy, mult_rdy,  //Pipeline Communication
                 pdest_idx_out, prega_idx_out, pregb_idx_out, ALUop_out, rd_mem_out,   //FU
                 wr_mem_out, rs_IR_out, npc_out, rob_idx_out                 //FU
                 );
@@ -133,11 +145,12 @@ module rs_entry(clk, reset,
   input wire  [31:0] rs_IR; 
   input wire  cond_branch, uncond_branch;
   input wire  [63:0] npc;
-  input wire  mult_free, ex_free, mem_free, cdb_valid;
-  input wire  [`PRF_IDX-1:0] cdb_tag;
+  input wire  mult_free, ex_free, mem_free;
+	input wire  [`SCALAR-1:0] cdb_valid;
+  input wire  [`SCALAR-1:0] cdb_tag [`PRF_IDX-1:0];
   input wire  [`ROB_IDX-1:0] rob_idx;
 
-  output reg  entry_free, entry_rdy;
+  output reg  entry_free, ALU_rdy, mem_rdy, mult_rdy;
   output reg  [`PRF_IDX-1:0] pdest_idx_out, prega_idx_out, pregb_idx_out;
   output reg  [4:0] ALUop_out;
   output reg  rd_mem_out, wr_mem_out;
@@ -184,11 +197,17 @@ module rs_entry(clk, reset,
       next_rob_idx_out = rob_idx;
     end
   
+	`ifdef SCALAR
+    next_prega_rdy = (prega_rdy ) ? prega_rdy : ((entry_en & prega_valid) | (cdb_valid[0] & (cdb_tag[0]==prega_idx_out)) | (cdb_valid[1] & (cdb_tag[1]==prega_idx_out)));
+    next_pregb_rdy = (pregb_rdy ) ? pregb_rdy : ((entry_en & pregb_valid) | (cdb_valid[0] & (cdb_tag[0]==pregb_idx_out)) | (cdb_valid[1] & (cdb_tag[1]==prega_idx_out)));
+	`else
     next_prega_rdy = (prega_rdy ) ? prega_rdy : ((entry_en & prega_valid) | (cdb_valid & (cdb_tag==prega_idx_out)));
     next_pregb_rdy = (pregb_rdy ) ? pregb_rdy : ((entry_en & pregb_valid) | (cdb_valid & (cdb_tag==pregb_idx_out)));
-   
-    entry_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy) & ((rd_mem_out | wr_mem_out)? mem_free : 
-                (to_mult ? mult_free : ex_free));
+  `endif
+
+		mem_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ) & (rd_mem_out | wr_mem_out);
+		mult_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ) & to_mult;
+		ALU_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ) & !mem_rdy & !mult_rdy; 
   end
    
   always @(posedge clk)
