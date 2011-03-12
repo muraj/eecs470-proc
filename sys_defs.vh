@@ -284,8 +284,7 @@
 `define JSR_CO_INST	2'h3
 
 // Customized T3 Macros
-`define SCALAR 1
-
+`define SCALAR (2)  /* Change to 1 for non-superscalar */
 `define PRF_IDX (6)
 `define PRF_SZ (1<<`PRF_IDX)
 `define ROB_IDX (5)

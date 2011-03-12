@@ -1,12 +1,47 @@
 #!/usr/bin/env bash
+usage() {
+cat << EOF
+USAGE: $0 [OPTIONS] [syn]
+
+This script runs one or all the tests against both this processor's output and another processor's output
+
+OPTIONS:
+  -h, --help            Show this message
+  -t, --test            Specific test program to run
+  -d, --compare-dir     Directory with standard processor simulation
+  syn                   Run tests in synthesis mode
+EOF
+}
+TMP=`getopt --name=$0 -a --longoptions="help,compare-dir:,test:" -o="h,d:,t:" -- $@`
+eval set -- $TMP;
+until [ $1 == -- ]; do
+    case $1 in
+        -h|--help)
+            usage; exit 1;;
+        -d|--compare-dir)
+            comp_dir=$2;;
+        -t|--test)
+            prog=$2;;
+        *)  #Default unknown option
+            usage; exit 1;;
+     esac
+     shift;
+done
+shift;
+comp_dir=${comp_dir:-./vsimp4_w11}
+if ! [ -f $comp_dir/Makefile ]; then
+  echo "In order processor makefile not found in $comp_dir";
+  exit 1;
+fi
+echo "Comparing results against directory in-order proc in $comp_dir";
 printf "%-40s %-8s %-4s\n" "File" "CPI" "Test";
-for f in test_progs/*.s
+for f in ${prog:-test_progs/*.s}
 do
 	(./vs-asm $f > ./program.mem) || exit;
-	cp -f ./program.mem ../vsimp4_w11/program.mem;
+	cp -f ./program.mem $comp_dir/program.mem;
 	(make $1 > /dev/null) || exit;
-	(cd ../vsimp4_w11; make > /dev/null) || exit;
-	diff writeback.out ../vsimp4_w11/writeback.out > results.txt;
+	(cd $comp_dir; make > /dev/null) || exit;
+	diff writeback.out $comp_dir/writeback.out > results.txt;
 	printf "%-40s " "$(basename $f)";
 	printf "%-8s" `grep CPI ${1:+${1}_}program.out | cut -d " " -f 9`;
 	if [ -s results.txt ]; then
