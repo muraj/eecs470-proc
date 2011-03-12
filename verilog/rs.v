@@ -8,8 +8,8 @@ module RS(clk, reset,
                 //OUTPUT
                 rs_free,  ALU_rdy, mem_rdy, mult_rdy, //Hazard detect
                 pdest_idx_out, prega_idx_out, pregb_idx_out, ALUop_out, rd_mem_out,   //FU
-                wr_mem_out, rs_IR_out, npc_out, rob_idx_out,                           //FU
-								rs_idx_out																													// ROB
+                wr_mem_out, rs_IR_out, npc_out, rob_idx_out,                          //FU
+    			rs_idx_out															  //ROB
           );
 
   input wire  clk, reset;
@@ -22,20 +22,20 @@ module RS(clk, reset,
   input wire  cond_branch, uncond_branch;
   input wire  [63:0] npc;
   input wire  mult_free, ALU_free, mem_free;
-	input wire	[`SCALAR-1:0] cdb_valid;
-  input wire  [`SCALAR-1:0] cdb_tag [`PRF_IDX-1:0];
-	input wire	[`SCALAR-1:0] entry_flush [`RS_SZ-1:0];
+  input wire  [`SCALAR-1:0] cdb_valid;
+  input wire  [`SCALAR*`PRF_IDX-1:0] cdb_tag;
+  input wire  [`SCALAR*`RS_SZ-1:0] entry_flush;
   input wire  [`ROB_IDX-1:0] rob_idx;
 
   output wire rs_free;
-	output wire ALU_rdy, mem_rdy, mult_rdy;
+  output wire ALU_rdy, mem_rdy, mult_rdy;
   output wire [`PRF_IDX-1:0] pdest_idx_out, prega_idx_out, pregb_idx_out;
   output wire [4:0] ALUop_out;
-  output wire  rd_mem_out, wr_mem_out;
+  output wire rd_mem_out, wr_mem_out;
   output wire [31:0] rs_IR_out;
   output wire [63:0] npc_out;
   output wire [`ROB_IDX-1:0] rob_idx_out;
-	output wire [`RS_IDX-1:0] rs_idx_out; // Output of ex encoder
+  output wire [`RS_IDX-1:0] rs_idx_out; // Output of ex encoder
 
   wire [`RS_SZ-1:0] entry_free;
   wire [`RS_SZ-1:0] entry_ALU_rdy, entry_mem_rdy, entry_mult_rdy;
@@ -51,7 +51,7 @@ module RS(clk, reset,
 
   wire [`RS_SZ-1:0] entry_en; // Output of issue selector
   wire [`RS_SZ-1:0] entry_ALU_sel, entry_mem_sel, entry_mult_sel; // Output of the encoders (ALU_sel, mem_sel, mult_sel)
-	wire [`RS_SZ-1:0] entry_sel; // selected entry for execution
+  wire [`RS_SZ-1:0] entry_sel; // selected entry for execution
 
   assign pdest_idx_out = pdest_idx_int[rs_idx_out];
   assign prega_idx_out = prega_idx_int[rs_idx_out];
@@ -64,14 +64,13 @@ module RS(clk, reset,
   assign rob_idx_out = rob_idx_int[rs_idx_out];
   assign rs_free = | entry_free;
 
-	assign ALU_rdy = | entry_ALU_rdy;
-	assign mem_rdy = | entry_mem_rdy;
-	assign mult_rdy = | entry_mult_rdy;
+  assign ALU_rdy = | entry_ALU_rdy;
+  assign mem_rdy = | entry_mem_rdy;
+  assign mult_rdy = | entry_mult_rdy;
 
-	assign entry_sel = (ALU_free) ? entry_ALU_sel :
-										 ((mem_free) ? entry_mem_sel :
-										 ((mult_free) ? entry_mult_sel :
-										 `RS_SZ'b0));
+  assign entry_sel = ALU_free ? entry_ALU_sel :
+					(mem_free ? entry_mem_sel :
+					(mult_free ? entry_mult_sel : {`RS_SZ{1'b0}}));
 
 ps #(.NUM_BITS(`RS_SZ)) issue_sel(.req(entry_free), .en(rs_en), .gnt(entry_en), .req_up()); 
 ps #(.NUM_BITS(`RS_SZ)) ALU_sel(.req(entry_ALU_rdy), .en(ALU_free), .gnt(entry_ALU_sel), .req_up());
@@ -111,8 +110,8 @@ generate
                           //OUTPUT
                                   .entry_free(entry_free[i]), 
                                   .ALU_rdy(entry_ALU_rdy[i]),
-																	.mem_rdy(entry_mem_rdy[i]),
-																	.mult_rdy(entry_mult_rdy[i]),
+								  .mem_rdy(entry_mem_rdy[i]),
+								  .mult_rdy(entry_mult_rdy[i]),
                                   .pdest_idx_out(pdest_idx_int[i]), 
                                   .prega_idx_out(prega_idx_int[i]), 
                                   .pregb_idx_out(pregb_idx_int[i]), 
@@ -153,8 +152,8 @@ module rs_entry(clk, reset,
   input wire  cond_branch, uncond_branch;
   input wire  [63:0] npc;
   input wire  mult_free, ex_free, mem_free;
-	input wire  [`SCALAR-1:0] cdb_valid;
-  input wire  [`SCALAR-1:0] cdb_tag [`PRF_IDX-1:0];
+  input wire  [`SCALAR-1:0] cdb_valid;
+  input wire  [`SCALAR*`PRF_IDX-1:0] cdb_tag;
   input wire  [`ROB_IDX-1:0] rob_idx;
 
   output reg  entry_free, ALU_rdy, mem_rdy, mult_rdy;
@@ -204,10 +203,10 @@ module rs_entry(clk, reset,
       next_rob_idx_out = rob_idx;
     end
   
-	`ifdef SCALAR
-    next_prega_rdy = (prega_rdy ) ? prega_rdy : ((entry_en & prega_valid) | (cdb_valid[0] & (cdb_tag[0]==prega_idx_out)) | (cdb_valid[1] & (cdb_tag[1]==prega_idx_out)));
-    next_pregb_rdy = (pregb_rdy ) ? pregb_rdy : ((entry_en & pregb_valid) | (cdb_valid[0] & (cdb_tag[0]==pregb_idx_out)) | (cdb_valid[1] & (cdb_tag[1]==prega_idx_out)));
-	`else
+  `ifdef SUPERSCALAR
+    next_prega_rdy = (prega_rdy ) ? prega_rdy : ((entry_en & prega_valid) | (cdb_valid[0] & (cdb_tag[0:`PRF_IDX-1]==prega_idx_out)) | (cdb_valid[1] & (cdb_tag[`PRF_IDX:`SCALAR*`PRF_IDX-1]==prega_idx_out)));
+    next_prega_rdy = (pregb_rdy ) ? pregb_rdy : ((entry_en & pregb_valid) | (cdb_valid[0] & (cdb_tag[0:`PRF_IDX-1]==pregb_idx_out)) | (cdb_valid[1] & (cdb_tag[`PRF_IDX:`SCALAR*`PRF_IDX-1]==pregb_idx_out)));
+  `else
     next_prega_rdy = (prega_rdy ) ? prega_rdy : ((entry_en & prega_valid) | (cdb_valid & (cdb_tag==prega_idx_out)));
     next_pregb_rdy = (pregb_rdy ) ? pregb_rdy : ((entry_en & pregb_valid) | (cdb_valid & (cdb_tag==pregb_idx_out)));
   `endif

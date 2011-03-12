@@ -45,7 +45,7 @@ module SUPER_RS(clk, reset,
   wire rs0_mem_free = memfu_free[0] & mem_rdy[0];
   wire rs0_mult_free = multfu_free[0] & mult_rdy[0];
 
-`ifdef SCALAR
+`ifdef SUPERSCALAR
   wire rs1_en, rs1_sel;
   wire rs1_ex_free = (rs0_ex_free ? exfu_free[1] : exfu_free[0]) & ALU_rdy[1];
   wire rs1_mem_free = (rs0_mem_free ? memfu_free[1] : memfu_free[0]) & mem_rdy[1];
@@ -67,7 +67,7 @@ module SUPER_RS(clk, reset,
                     wr_mem_out[0], rs_IR_out[0], npc_out[0], rob_idx_out[0],
                     rs_idx_out[0]);
 
-`ifdef SCALAR
+`ifdef SUPERSCALAR
   RS rs1(clk, reset,
                     //INPUTS
                     rs1_en, prega_idx[rs1_sel], pregb_idx[rs1_sel], pdest_idx[rs1_sel], prega_valid[rs1_sel], pregb_valid[rs1_sel],
