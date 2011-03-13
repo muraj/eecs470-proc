@@ -15,11 +15,12 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
 	// internal regs
 	reg [CB_IDX-1:0] head, tail;
 	reg [CB_WIDTH-1:0] data [CB_LENGTH-1:0];
+	reg [CB_WIDTH-1:0] next_data [CB_LENGTH-1:0];
 	reg [CB_IDX-1:0] next_head, next_tail;
 	
 	// purely combinational
 	assign full = ((tail + 1'b1) == head);
-	assign full_almost = ((tail + 1'b2) == head);
+	assign full_almost = ((tail + 2'b10) == head);
 
 	always @* begin
 		next_data = data;
