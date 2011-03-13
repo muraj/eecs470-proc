@@ -42,7 +42,7 @@ module testbench;
 	  begin
 		
     $display("============================================================================================ ");
-    $display("Data_in1 | Data_en1 | Data_in2 | Data_en2 | Dout1 | Dout1_req | Dout2 | Dout2_req | full | full_almost | move tail | move offset ");
+    $display("Din1 | Den1 | Din2 | Den2 | Dout1 | Dreq1 | Dout2 | Dreq2 | full | full_almost | move tail | move offset ");
     $display("============================================================================================ ");
 
     $display(" 0x%h | %d | 0x%h | %d | 0x%h | %d | 0x%h | %d | %b | %b | %b | 0x%h ",din1, din1_en, din2, din2_en, dout1, dout1_req, dout2, dout2_req, full, full_almost, move_tail, tail_offset);
@@ -54,37 +54,26 @@ module testbench;
 	task show_entry_content;
 	  begin
 		
-    $display("============================================================================================ ");
-    $display("Data");
-    $display("============================================================================================ ");
+		$display("\n========================== ");
+    $display("Circular Buffer Contents:");
+    $display("========================== ");
 
-    $display("%d",cb0.data[0]);
-		$display("%d",cb0.data[1]);
-		$display("%d",cb0.data[2]);
-		$display("%d",cb0.data[3]);
-		$display("%d",cb0.data[4]);
-		$display("%d",cb0.data[5]);
-		$display("%d",cb0.data[6]);
-		$display("%d",cb0.data[7]);
+    $display("Counter : %d",cb0.iocount);
+    $display("Head : %d",cb0.head);
+		$display("Tail : %d\n",cb0.tail);
+    
+    $display("Entry 0 | %d",cb0.data[0]);
+		$display("Entry 1 | %d",cb0.data[1]);
+		$display("Entry 2 | %d",cb0.data[2]);
+		$display("Entry 3 | %d",cb0.data[3]);
+		$display("Entry 4 | %d",cb0.data[4]);
+		$display("Entry 5 | %d",cb0.data[5]);
+		$display("Entry 6 | %d",cb0.data[6]);
+		$display("Entry 7 | %d",cb0.data[7]);
 
-    $display("============================================================================================ ");
+    $display("========================== ");
 	  end
 	endtask
-
-	task show_pointer_content;
-	  begin
-		
-    $display("============================================================================================ ");
-    $display("Current Pointers");
-    $display("============================================================================================ ");
-
-    $display("head : %d",cb0.head);
-		$display("tail : %d",cb0.tail);
-
-    $display("============================================================================================ ");
-	  end
-	endtask
-
 
 	task reset_all;
 	  begin
@@ -141,13 +130,13 @@ module testbench;
     
     insert_data(2,3,0);
 		show_IO_content();
-    @(negedge clk);show_entry_content();show_pointer_content();
-    @(negedge clk);show_entry_content();show_pointer_content();
-    @(negedge clk);show_entry_content();show_pointer_content();
-    @(negedge clk);show_entry_content();show_pointer_content();
-    @(negedge clk);show_entry_content();show_pointer_content();
-		@(negedge clk);show_entry_content();show_pointer_content();
-    @(negedge clk);show_entry_content();show_pointer_content();
+    @(negedge clk);show_entry_content();
+    @(negedge clk);show_entry_content();
+    @(negedge clk);show_entry_content();
+    @(negedge clk);show_entry_content();
+    @(negedge clk);show_entry_content();
+		@(negedge clk);show_entry_content();
+    @(negedge clk);show_entry_content();
 
     
 
