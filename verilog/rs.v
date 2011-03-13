@@ -206,12 +206,12 @@ module rs_entry(clk, reset,
   `ifdef SUPERSCALAR
     next_prega_rdy = (prega_rdy ) ? prega_rdy : 
                      ((entry_en & prega_valid) | 
-                      (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==prega_idx_out)) | 
-                      (cdb_valid[1] & (cdb_tag[`SCALAR*`PRF_IDX-1:`PRF_IDX]==prega_idx_out)));
+                      (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==(entry_en ? next_prega_idx_out : prega_idx_out))) | 
+                      (cdb_valid[1] & (cdb_tag[`SCALAR*`PRF_IDX-1:`PRF_IDX]==(entry_en ? next_prega_idx_out : prega_idx_out))));
     next_pregb_rdy = (pregb_rdy ) ? pregb_rdy :
                      ((entry_en & pregb_valid) | 
-                      (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==pregb_idx_out)) |
-                      (cdb_valid[1] & (cdb_tag[`SCALAR*`PRF_IDX-1:`PRF_IDX]==pregb_idx_out)));
+                      (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==(entry_en ? next_pregb_idx_out : pregb_idx_out))) |
+                      (cdb_valid[1] & (cdb_tag[`SCALAR*`PRF_IDX-1:`PRF_IDX]==(entry_en ? next_pregb_idx_out : pregb_idx_out))));
   `else
     next_prega_rdy = (prega_rdy ) ? prega_rdy : 
                      ((entry_en & prega_valid) | 

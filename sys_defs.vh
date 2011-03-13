@@ -284,7 +284,7 @@
 `define JSR_CO_INST	2'h3
 
 // Customized T3 Macros
-//`define SUPERSCALAR /* Comment this out if non-superscalar */
+`define SUPERSCALAR /* Comment this out if non-superscalar */
 `ifdef SUPERSCALAR
     `define SCALAR (2)
 `else

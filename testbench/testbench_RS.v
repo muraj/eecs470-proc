@@ -628,6 +628,8 @@ module testbench;
 		insert_ALUinst(6,2,3,0,1,1);
 		set_CDB(6,1,0);
 		mult_free = 1'b1;
+        @(posedge clk); $display("rs_cdb_valid %b rs_cdb_tag %h next_prega_valid %b", rs_0.entries[15].entry.cdb_valid[0], rs_0.entries[15].entry.cdb_tag[`PRF_IDX-1:0], rs_0.entries[15].entry.next_prega_rdy);
+        $display("prega_rdy %d, entry_en %d, prega_valid %d, prega_idx_out %d", rs_0.entries[15].entry.prega_rdy, rs_0.entries[15].entry.entry_en, rs_0.entries[15].entry.prega_valid, rs_0.entries[15].entry.prega_idx_out);
 		@(negedge clk);show_entry_content();
         rs_en = 1'b0;
         set_CDB(0,0,0);
