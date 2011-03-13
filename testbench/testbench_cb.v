@@ -121,9 +121,9 @@ module testbench;
 
 	initial
 	  begin
+    clk = 1'b0;
     // Reset CB
     reset = 1'b1;      // Assert Reset
-    clk = 1'b0;
     @(negedge clk);
     reset = 1'b0;      // Deassert Reset
     // Initialize input signals
@@ -138,13 +138,33 @@ module testbench;
     
     insert_data(2,3,0);
 		show_IO_content();
+		// insert two at a time
     @(negedge clk);show_entry_content();show_IO_content();
     @(negedge clk);show_entry_content();show_IO_content();
     @(negedge clk);show_entry_content();show_IO_content();
     @(negedge clk);show_entry_content();show_IO_content();
-    @(negedge clk);show_entry_content();
+    @(negedge clk);show_entry_content();show_IO_content();
 		insert_data(0,0,0);
 
+		// insert one at a time
+    // Reset CB
+    reset = 1'b1;      // Assert Reset
+    @(negedge clk);
+    reset = 1'b0;      // Deassert Reset
+    @(negedge clk);
+		
+		show_entry_content();show_IO_content();
+    insert_data(1,5,0);
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+		insert_data(0,0,0);
     
 		// Test case #2: Pull items
     $display("=============================================================\n");
