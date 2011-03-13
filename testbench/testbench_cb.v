@@ -18,7 +18,6 @@ module testbench;
 
   always
   begin
-    count = din1_en+din2_en - dout1_req - dout2_req;
     #(`VERILOG_CLOCK_PERIOD/2.0);
     clk = ~clk;
   end
@@ -26,6 +25,7 @@ module testbench;
 
   always @(posedge clk) //simulating 
   begin
+    count = count + din1_en+din2_en - dout1_req - dout2_req;
 		if((count == `CB_WIDTH) != full)
 			begin
 	      $display("@@@ Fail! Time: %4.0f CB is supposed to be full, but isn't! @@@", $time);
@@ -88,6 +88,7 @@ module testbench;
 
 	task reset_all;
 	  begin
+			count = 0;
 			move_tail=0;
   		din1_en=0;
   		din2_en=0;
@@ -150,6 +151,7 @@ module testbench;
 
     
 
+		show_IO_content();
     $display("All Testcase Passed!\n"); 
     $finish; 
 

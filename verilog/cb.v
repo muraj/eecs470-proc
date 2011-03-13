@@ -13,7 +13,7 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
   input clk, reset, move_tail, din1_en, din2_en, dout1_req, dout2_req;
 	input [CB_IDX-1:0] tail_offset;
 	input [CB_WIDTH-1:0] din1, din2;
-	output full, full_almost;
+	output reg full, full_almost;
 	output reg [CB_WIDTH-1:0] dout1, dout2;
 
 	// internal regs
@@ -21,7 +21,11 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
 	reg [CB_WIDTH-1:0] data [CB_LENGTH-1:0];
 	reg [CB_WIDTH-1:0] next_data1, next_data2;
 	reg [CB_IDX-1:0] next_head, next_tail;
-	
+
+	// i/o counter
+	reg [CB_IDX:0] iocount;
+	wire [CB_IDX:0] next_iocount;
+
 	// purely combinational
 	wire [CB_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2;
 	
@@ -29,8 +33,10 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
 	assign tail_p2 = tail + 2'd2;
 	assign head_p1 = head + 1'd1;
 	assign head_p2 = head + 2'd2;
-	assign full = ((tail_p1) == head);
-	assign full_almost = ((tail_p2) == head);
+	
+	assign next_iocount = iocount + din1_en + din2_en - dout1_req - dout2_req;
+	assign next_full = next_iocount == CB_LENGTH;
+	assign next_full_almost = next_iocount == (CB_LENGTH-1);
 
 	always @* begin
 		// default cases
@@ -68,11 +74,17 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
 		if (reset) begin
 			head <= `SD {CB_IDX{1'b0}};
 			tail <= `SD {CB_IDX{1'b0}};
+			iocount <= `SD {CB_IDX+1{1'b0}};
+			full <= `SD 1'b0;
+			full_almost <= `SD 1'b0;
 		end else begin
 			data[tail] <= `SD next_data1;
 			data[tail_p1] <= `SD next_data2;
 			head <= `SD next_head;
 			tail <= `SD next_tail;
+			iocount <= `SD next_iocount;
+			full <= `SD next_full;
+			full_almost <= `SD next_full_almost;
 		end
 	end
 
