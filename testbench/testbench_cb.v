@@ -58,14 +58,14 @@ module testbench;
     $display("Data");
     $display("============================================================================================ ");
 
-    $display("%d",cb0.data[7]);
-		$display("%d",cb0.data[6]);
-		$display("%d",cb0.data[5]);
-		$display("%d",cb0.data[4]);
-		$display("%d",cb0.data[3]);
-		$display("%d",cb0.data[2]);
+    $display("%d",cb0.data[0]);
 		$display("%d",cb0.data[1]);
-		$display("%d",cb0.data[0]);
+		$display("%d",cb0.data[2]);
+		$display("%d",cb0.data[3]);
+		$display("%d",cb0.data[4]);
+		$display("%d",cb0.data[5]);
+		$display("%d",cb0.data[6]);
+		$display("%d",cb0.data[7]);
 
     $display("============================================================================================ ");
 	  end

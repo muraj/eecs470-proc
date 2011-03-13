@@ -3,8 +3,12 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
 
 	//synopsys template
 	parameter CB_IDX = 4;
-	parameter CB_LENGTH = 1'b1<<CB_IDX;
 	parameter CB_WIDTH = 8;
+
+
+//	parameter CB_LENGTH = 1'b1<<CB_IDX;
+	parameter CB_LENGTH = 8;
+
 
   input clk, reset, move_tail, din1_en, din2_en, dout1_req, dout2_req;
 	input [CB_IDX-1:0] tail_offset;
@@ -30,8 +34,8 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
 
 	always @* begin
 		// default cases
-		next_data1 = data[tail_p1];
-		next_data2 = data[tail_p2];
+		next_data1 = data[tail];
+		next_data2 = data[tail_p1];
 		next_head = head;
 		next_tail = tail;
 
@@ -65,8 +69,8 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
 			head <= `SD {CB_IDX{1'b0}};
 			tail <= `SD {CB_IDX{1'b0}};
 		end else begin
-			data[tail+1] <= `SD next_data1;
-			data[tail+2] <= `SD next_data2;
+			data[tail] <= `SD next_data1;
+			data[tail_p1] <= `SD next_data2;
 			head <= `SD next_head;
 			tail <= `SD next_tail;
 		end
