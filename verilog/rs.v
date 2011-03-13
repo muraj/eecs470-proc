@@ -204,16 +204,26 @@ module rs_entry(clk, reset,
     end
   
   `ifdef SUPERSCALAR
-    next_prega_rdy = (prega_rdy ) ? prega_rdy : ((entry_en & prega_valid) | (cdb_valid[0] & (cdb_tag[0:`PRF_IDX-1]==prega_idx_out)) | (cdb_valid[1] & (cdb_tag[`PRF_IDX:`SCALAR*`PRF_IDX-1]==prega_idx_out)));
-    next_prega_rdy = (pregb_rdy ) ? pregb_rdy : ((entry_en & pregb_valid) | (cdb_valid[0] & (cdb_tag[0:`PRF_IDX-1]==pregb_idx_out)) | (cdb_valid[1] & (cdb_tag[`PRF_IDX:`SCALAR*`PRF_IDX-1]==pregb_idx_out)));
+    next_prega_rdy = (prega_rdy ) ? prega_rdy : 
+                     ((entry_en & prega_valid) | 
+                      (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==prega_idx_out)) | 
+                      (cdb_valid[1] & (cdb_tag[`SCALAR*`PRF_IDX-1:`PRF_IDX]==prega_idx_out)));
+    next_pregb_rdy = (pregb_rdy ) ? pregb_rdy :
+                     ((entry_en & pregb_valid) | 
+                      (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==pregb_idx_out)) |
+                      (cdb_valid[1] & (cdb_tag[`SCALAR*`PRF_IDX-1:`PRF_IDX]==pregb_idx_out)));
   `else
-    next_prega_rdy = (prega_rdy ) ? prega_rdy : ((entry_en & prega_valid) | (cdb_valid & (cdb_tag==prega_idx_out)));
-    next_pregb_rdy = (pregb_rdy ) ? pregb_rdy : ((entry_en & pregb_valid) | (cdb_valid & (cdb_tag==pregb_idx_out)));
+    next_prega_rdy = (prega_rdy ) ? prega_rdy : 
+                     ((entry_en & prega_valid) | 
+                      (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==prega_idx_out)));
+    next_pregb_rdy = (pregb_rdy ) ? pregb_rdy : 
+                     ((entry_en & pregb_valid) | 
+                      (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==pregb_idx_out)));
   `endif
 
-		mem_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ) & (rd_mem_out | wr_mem_out);
-		mult_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ) & to_mult;
-		ALU_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ) & !mem_rdy & !mult_rdy; 
+	mem_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ) & (rd_mem_out | wr_mem_out);
+	mult_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ) & to_mult;
+	ALU_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ) & !mem_rdy & !mult_rdy; 
   end
    
   always @(posedge clk)

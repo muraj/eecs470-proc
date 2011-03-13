@@ -26,9 +26,11 @@ module testbench;
   reg  [31:0] rs_IR; 
   reg  cond_branch, uncond_branch;
   reg  [63:0] npc;
-  reg  mult_free, ALU_free, mem_free, cdb_valid;
-  reg  [`PRF_IDX-1:0] cdb_tag;
+  reg  mult_free, ALU_free, mem_free;
+  reg  [`SCALAR:0] cdb_valid;
+  reg  [`SCALAR*`PRF_IDX-1:0] cdb_tag;
   reg  [`ROB_IDX-1:0] rob_idx;
+  reg  [`SCALAR*`RS_SZ-1:0] entry_flush;
 
   wire  rs_free, ALU_rdy, mem_rdy, mult_rdy;
   wire  [`PRF_IDX-1:0] pdest_idx_out, prega_idx_out, pregb_idx_out;
@@ -78,7 +80,7 @@ module testbench;
         $finish;
       end
     end
-    if(ALU_rdy || mem_rdy || mult_rdy)
+    if((ALU_rdy & ALU_free) || (mem_rdy & mem_free) || (mult_rdy & mult_free))
     begin
       if(limbo_inst <= 0)
       begin
@@ -136,10 +138,18 @@ module testbench;
 	task set_CDB;
 		input [`PRF_IDX-1:0] tag;
 		input valid;
+        input scalar;
 		begin
-			cdb_tag = tag;
-			cdb_valid = valid;
-			$display("Setting CDB@%4.0fns: Register Tag = %0d		Valid = %d", $time, tag, valid);
+            if(scalar) begin
+			cdb_tag[2*`PRF_IDX-1:`PRF_IDX] = tag;
+			cdb_valid[1] = valid;
+            end
+            else begin
+			cdb_tag[`PRF_IDX-1:0] = tag;
+			cdb_valid[0] = valid;
+            end
+			$display("Setting CDB%0b@%4.0fns: Register Tag = %0d		Valid = %d", scalar, $time, tag, valid);
+            $display("CDB is: 0x%h %b", cdb_tag, cdb_valid);
 		end
 	endtask
 
@@ -209,21 +219,16 @@ module testbench;
   initial
   begin
 //    $monitor("time : %4.0f,  npc: %0d, rs_free: %h, rs_rdy: %h, ALU_free: %h, mem_free: %h, mult_free: %h, cdb_valid: %h, cdb_tag: %h, entry_idx: %h\n", $time, npc, rs_free, rs_rdy, ALU_free, mem_free, mult_free, cdb_valid, cdb_tag, rs_0.entry_idx);
-    reset = 1'b1;      // Assert Reset
+    reset = 1'b1;
     clk = 1'b0;
-    @(negedge clk);
-    reset = 1'b0;      // Deassert Reset
-    rs_en = 1'b1;  // Enable RS
-    // Initialize input signals
     reset_all();
+    @(negedge clk);
+    reset = 1'b0;
+    // Initialize input signals
     @(negedge clk);
 	$display("=============================================================\n");
     $display("@@@ Time: %4.0f  Test case: Insert until full\n", $time);
     $display("=============================================================\n");
-    reset = 1'b1;
-    reset_all();
-    @(negedge clk);
-    reset = 1'b0;
 
     for(idx=0;idx<`RS_SZ;idx=idx+1)
     begin
@@ -231,7 +236,7 @@ module testbench;
       insert_ALUinst(idx,idx+1,idx+2,0,0,0);
     end
     @(negedge clk);
-    rs_en = 1'b0;
+    rs_en = 1'b0;   //Check the next cycle to see if full, but don't add another instruction
     @(posedge clk);
     if(rs_free)
     begin
@@ -246,11 +251,11 @@ module testbench;
     $display("=============================================================\n");
     @(negedge clk);
     ALU_free=1'b1;          //Free an ALU entry every clock cycle
-    set_CDB(5'b0, 1'b1);    //Set the first register for the first instruction
+    set_CDB(5'b0, 1'b1, 1'b0);    //Set the first register for the first instruction
     @(negedge clk);
     for(idx=0;idx<`RS_SZ; idx=idx+1)
     begin
-      set_CDB(idx+1, 1'b1); //Send the first operand (next iteration will get the second operand)
+      set_CDB(idx+1, 1'b1, 1'b0); //Send the first operand (next iteration will get the second operand)
       @(posedge clk);
       if(!ALU_rdy) begin
         $display("@@@ Fail! rs_rdy not asserted when instruction should be ready");
@@ -282,13 +287,12 @@ module testbench;
     else
       $display("@@@ Success! ALU empty test passed");
     ALU_free=1'b0; //Disable ALUs
-    set_CDB(0,0); //Disable CDB
-    show_entry_content();
+    set_CDB(0,0,0); //Disable CDB
+
     reset_all();
     reset = 1'b1;
-
-  
     @(negedge clk);
+    reset = 1'b0;
     // Test case #1.1: Insert new instruction 
    
     $display("=============================================================\n");
@@ -304,34 +308,28 @@ module testbench;
     @(negedge clk);show_entry_content();
     insert_ALUinst(4,5,6,0,0,0);
     ALU_free=1'b1; 
-    set_CDB(3,1); 
+    set_CDB(3,1,0); 
     @(negedge clk);show_entry_content();
     insert_ALUinst(5,6,7,0,0,0);
     ALU_free=1'b1; 
-    set_CDB(4,1); 
+    set_CDB(4,1,0); 
     @(negedge clk);show_entry_content();
     rs_en = 1'b0;  // disable RS No more Inst
     ALU_free=1'b1; 
-    set_CDB(5,1); 
+    set_CDB(5,1,0); 
     @(negedge clk);show_entry_content();
     ALU_free=1'b1; 
-    set_CDB(6,1); 
+    set_CDB(6,1,0); 
     @(negedge clk);show_entry_content();
     ALU_free=1'b1; 
-    set_CDB(7,1);   
+    set_CDB(7,1,0);
     @(negedge clk); show_entry_content();
+    $display("@@@ Success!  Test #1.1 Passed!");
 
-    
-    // Test case #1.2: Insert new instruction 
-    @(negedge clk);
-    // Reset RS
-    reset = 1'b1;      // Assert Reset
-    clk = 1'b0;
-    @(negedge clk);
-    reset = 1'b0;      // Deassert Reset
-    rs_en = 1'b1;  // Enable RS
-    // Initialize input signals
     reset_all();
+    reset = 1'b1;
+    @(negedge clk);
+    reset = 1'b0;
     
     $display("=============================================================\n");
     $display("@@@ Test case #1.2: Insert MULT instruction\n");
@@ -345,34 +343,30 @@ module testbench;
     @(negedge clk);
     insert_ALUinst(4,5,6,0,0,1);show_entry_content();
     mult_free=1'b1; 
-    set_CDB(3,1); 
+    set_CDB(3,1,0); 
     @(negedge clk);show_entry_content();
     insert_ALUinst(5,6,7,0,0,1);
     mult_free=1'b1; 
-    set_CDB(4,1); 
+    set_CDB(4,1,0); 
     @(negedge clk);show_entry_content();
     rs_en = 1'b0;  // disable RS No more Inst
     mult_free=1'b1; 
-    set_CDB(5,1); 
+    set_CDB(5,1,0); 
     @(negedge clk);show_entry_content();
     mult_free=1'b1; 
-    set_CDB(6,1); 
+    set_CDB(6,1,0); 
     @(negedge clk);show_entry_content();
     mult_free=1'b1; 
-    set_CDB(7,1);   
+    set_CDB(7,1,0);
     @(negedge clk); show_entry_content();
 
+    $display("@@@ Success!  Test #1.2 Passed!");
 
-    // Test case #1.3: Insert new instruction 
-    @(negedge clk);
-    // Reset RS
-    reset = 1'b1;      // Assert Reset
-    clk = 1'b0;
-    @(negedge clk);
-    reset = 1'b0;      // Deassert Reset
-    rs_en = 1'b1;  // Enable RS
-    // Initialize input signals
     reset_all();
+    reset = 1'b1;
+    @(negedge clk);
+    reset = 1'b0;
+    // Test case #1.3: Insert new instruction 
     
     $display("=============================================================\n");
     $display("@@@ Test case #1.3: Insert MEM instruction\n");
@@ -386,23 +380,24 @@ module testbench;
     @(negedge clk);show_entry_content();
     insert_MEMinst(4,5,6,0,0,1,0);
     mem_free=1'b1; 
-    set_CDB(3,1); 
+    set_CDB(3,1,0); 
     @(negedge clk);show_entry_content();
     insert_MEMinst(5,6,7,0,0,1,0);
     mem_free=1'b1; 
-    set_CDB(4,1); 
+    set_CDB(4,1,0); 
     @(negedge clk);show_entry_content();
     rs_en = 1'b0;  // disable RS No more Inst
     mem_free=1'b1; 
-    set_CDB(5,1); 
+    set_CDB(5,1,0); 
     @(negedge clk);show_entry_content();
     mem_free=1'b1; 
-    set_CDB(6,1); 
+    set_CDB(6,1,0); 
     @(negedge clk);show_entry_content();
     mem_free=1'b1; 
-    set_CDB(7,1);   
+    set_CDB(7,1,0);
     @(negedge clk);  show_entry_content();
 
+    $display("@@@ Success!  Test #1.3 Passed!");
 
     // Reset RS
     reset = 1'b1;      // Assert Reset
@@ -417,7 +412,7 @@ module testbench;
     // Test case #x.x: CDB Test
 	@(negedge clk); 
 	$display("=============================================================\n");
-    $display("@@@ Time: %4.0f  Test case: Basic CDB Test\n", $time);
+    $display("@@@ Time: %4.0f  Test case: Basic Internal CDB Test\n", $time);
     $display("=============================================================\n");
   `ifdef SYNTH
     $display("Test not applicable in synth mode");
@@ -441,15 +436,15 @@ module testbench;
     insert_inst(15,16,17,0,0,0,1,0); @(negedge clk); show_entry_content();
     insert_inst(16,17,18,0,0,0,0,1); @(negedge clk); show_entry_content();
 
-    set_CDB(2, 1); @(negedge clk); show_entry_content();
+    set_CDB(2, 1, 0); @(negedge clk); show_entry_content();
 		if(rs_0.entries[15].entry.pregb_rdy==1'b0 | rs_0.entries[14].entry.prega_rdy==1'b0) CDB_fail();
-    set_CDB(2, 0); @(negedge clk); show_entry_content();
+    set_CDB(2, 0, 0); @(negedge clk); show_entry_content();
 		if(rs_0.entries[15].entry.pregb_rdy==1'b0 | rs_0.entries[14].entry.prega_rdy==1'b0) CDB_fail();
-    set_CDB(3, 1); @(negedge clk); show_entry_content();
+    set_CDB(3, 1, 0); @(negedge clk); show_entry_content();
 		if(rs_0.entries[14].entry.pregb_rdy==1'b0 | rs_0.entries[13].entry.prega_rdy==1'b0) CDB_fail();
-    set_CDB(4, 1); @(negedge clk); show_entry_content();
+    set_CDB(4, 1, 0); @(negedge clk); show_entry_content();
 		if(rs_0.entries[13].entry.pregb_rdy==1'b0 | rs_0.entries[12].entry.prega_rdy==1'b0) CDB_fail();
-    set_CDB(5, 1); @(negedge clk); show_entry_content();
+    set_CDB(5, 1, 0); @(negedge clk); show_entry_content();
 		if(rs_0.entries[12].entry.pregb_rdy==1'b0 | rs_0.entries[11].entry.prega_rdy==1'b0) CDB_fail();
    
 	$display("@@@ Success! Basic CDB test passed");
@@ -457,9 +452,6 @@ module testbench;
 	@(negedge clk);
     `endif
 
-
-    
-		
 	$display("=============================================================\n");
     $display("@@@ Time: %4.0f  Test case #5.1: FU becomes free, but no inst ready\n", $time);
     $display("=============================================================\n");
@@ -488,6 +480,7 @@ module testbench;
 	@(negedge clk);
 	show_entry_content();
     
+    @(posedge clk);
 	if(rs_free)
     begin
       $display("@@@ Fail! Test case #5.1 failed");
@@ -519,6 +512,7 @@ module testbench;
     
 		show_entry_content();
 
+    @(posedge clk);
 	if(!rs_free)
     begin
       $display("@@@ Fail! Test case #5.2 failed");
@@ -529,7 +523,7 @@ module testbench;
     $display("=============================================================\n");
     $display("@@@ Time: %4.0f  Test case #5.3: more than one instr's ready, FU/MEM becomes free\n", $time);
     $display("=============================================================\n");
-`ifdef SYNTH
+`ifndef SYNTH
     $display("Test not applicable in synth mode");
 `else
 		// reset rs
@@ -549,7 +543,7 @@ module testbench;
 		rs_en = 1'b0;
 
 		ALU_free = 1'b1; $display("ex is free now");
-		set_CDB(1,1); 
+		set_CDB(1,1,0); 
 		@(negedge clk);show_entry_content();
 		// first alu instruction should be out
 		if (!rs_0.entries[12].entry.entry_free)
@@ -582,6 +576,7 @@ module testbench;
 		@(negedge clk);show_entry_content();
 
 		show_entry_content();
+        @(posedge clk);
 		if(!rs_free)
         begin
           $display("@@@ Fail! Test case #5.3 failed");
@@ -611,12 +606,12 @@ module testbench;
 		@(negedge clk);
 
 		show_entry_content();
+    @(posedge clk);
 	if(!rs_free)
     begin
       $display("@@@ Fail! Test case #5.4 failed");
       $finish;
     end
-
 
 		// this should be a CDB test case
     $display("=============================================================\n");
@@ -631,18 +626,24 @@ module testbench;
 		@(negedge clk);
 
 		insert_ALUinst(6,2,3,0,1,1);
-		set_CDB(6,1);
+		set_CDB(6,1,0);
 		mult_free = 1'b1;
 		@(negedge clk);show_entry_content();
-		@(negedge clk);
-    if (rs_IR_out != `ALU_ADDQ || prega_idx_out != 6 || pregb_idx_out != 2 || pdest_idx_out != 3)
+        rs_en = 1'b0;
+        set_CDB(0,0,0);
+    @(posedge clk);
+    if (ALUop_out != `ALU_MULQ || prega_idx_out != 6 || pregb_idx_out != 2 || pdest_idx_out != 3)
     begin
-      $display("@@@ Fail! Test case #5.5: Output instruction not the same instruction");
-      $finish;
+       $display("@@@ Fail! Instruction output does not match expected values!");
+       $display("@@@ dest: %h opA: %h opB: %h ALUop: %h rd_mem: %h wr_mem: %h IR: %h NPC: %h ROB: %h",
+                pdest_idx_out, prega_idx_out, pregb_idx_out, ALUop_out, rd_mem_out, wr_mem_out, rs_IR_out,
+                npc_out, rob_idx_out);
+       $finish;
     end
-		// End of test case
+    else
+      $display("@@@ Success! Test case pass!");
 
-    $display("All Testcase Passed!\n"); 
+    $display("@@@ Success: All Testcases Passed!\n"); 
     $finish; 
   end
 
