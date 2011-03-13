@@ -38,7 +38,7 @@ module testbench;
 			end 
 	end
 
-  task show_entry_content;
+  task show_IO_content;
 	  begin
 		
     $display("============================================================================================ ");
@@ -49,6 +49,42 @@ module testbench;
     $display("============================================================================================ ");
 	  end
 	endtask
+
+
+	task show_entry_content;
+	  begin
+		
+    $display("============================================================================================ ");
+    $display("Data");
+    $display("============================================================================================ ");
+
+    $display("%d",cb0.data[7]);
+		$display("%d",cb0.data[6]);
+		$display("%d",cb0.data[5]);
+		$display("%d",cb0.data[4]);
+		$display("%d",cb0.data[3]);
+		$display("%d",cb0.data[2]);
+		$display("%d",cb0.data[1]);
+		$display("%d",cb0.data[0]);
+
+    $display("============================================================================================ ");
+	  end
+	endtask
+
+	task show_pointer_content;
+	  begin
+		
+    $display("============================================================================================ ");
+    $display("Current Pointers");
+    $display("============================================================================================ ");
+
+    $display("head : %d",cb0.head);
+		$display("tail : %d",cb0.tail);
+
+    $display("============================================================================================ ");
+	  end
+	endtask
+
 
 	task reset_all;
 	  begin
@@ -103,14 +139,16 @@ module testbench;
     $display("=============================================================\n");
     
     insert_data(2,3,0);
-    @(negedge clk);
-    @(negedge clk);
-    @(negedge clk);
-    @(negedge clk);
-    @(negedge clk);
-		@(negedge clk);
-    @(negedge clk);
+		show_IO_content();
+    @(negedge clk);show_entry_content();show_pointer_content();
+    @(negedge clk);show_entry_content();show_pointer_content();
+    @(negedge clk);show_entry_content();show_pointer_content();
+    @(negedge clk);show_entry_content();show_pointer_content();
+    @(negedge clk);show_entry_content();show_pointer_content();
+		@(negedge clk);show_entry_content();show_pointer_content();
+    @(negedge clk);show_entry_content();show_pointer_content();
 
+    
 
     $display("All Testcase Passed!\n"); 
     $finish; 
