@@ -98,8 +98,8 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
 			iocount 			<= `SD next_iocount;
 			full 					<= `SD next_full;
 			full_almost 	<= `SD next_full_almost;
-			empty					<= `SD next_full;
-			empty_almost	<= `SD next_full_almost;
+			empty					<= `SD next_empty;
+			empty_almost	<= `SD next_empty_almost;
 		end
 	end
 

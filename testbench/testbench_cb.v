@@ -6,12 +6,13 @@
 
 module testbench;
 
-  integer count,limbo;  //TEST VARS
+  integer count,limbo,idx;  //TEST VARS
 	reg	clk, reset, move_tail, din1_en, din2_en, dout1_req, dout2_req; //input
 	reg	[`CB_IDX-1:0] tail_offset; //input
 	reg	[`CB_WIDTH-1:0] din1, din2; //input
 	wire	full, full_almost; //output
 	wire	[`CB_WIDTH-1:0] dout1, dout2; //output
+
 
 	cb #(.CB_IDX(`CB_IDX),.CB_WIDTH(`CB_WIDTH)) cb0 (clk, reset, move_tail, tail_offset, din1_en, din2_en,dout1_req, dout2_req,din1, din2, dout1, dout2, full, full_almost);
 
@@ -22,22 +23,24 @@ module testbench;
     clk = ~clk;
   end
 
-/*
+
   always @(posedge clk) //simulating 
   begin
+     #2;
     count = count + din1_en+din2_en - dout1_req - dout2_req;
-		if((count == `CB_WIDTH) != full)
+    count = (count >= `CB_WIDTH) ?  `CB_WIDTH : (count <= 0) ? 0 : count;  
+		if((count < `CB_WIDTH) && full)
 			begin
-	      $display("@@@ Fail! Time: %4.0f CB is supposed to be full, but isn't! @@@", $time);
+	      $display("@@@ Fail! Time: %4.0f CB is supposed to be full, but isn't! count: %d int_count: %d @@@", $time, count, cb0.iocount);
 				$finish;
 			end
-		else if((count == (`CB_WIDTH-1)) != full_almost)
+		else if((count > 0) && cb0.empty)
 			begin
-	      $display("@@@ Fail! Time: %4.0f CB is supposed to be almost full, but isn't! @@@", $time);
+	      $display("@@@ Fail! Time: %4.0f CB is supposed to be empty, but isn't! count: %d int_count: %d@@@", $time, count, cb0.iocount);
 				$finish;
 			end 
 	end
-*/
+
   task show_IO_content;
 	  begin
 		
@@ -45,7 +48,7 @@ module testbench;
     $display("Din1 | Den1 | Din2 | Den2 | Dout1 | Dreq1 | Dout2 | Dreq2 | move tail | move offset ");
     $display("============================================================================================ ");
 
-    $display(" 0x%h | %d | 0x%h | %d | 0x%h | %d | 0x%h | %d | %b | 0x%h ",din1, din1_en, din2, din2_en, dout1, dout1_req, dout2, dout2_req, move_tail, tail_offset);
+    $display("0x%h |  %d   | 0x%h |  %d   | 0x%h  |  %d    | 0x%h  |  %d    |    %b      | 0x%h ",din1, din1_en, din2, din2_en, dout1, dout1_req, dout2, dout2_req, move_tail, tail_offset);
     $display("============================================================================================ ");
 	  end
 	endtask
@@ -87,7 +90,7 @@ module testbench;
   		dout2_req=0;
   		tail_offset=0; 
 			din1=0;
-  		din2=0; 		
+  		din2=0;
   	end
   endtask
 
@@ -119,6 +122,29 @@ module testbench;
 	endtask
  
 
+	task remove_data;
+			input [1:0] numData;
+		begin	
+
+      if (numData == 2)
+				begin
+      		dout1_req=1;
+  				dout2_req=1;
+				end
+			else if(numData == 1)
+				begin
+      		dout1_req=1;
+  				dout2_req=0;
+   			end			
+			else if(numData == 0)
+				begin
+					dout1_req=0;
+  				dout2_req=0;
+  			end			
+ 		end
+	endtask
+ 
+
 	initial
 	  begin
     clk = 1'b0;
@@ -133,9 +159,10 @@ module testbench;
 		
     // Test case #1: Insert items 
     $display("=============================================================\n");
-    $display("@@@ Test case #1: Insert test\n");
+    $display("@@@ Test case #1: Insert and remove one at a time \n");
     $display("=============================================================\n");
     
+    $display("============[        INSERT       ]==========================\n");
     insert_data(2,3,0);
 		show_IO_content();
 		// insert two at a time
@@ -146,6 +173,25 @@ module testbench;
     @(negedge clk);show_entry_content();show_IO_content();
 		insert_data(0,0,0);
 
+    $display("============[        REMOVE       ]==========================\n");
+    
+    remove_data(2);
+		show_IO_content();
+		// remove two at a time
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+		remove_data(0);
+
+
+
+		// Test case #2: Pull items
+    $display("=============================================================\n");
+    $display("@@@ Test case #2: Insert and remove two at a time\n");
+    $display("=============================================================\n");
+
 		// insert one at a time
     // Reset CB
     reset = 1'b1;      // Assert Reset
@@ -154,6 +200,7 @@ module testbench;
     @(negedge clk);
 		
 		show_entry_content();show_IO_content();
+    $display("============[        INSERT       ]==========================\n");
     insert_data(1,5,0);
     @(negedge clk);show_entry_content();show_IO_content();
     @(negedge clk);show_entry_content();show_IO_content();
@@ -166,15 +213,51 @@ module testbench;
     @(negedge clk);show_entry_content();show_IO_content();
 		insert_data(0,0,0);
     
-		// Test case #2: Pull items
-    $display("=============================================================\n");
-    $display("@@@ Test case #2: Pull test\n");
-    $display("=============================================================\n");
-		
+    $display("============[        REMOVE       ]==========================\n");	
+		show_entry_content();show_IO_content();
+    remove_data(1);
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+    @(negedge clk);show_entry_content();show_IO_content();
+		remove_data(0);
+
 		// Test case #3: Insert & pull items at the same time 
     $display("=============================================================\n");
     $display("@@@ Test case #3: Insert & Pull test\n");
     $display("=============================================================\n");
+    
+    // Reset CB
+    reset = 1'b1;      // Assert Reset
+    @(negedge clk);
+    reset = 1'b0;      // Deassert Reset
+    @(negedge clk);
+
+    insert_data(2,1,2);
+    @(negedge clk);show_entry_content();show_IO_content();
+		insert_data(2,3,4);
+		remove_data(2);
+		@(negedge clk);show_entry_content();show_IO_content();
+		insert_data(2,5,6);
+		remove_data(2);
+		@(negedge clk);show_entry_content();show_IO_content();
+		insert_data(2,7,8);
+		remove_data(2);
+		@(negedge clk);show_entry_content();show_IO_content();
+		insert_data(2,9,10);
+		remove_data(2);
+		@(negedge clk);show_entry_content();show_IO_content();
+		insert_data(0,0,0);
+		remove_data(1);
+		@(negedge clk);show_entry_content();show_IO_content();
+		@(negedge clk);show_entry_content();show_IO_content();
+		
+
 
 		// Test case #4: Manually move tail position
     $display("=============================================================\n");
