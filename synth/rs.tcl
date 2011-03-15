@@ -17,8 +17,8 @@ suppress_message {"VER-130"}
 #/* The following five lines must be updated for every      */
 #/* new design                                              */
 #/***********************************************************/
-read_file -f verilog [list "../sys_defs.vh" "../verilog/rs.v" "../verilog/pe.v" "../verilog/ps.v"]
-set design_name RS
+read_file -f verilog [list "../sys_defs.vh" "../verilog/superrs.v" "../verilog/rs.v" "../verilog/pe.v" "../verilog/ps.v"]
+set design_name SUPER_RS
 set clock_name clk
 set reset_name reset
 set CLK_PERIOD 10

@@ -26,10 +26,10 @@ all:    simv
 
 TESTBENCH = 	sys_defs.vh	    \
 		testbench/testbench_RS.v
-SIMFILES =	verilog/rs.v verilog/pe.v verilog/ps.v
+SIMFILES =	verilog/superrs.v verilog/rs.v verilog/pe.v verilog/ps.v
 SYNFILES =  synth/RS.vg
 
-synth/RS.vg:	$(SIMFILES) synth/rs.tcl
+synth/SUPER_RS.vg:	$(SIMFILES) synth/rs.tcl
 	cd synth && dc_shell-t -f ./rs.tcl | tee synth.out
 
 #####

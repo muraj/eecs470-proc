@@ -24,7 +24,7 @@ module RS(clk, reset,
   input wire  mult_free, ALU_free, mem_free;
   input wire  [`SCALAR-1:0] cdb_valid;
   input wire  [`SCALAR*`PRF_IDX-1:0] cdb_tag;
-  input wire  [`SCALAR*`RS_SZ-1:0] entry_flush;
+  input wire  [`RS_SZ-1:0] entry_flush;
   input wire  [`ROB_IDX-1:0] rob_idx;
 
   output wire rs_free;

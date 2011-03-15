@@ -27,10 +27,10 @@ module testbench;
   reg  cond_branch, uncond_branch;
   reg  [63:0] npc;
   reg  mult_free, ALU_free, mem_free;
-  reg  [`SCALAR:0] cdb_valid;
+  reg  [`SCALAR-1:0] cdb_valid;
   reg  [`SCALAR*`PRF_IDX-1:0] cdb_tag;
   reg  [`ROB_IDX-1:0] rob_idx;
-  reg  [`SCALAR*`RS_SZ-1:0] entry_flush;
+  reg  [(`SCALAR-1)*`RS_SZ-1:0] entry_flush;
 
   wire  rs_free, ALU_rdy, mem_rdy, mult_rdy;
   wire  [`PRF_IDX-1:0] pdest_idx_out, prega_idx_out, pregb_idx_out;
