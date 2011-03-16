@@ -1,33 +1,37 @@
-module cb (clk, reset, move_tail, tail_new, din1_en, din2_en, dout1_req, dout2_req, 
-			din1, din2, dout1, dout2, full, full_almost);
+module rob (clk, reset, 
+						// ready/valid indicators for data in/out
+						din1_rdy, din2_rdy, dout1_valid, dout2_valid,  
+						// incoming values
+						ir_in1, ir_in2, npc_in1, npc_in2, pdest_in1, pdest_in2,
+						// values that need updates
+						btaken_in1, btaken_in2, bt_addr1, bt_addr2, 
+						// rob indices for updates
+						rob_idx_in1, rob_idx_in2,
+						// allocated rob indices
+						);
 
-	//synopsys template
+  input clk, reset, din1_en, din2_en, dout1_req, dout2_req;
+	input [31:0] ir_in;
+	input [63:0] npc_in;
 
-module cb (clk, reset, move_tail, tail_new, din1_en, din2_en, dout1_req, dout2_req, 
-			din1, din2, dout1, dout2, full, full_almost);
-
-	parameter CB_LENGTH = 8;
-
-  input clk, reset, move_tail, din1_en, din2_en, dout1_req, dout2_req;
-	input [ROB_IDX-1:0] tail_new;
 	input [CB_WIDTH-1:0] din1, din2;
 	output reg full, full_almost;
 	output reg [CB_WIDTH-1:0] dout1, dout2;
+	output reg [CB_IDX-1:0] head, tail;
 
 	// internal regs
-	reg [ROB_IDX-1:0] head, tail;
 	reg [CB_WIDTH-1:0] data [CB_LENGTH-1:0];
 	reg [CB_WIDTH-1:0] next_data1, next_data2;
-	reg [ROB_IDX-1:0] next_head, next_tail;
+	reg [CB_IDX-1:0] next_head, next_tail;
 
 	// i/o counter
-	reg [ROB_IDX:0] iocount;
-	wire [ROB_IDX:0] next_iocount;
+	reg [CB_IDX:0] iocount;
+	wire [CB_IDX:0] next_iocount;
 	reg [1:0] incount, outcount;
 	reg empty, empty_almost;
 
 	// purely combinational
-	wire [ROB_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2, cur_size;
+	wire [CB_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2, cur_size;
 	wire next_full, next_full_almost, next_empty, next_empty_almost;
 	
 	assign tail_p1 = tail + 1'd1;
@@ -82,9 +86,9 @@ module cb (clk, reset, move_tail, tail_new, din1_en, din2_en, dout1_req, dout2_r
 
 	always @(posedge clk) begin
 		if (reset) begin
-			head 					<= `SD {ROB_IDX{1'b0}};
-			tail 					<= `SD {ROB_IDX{1'b0}};
-			iocount 			<= `SD {ROB_IDX+1{1'b0}};
+			head 					<= `SD {CB_IDX{1'b0}};
+			tail 					<= `SD {CB_IDX{1'b0}};
+			iocount 			<= `SD {CB_IDX+1{1'b0}};
 			full 					<= `SD 1'b0;
 			full_almost 	<= `SD 1'b0;
 			empty					<= `SD 1'b0;
@@ -101,5 +105,27 @@ module cb (clk, reset, move_tail, tail_new, din1_en, din2_en, dout1_req, dout2_r
 			empty_almost	<= `SD next_empty_almost;
 		end
 	end
+
+
+	// Circular buffer for IR
+	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(32), .CB_LENGTH(`ROB_SZ)) cb_ir (
+		.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), 
+		.din1_en(wr1), .din2_en(wr2), .dout1_req(rd1), .dout2_req(rd2),
+		.din1(din_ir1), .din2(din_ir2), .dout1(dout_ir1), .dout2(dout_ir2), 
+		.full(), .full_almost(), .head(), .tail());
+
+	// Circular buffer for NPC
+	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(64), .CB_LENGTH(`ROB_SZ)) cb_npc (
+		.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), 
+		.din1_en(wr1), .din2_en(wr2), .dout1_req(rd1), .dout2_req(rd2),
+		.din1(din_npc1), .din2(din_npc2), .dout1(dout_npc1), .dout2(dout_npc2), 
+		.full(), .full_almost(), .head(), .tail());
+
+	// Circular buffer for PDEST_IDX
+	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(32), .CB_LENGTH(`ROB_SZ)) cb_pdest (
+		.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), 
+		.din1_en(wr1), .din2_en(wr2), .dout1_req(rd1), .dout2_req(rd2),
+		.din1(din_pdest1), .din2(din_pdest2), .dout1(dout_pdest1), .dout2(dout_pdest2), 
+		.full(), .full_almost(), .head(), .tail());
 
 endmodule

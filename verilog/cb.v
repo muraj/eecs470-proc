@@ -1,14 +1,19 @@
-module cb (clk, reset, move_tail, tail_new, din1_en, din2_en, dout1_req, dout2_req, 
-			din1, din2, dout1, dout2, full, full_almost, head, tail);
+module cb (clk, reset, 
+					 // for manually moving the tail
+					 move_tail, tail_new, 
+					 // en writes data, req reads data
+					 din1_en, din2_en, dout1_req, dout2_req, 
+					 // actual data i/o
+					 din1, din2, dout1, dout2, 
+					 // indicators for higher level to decide how/what to input
+					 full, full_almost, 
+					 // head and tail
+					 head, tail);
 
 	//synopsys template
 	parameter CB_IDX = 4;
 	parameter CB_WIDTH = 8;
-
-
-//	parameter CB_LENGTH = 1'b1<<CB_IDX;
 	parameter CB_LENGTH = 8;
-
 
   input clk, reset, move_tail, din1_en, din2_en, dout1_req, dout2_req;
 	input [CB_IDX-1:0] tail_new;
@@ -37,6 +42,7 @@ module cb (clk, reset, move_tail, tail_new, din1_en, din2_en, dout1_req, dout2_r
 	assign head_p1 = head + 1'd1;
 	assign head_p2 = head + 2'd2;
 	
+	// need to keep track of the current buffer size
 	assign cur_size = (next_tail>=next_head)? (next_tail - next_head) : (next_tail + CB_LENGTH - next_head);
 	assign next_iocount = (move_tail)? cur_size : iocount + incount - outcount;
 	assign next_full = next_iocount == CB_LENGTH;
