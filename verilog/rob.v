@@ -1,26 +1,40 @@
 module rob (clk, reset, 
 						// ready/valid indicators for data in/out
 						din1_rdy, din2_rdy, dout1_valid, dout2_valid,  
+						// allocate requests
+						din1_req, din2_req,
 						// incoming values
 						ir_in1, ir_in2, npc_in1, npc_in2, pdest_in1, pdest_in2,
 						// values that need updates
-						btaken_in1, btaken_in2, bt_addr1, bt_addr2, 
+						btaken_in1, btaken_in2, bt_addr_in1, bt_addr_in2, 
 						// rob indices for updates
 						rob_idx_in1, rob_idx_in2,
 						// allocated rob indices
+						rob_idx_out1, rob_idx_out2,
+						// destination PRF index for retiring
+						pdest_out1, pdest_out2
 						);
 
-  input clk, reset, din1_en, din2_en, dout1_req, dout2_req;
-	input [31:0] ir_in;
-	input [63:0] npc_in;
+  input clk, reset, din1_req, din2_req;
+	input [31:0] ir_in1, ir_in2;
+	input [63:0] npc_in1, npc_in2;
+	input [`PRF_IDX-1:0] pdest_in1, pdest_in2;
+	input btaken_in1, btaken_in2;
+	input [63:0] bt_addr_in1, bt_addr_in2;
+	input [`ROB_IDX-1:0] rob_idx_in1, rob_idx_in2;
+	
+	output reg din1_rdy, din2_rdy, dout1_valid, dout2_valid;
+	output [`ROB_IDX-1:0] rob_idx_out1, rob_idx_out2;
+	output [`PRF_IDX-1:0] pdest_out1, pdest_out2;
 
-	input [CB_WIDTH-1:0] din1, din2;
-	output reg full, full_almost;
-	output reg [CB_WIDTH-1:0] dout1, dout2;
-	output reg [CB_IDX-1:0] head, tail;
+  // FIXME from here
 
 	// internal regs
-	reg [CB_WIDTH-1:0] data [CB_LENGTH-1:0];
+	reg [63-1:0] data_bt_addr [`ROB_SZ-1:0];
+	reg [`ROB_SZ-1:0] data_btaken;
+	reg [`ROB_SZ-1:0] data_rdy;
+	reg [63-1:0] data_bt_addr1 [`ROB_SZ-1:0];
+
 	reg [CB_WIDTH-1:0] next_data1, next_data2;
 	reg [CB_IDX-1:0] next_head, next_tail;
 

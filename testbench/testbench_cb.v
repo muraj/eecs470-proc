@@ -1,8 +1,9 @@
 `timescale 1ns/100ps
-//`define PRF_IDX (6)
 `define CB_IDX 3
-`define CB_WIDTH 8
+`define CB_WIDTH 8 
+`define CB_LENGTH 8 
 
+// testbench works with length
 
 module testbench;
 
@@ -12,10 +13,9 @@ module testbench;
 	reg	[`CB_WIDTH-1:0] din1, din2; //input
 	wire	full, full_almost; //output
 	wire	[`CB_WIDTH-1:0] dout1, dout2; //output
+	wire	[`CB_IDX-1:0] head, tail; //output
 
-
-	cb #(.CB_IDX(`CB_IDX),.CB_WIDTH(`CB_WIDTH)) cb0 (clk, reset, move_tail, tail_new, din1_en, din2_en,dout1_req, dout2_req,din1, din2, dout1, dout2, full, full_almost);
-
+	cb #(.CB_IDX(`CB_IDX),.CB_WIDTH(`CB_WIDTH),.CB_LENGTH(`CB_LENGTH)) cb0 (clk, reset, move_tail, tail_new, din1_en, din2_en,dout1_req, dout2_req,din1, din2, dout1, dout2, full, full_almost, head, tail);
 
   always
   begin
