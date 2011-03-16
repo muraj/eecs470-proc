@@ -143,6 +143,15 @@ module testbench;
   			end			
  		end
 	endtask
+
+	task moveTail;
+			input move;
+			input	[`CB_IDX-1:0] offset;
+		begin	
+			move_tail=move;	
+			tail_offset=offset;
+		end	
+	endtask
  
 
 	initial
@@ -234,9 +243,11 @@ module testbench;
     
     // Reset CB
     reset = 1'b1;      // Assert Reset
+		reset_all();
     @(negedge clk);
     reset = 1'b0;      // Deassert Reset
-    @(negedge clk);
+	  @(negedge clk);
+    
 
     insert_data(2,1,2);
     @(negedge clk);show_entry_content();show_IO_content();
@@ -263,8 +274,25 @@ module testbench;
     $display("=============================================================\n");
     $display("@@@ Test case #4: Move tail test\n");
     $display("=============================================================\n");
-		
+		// Reset CB
+    reset = 1'b1;      // Assert Reset
+    reset_all();    
+		@(negedge clk);
+    reset = 1'b0;      // Deassert Reset
+    @(negedge clk);
 
+		insert_data(1,20,0);
+    @(negedge clk);show_entry_content();show_IO_content();
+		@(negedge clk);show_entry_content();show_IO_content();
+		@(negedge clk);show_entry_content();show_IO_content();
+		@(negedge clk);show_entry_content();show_IO_content();
+		insert_data(0,0,0);
+		moveTail(1,1);
+		@(negedge clk);show_entry_content();show_IO_content();
+		moveTail(1,2);
+		@(negedge clk);show_entry_content();show_IO_content();
+		@(negedge clk);show_entry_content();show_IO_content();
+		moveTail(0,0);
     $display("All Testcase Passed!\n"); 
     $finish; 
 
