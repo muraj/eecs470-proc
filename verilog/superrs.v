@@ -57,7 +57,6 @@ module SUPER_RS(clk, reset,
   assign rs1_en = rs_free[1] & (inst_valid[1] | (inst_valid[0] & ~rs_free[0]));
   assign rs1_sel = ~rs_free[0];
   assign en_out[1] = rs1_ex_free | rs1_mem_free | rs1_mult_free;
- `define SEL(WIDTH, WHICH) WIDTH*(WHICH)-1:WIDTH*(WHICH - 1)
  wire [`PRF_IDX-1:0] rs1_prega_idx = rs1_sel ? prega_idx[`SEL(`PRF_IDX, 2)] : prega_idx[`SEL(`PRF_IDX, 1)];
  wire [`PRF_IDX-1:0] rs1_pregb_idx = rs1_sel ? prega_idx[`SEL(`PRF_IDX, 2)] : prega_idx[`SEL(`PRF_IDX, 1)];
  wire [`PRF_IDX-1:0] rs1_pdest_idx = rs1_sel ? pdest_idx[`SEL(`PRF_IDX, 2)] : pdest_idx[`SEL(`PRF_IDX, 1)];
