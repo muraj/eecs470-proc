@@ -8,13 +8,13 @@ module testbench;
 
   integer count,limbo,idx;  //TEST VARS
 	reg	clk, reset, move_tail, din1_en, din2_en, dout1_req, dout2_req; //input
-	reg	[`CB_IDX-1:0] tail_offset; //input
+	reg	[`CB_IDX-1:0] tail_new; //input
 	reg	[`CB_WIDTH-1:0] din1, din2; //input
 	wire	full, full_almost; //output
 	wire	[`CB_WIDTH-1:0] dout1, dout2; //output
 
 
-	cb #(.CB_IDX(`CB_IDX),.CB_WIDTH(`CB_WIDTH)) cb0 (clk, reset, move_tail, tail_offset, din1_en, din2_en,dout1_req, dout2_req,din1, din2, dout1, dout2, full, full_almost);
+	cb #(.CB_IDX(`CB_IDX),.CB_WIDTH(`CB_WIDTH)) cb0 (clk, reset, move_tail, tail_new, din1_en, din2_en,dout1_req, dout2_req,din1, din2, dout1, dout2, full, full_almost);
 
 
   always
@@ -48,7 +48,7 @@ module testbench;
     $display("Din1 | Den1 | Din2 | Den2 | Dout1 | Dreq1 | Dout2 | Dreq2 | move tail | move offset ");
     $display("============================================================================================ ");
 
-    $display("0x%h |  %d   | 0x%h |  %d   | 0x%h  |  %d    | 0x%h  |  %d    |    %b      | 0x%h ",din1, din1_en, din2, din2_en, dout1, dout1_req, dout2, dout2_req, move_tail, tail_offset);
+    $display("0x%h |  %d   | 0x%h |  %d   | 0x%h  |  %d    | 0x%h  |  %d    |    %b      | 0x%h ",din1, din1_en, din2, din2_en, dout1, dout1_req, dout2, dout2_req, move_tail, tail_new);
     $display("============================================================================================ ");
 	  end
 	endtask
@@ -88,7 +88,7 @@ module testbench;
   		din2_en=0;
   		dout1_req=0;
   		dout2_req=0;
-  		tail_offset=0; 
+  		tail_new=0; 
 			din1=0;
   		din2=0;
   	end
@@ -149,7 +149,7 @@ module testbench;
 			input	[`CB_IDX-1:0] offset;
 		begin	
 			move_tail=move;	
-			tail_offset=offset;
+			tail_new=offset;
 		end	
 	endtask
  
@@ -284,15 +284,22 @@ module testbench;
 		insert_data(1,20,0);
     @(negedge clk);show_entry_content();show_IO_content();
 		@(negedge clk);show_entry_content();show_IO_content();
+		insert_data(2,5,0);
+		remove_data(1);
 		@(negedge clk);show_entry_content();show_IO_content();
+		remove_data(2);
 		@(negedge clk);show_entry_content();show_IO_content();
 		insert_data(0,0,0);
+		moveTail(1,3);
+    $display("Moving tail\n"); 
+		@(negedge clk);show_entry_content();show_IO_content();
 		moveTail(1,1);
 		@(negedge clk);show_entry_content();show_IO_content();
-		moveTail(1,2);
-		@(negedge clk);show_entry_content();show_IO_content();
-		@(negedge clk);show_entry_content();show_IO_content();
+		remove_data(0);
 		moveTail(0,0);
+		insert_data(2,3,4);
+		@(negedge clk);show_entry_content();show_IO_content();
+
     $display("All Testcase Passed!\n"); 
     $finish; 
 

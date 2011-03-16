@@ -1,4 +1,4 @@
-module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout2_req, 
+module cb (clk, reset, move_tail, tail_new, din1_en, din2_en, dout1_req, dout2_req, 
 			din1, din2, dout1, dout2, full, full_almost);
 
 	//synopsys template
@@ -11,7 +11,7 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
 
 
   input clk, reset, move_tail, din1_en, din2_en, dout1_req, dout2_req;
-	input [CB_IDX-1:0] tail_offset;
+	input [CB_IDX-1:0] tail_new;
 	input [CB_WIDTH-1:0] din1, din2;
 	output reg full, full_almost;
 	output reg [CB_WIDTH-1:0] dout1, dout2;
@@ -29,7 +29,7 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
 	reg empty, empty_almost;
 
 	// purely combinational
-	wire [CB_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2;
+	wire [CB_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2, cur_size;
 	wire next_full, next_full_almost, next_empty, next_empty_almost;
 	
 	assign tail_p1 = tail + 1'd1;
@@ -37,7 +37,8 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
 	assign head_p1 = head + 1'd1;
 	assign head_p2 = head + 2'd2;
 	
-	assign next_iocount = iocount + incount - outcount;
+	assign cur_size = (next_tail>=next_head)? (next_tail - next_head) : (next_tail + CB_LENGTH - next_head);
+	assign next_iocount = (move_tail)? cur_size : iocount + incount - outcount;
 	assign next_full = next_iocount == CB_LENGTH;
 	assign next_full_almost = next_iocount == (CB_LENGTH-1);
 	assign next_empty = next_iocount == 0;
@@ -54,7 +55,7 @@ module cb (clk, reset, move_tail, tail_offset, din1_en, din2_en, dout1_req, dout
 
 		// deal with tail and data in
 		if (move_tail) begin
-			next_tail = tail - tail_offset;
+			next_tail = tail_new;
 		end else begin
 			if (din1_en && !full) begin
 				next_tail = tail_p1;
