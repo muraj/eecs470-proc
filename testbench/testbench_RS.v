@@ -507,7 +507,7 @@ module testbench;
       $display("@@@ Fail! RS is no longer full!");
       $finish;
     end
-    $display("@@@ Success! Passed FU is ready, but no instructions rdy");
+    $display("@@@ Success! Passed FU is ready and no instructions rdy");
 
     // Test case #1.1: Insert new instruction 
 /*   
