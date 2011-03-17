@@ -55,23 +55,23 @@ module SUPER_RS(clk, reset,
   wire rs1_mem_free = (rs0_mem_free ? memfu_free[1] : memfu_free[0]) & mem_rdy[1];
   wire rs1_mult_free = (rs0_mult_free ? multfu_free[1] : multfu_free[0]) & mult_rdy[1];
   assign rs1_en = rs_free[1] & (inst_valid[1] | (inst_valid[0] & ~rs_free[0]));
-  assign rs1_sel = ~rs_free[0];
+  assign rs1_sel = rs_free[0];
   assign en_out[1] = rs1_ex_free | rs1_mem_free | rs1_mult_free;
  wire [`PRF_IDX-1:0] rs1_prega_idx = rs1_sel ? prega_idx[`SEL(`PRF_IDX, 2)] : prega_idx[`SEL(`PRF_IDX, 1)];
- wire [`PRF_IDX-1:0] rs1_pregb_idx = rs1_sel ? prega_idx[`SEL(`PRF_IDX, 2)] : prega_idx[`SEL(`PRF_IDX, 1)];
+ wire [`PRF_IDX-1:0] rs1_pregb_idx = rs1_sel ? pregb_idx[`SEL(`PRF_IDX, 2)] : pregb_idx[`SEL(`PRF_IDX, 1)];
  wire [`PRF_IDX-1:0] rs1_pdest_idx = rs1_sel ? pdest_idx[`SEL(`PRF_IDX, 2)] : pdest_idx[`SEL(`PRF_IDX, 1)];
  wire [5-1:0] rs1_ALUop = rs1_sel ? ALUop[`SEL(5, 2)] : ALUop[`SEL(5, 1)];
  wire [32-1:0] rs1_rs_IR = rs1_sel ? rs_IR[`SEL(32, 2)] : rs_IR[`SEL(32, 1)];
  wire [64-1:0] rs1_npc = rs1_sel ? npc[`SEL(64, 2)] : npc[`SEL(64, 1)];
  wire [`ROB_IDX-1:0] rs1_rob_idx = rs1_sel ? rob_idx[`SEL(`ROB_IDX, 2)] : rob_idx[`SEL(`ROB_IDX, 1)];
 `endif
-  assign rs_stall = ~rs_free;
+ assign rs_stall = ~rs_free;
 
   RS rs0(clk, reset,
                     //INPUTS
                     rs0_en, prega_idx[`PRF_IDX-1:0], pregb_idx[`PRF_IDX-1:0], pdest_idx[`PRF_IDX-1:0], prega_valid[0], pregb_valid[0],
                     ALUop[4:0], rd_mem[0], wr_mem[0], rs_IR[31:0], npc[63:0], cond_branch[0], uncond_branch[0],
-                    rs0_mult_free, rs0_mem_free, rs0_mult_free, cdb_valid, cdb_tag, entry_flush[`RS_SZ-1:0], rob_idx[`ROB_IDX-1:0],
+                    rs0_mem_free, rs0_ex_free, rs0_mem_free, cdb_valid, cdb_tag, entry_flush[`RS_SZ-1:0], rob_idx[`ROB_IDX-1:0],
 
                     //OUTPUTS
                     rs_free[0], ALU_rdy[0], mem_rdy[0], mult_rdy[0],
@@ -84,7 +84,7 @@ module SUPER_RS(clk, reset,
                     //INPUTS
                     rs1_en, rs1_prega_idx, rs1_pregb_idx, rs1_pdest_idx, prega_valid[rs1_sel], pregb_valid[rs1_sel],
                     rs1_ALUop, rd_mem[rs1_sel], wr_mem[rs1_sel], rs1_rs_IR, rs1_npc, cond_branch[rs1_sel], uncond_branch[rs1_sel],
-                    rs1_ex_free, rs1_mem_free, rs1_mult_free, cdb_valid, cdb_tag, entry_flush[`SEL(`RS_SZ, 1)], rs1_rob_idx,
+                    rs1_mult_free, rs1_ex_free, rs1_mem_free, cdb_valid, cdb_tag, entry_flush[`SEL(`RS_SZ, 1)], rs1_rob_idx,
 
                     //OUTPUTS
                     rs_free[1], ALU_rdy[1], mem_rdy[1], mult_rdy[1],
