@@ -19,16 +19,33 @@ module MEM_CONT ();
 endmodule // MEM_CONT
 
 // Multipliers
-module MULT(clk, reset, mplier, mcand, start, product, done);
+module MULT(clk, reset, mplier, mcand, start, product, done
+						rs_IR_in, npc_in, rob_idx_in, EX_en_in,
+						rs_IR_out, npc_out, rob_idx_out, EX_en_out
+						);
 
   input clk, reset, start;
   input [63:0] mcand, mplier;
+	
+	input [31:0] rs_IR_in;
+	input [63:0] npc_in;
+	input [`ROB_IDX-1:0] rob_idx_in;
+	input EX_en_in;
 
   output [63:0] product;
   output done;
 
+	output reg [31:0] rs_IR_out;
+	output reg [63:0] npc_out;
+	output reg [`ROB_IDX-1:0] rob_idx_out;
+	output reg EX_en_out;
+
   wire [63:0] mcand_out, mplier_out;
   wire [(7*64)-1:0] internal_products, internal_mcands, internal_mpliers;
+	wire [(7*32)-1:0] internal_rs_IR;
+  wire [(7*64)-1:0] internal_npc;
+	wire [(7*`ROB_IDX)-1:0] internal_rob_idx;
+	wire [6:0] internal_EX_en;
   wire [6:0] internal_dones;
   
   mult_stage mstage [7:0] 
@@ -41,20 +58,41 @@ module MULT(clk, reset, mplier, mcand, start, product, done);
      .product_out({product,internal_products}),
      .mplier_out({mplier_out,internal_mpliers}),
      .mcand_out({mcand_out,internal_mcands}),
-     .done({done,internal_dones})
+     .done({done,internal_dones}),
+		 .rs_IR_in({internal_rs_IR, rs_IR_in}),
+		 .npc_in({internal_npc, npc_in}),
+		 .rob_idx_in({internal_rob_idx, rob_idx_in}),
+		 .EX_en_in({internal_EX_en, EX_en_in}),
+		 .rs_IR_out({rs_IR_out, internal_rs_IR}),
+		 .npc_out({npc_out, internal_npc}),
+		 .rob_idx_out({rob_idx_out, internal_rob_idx}),
+		 .EX_en_out({EX_en_out, internal_EX_en})
     );
 
 endmodule // MULT
 
-module mult_stage(clk, reset, 
+module mult_stage(clk, reset, stall, 
                   product_in,  mplier_in,  mcand_in,  start,
-                  product_out, mplier_out, mcand_out, done);
+                  product_out, mplier_out, mcand_out, done,
+									rs_IR_in, npc_in, rob_idx_in, EX_en_in,
+									rs_IR_out, npc_out, rob_idx_out, EX_en_out
+									);
 
-  input clk, reset, start;
+  input clk, reset, stall, start;
   input [63:0] product_in, mplier_in, mcand_in;
+
+	input [31:0] rs_IR_in;
+	input [63:0] npc_in;
+	input [`ROB_IDX-1:0] rob_idx_in;
+	input EX_en_in;
 
   output done;
   output [63:0] product_out, mplier_out, mcand_out;
+	
+	output reg [31:0] rs_IR_out;
+	output reg [63:0] npc_out;
+	output reg [`ROB_IDX-1:0] rob_idx_out;
+	output reg EX_en_out;
 
   reg  [63:0] prod_in_reg, partial_prod_reg;
   wire [63:0] partial_product, next_mplier, next_mcand;
@@ -71,18 +109,43 @@ module mult_stage(clk, reset,
 
   always @(posedge clk)
   begin
-    prod_in_reg      <= #1 product_in;
-    partial_prod_reg <= #1 partial_product;
-    mplier_out       <= #1 next_mplier;
-    mcand_out        <= #1 next_mcand;
+		if(reset) begin
+	    prod_in_reg      	<= `SD 64'b0;
+  	  partial_prod_reg 	<= `SD 64'b0;
+    	mplier_out       	<= `SD 64'b0;
+    	mcand_out        	<= `SD 64'b0;
+			rs_IR_out					<= `SD 32'b0;
+			npc_out						<= `SD 64'b0;
+			rob_idx_out				<= `SD {`ROB_IDX{1'b0}};
+			EX_en_out					<= `SD 1'b0;
+		end
+		else if(stall) begin	
+	    prod_in_reg      	<= `SD prod_in_reg;
+  	  partial_prod_reg 	<= `SD partial_prod_reg;
+    	mplier_out       	<= `SD mplier_out;
+    	mcand_out        	<= `SD mcand_out;
+			rs_IR_out					<= `SD rs_IR_out;
+			npc_out						<= `SD npc_out;
+			rob_idx_out				<= `SD rob_idx_out;
+			EX_en_out					<= `SD EX_en_out;
+		end
+		else begin
+   		prod_in_reg      	<= `SD product_in;
+    	partial_prod_reg 	<= `SD partial_product;
+    	mplier_out       	<= `SD next_mplier;
+    	mcand_out        	<= `SD next_mcand;
+			rs_IR_out					<= `SD rs_IR_in;
+			npc_out						<= `SD npc_in;
+			rob_idx_out				<= `SD rob_idx_in;
+			EX_en_out					<= `SD EX_en_in;
+		end
   end
 
   always @(posedge clk)
   begin
-    if(reset)
-      done <= #1 1'b0;
-    else
-      done <= #1 start;
+    if(reset)	done <= `SD 1'b0;
+    else if(stall) done <= `SD done;
+    else done <= `SD start;
   end
 
 endmodule // mult_stage
@@ -194,9 +257,10 @@ module ex_stage(clk, reset,
 								rs_IR, npc, rob_idx, EX_en,
 
 								// Outputs
-								cdb_tag_out, cdb_valid_out, cdb_value_out,
-								rob_idx_out, branch_NT, branch_target_ADDR
-								
+								cdb_tag_out, cdb_valid_out, cdb_value_out,	// to CDB
+								rob_idx_out, branch_NT_out, isBranch_out,		// to ROB
+								stall,																			// to the pipeline register (in front of ex_stage)
+								ALU_free, MULT_free, MEM_free								// to RS
                );
 
   input clk;  
@@ -217,31 +281,60 @@ module ex_stage(clk, reset,
 	output reg	[`SCALAR-1:0] cdb_valid_out;
 	output reg	[64*`SCALAR-1:0] cdb_value_out;
 	output reg	[`ROB_IDX*`SCALAR-1:0] rob_idx_out;
-	output reg	[`SCALAR-1:0] branch_NT;
-	output reg	[64*`SCALAR-1:0] branch_target_ADDR;
+	output reg	[`SCALAR-1:0] branch_NT_out;
+	output reg	[`SCALAR-1:0] isBranch_out;
+	output reg	[`SCALAR-1:0] ALU_free;
+	output reg	[`SCALAR-1:0] MULT_free;
+	output reg	MEM_free;
+	output reg	stall;
 
 	reg	[`PRF_IDX*`SCALAR-1:0] next_cdb_tag_out;
 	reg	[`SCALAR-1:0] next_cdb_valid_out;
 	reg	[64*`SCALAR-1:0] next_cdb_value_out;
 	reg	[`ROB_IDX*`SCALAR-1:0] next_rob_idx_out;
-	reg	[`SCALAR-1:0] next_branch_NT;
-	reg	[64*`SCALAR-1:0] next_branch_target_ADDR;
+	reg	[`SCALAR-1:0] next_branch_NT_out;
+	reg	[`SCALAR-1:0] next_isBranch_out;
+	reg	[`SCALAR-1:0] next_ALU_free;
+	reg	[`SCALAR-1:0] next_MULT_free;
+	reg	next_MEM_free;
+	reg	next_stall;
 
+// Outputs from the small decoder for ALU
 	reg [2*`SCALAR-1:0] ALU_opa_select;
 	reg [2*`SCALAR-1:0] ALU_opb_select;
 	reg [64*`SCALAR-1:0] ALU_opa;
 	reg [64*`SCALAR-1:0] ALU_opb;
 	wire [64*`SCALAR-1:0] MULT_opa = ALU_opa;
 	wire [64*`SCALAR-1:0] MULT_opb = ALU_opb;
+// END OF Outputs from the small decoder for ALU
 
-   // set up possible immediates:
-   //   mem_disp: sign-extended 16-bit immediate for memory format
-   //   br_disp: sign-extended 21-bit immediate * 4 for branch displacement
-   //   alu_imm: zero-extended 8-bit immediate for ALU ops
+// Outputs from the input logic
+// BRCond is a part of ALU
+	reg [64*`SCALAR-1:0] ALU_opa_in;
+	reg [64*`SCALAR-1:0] ALU_opb_in;
+	reg [5*`SCALAR-1:0] ALU_func_in;
+	reg [64*`SCALAR-1:0] BRcond_opa_in;
+	reg [3*`SCALAR-1:0] BRcond_func_in;
+	reg [32*`SCALAR-1:0] ALU_rs_
+	reg [64*`SCALAR-1:0] MULT_mplier_in;
+	reg [64*`SCALAR-1:0] MULT_mcand_in;
+	reg [`SCALAR-1:0] MULT_start_in;
+
+// Outputs from Setting up Possible Immediates
   wire [64*`SCALAR-1:0] mem_disp;
   wire [64*`SCALAR-1:0] br_disp;
   wire [64*`SCALAR-1:0] alu_imm;
+// END OF Outputs from Setting up Possible Immediates
 
+// Outputs from the small decoder for Branch Instructions
+	reg [`SCALAR-1:0] cond_branch, uncond_branch;
+	wire [`SCALAR-1:0] isBranch = cond_branch | uncond_branch;
+// END OF Outputs from the small decoder for Branch Instructions
+
+// Setting up Possible Immediates 
+//   mem_disp: sign-extended 16-bit immediate for memory format
+//   br_disp: sign-extended 21-bit immediate * 4 for branch displacement
+//   alu_imm: zero-extended 8-bit immediate for ALU ops
 	`ifdef SUPERSCALAR
   assign mem_disp	= { {48{rs_IR[47]}}, rs_IR[47:32], {48{rs_IR[15]}}, rs_IR[15:0]};
   assign br_disp	= { {41{rs_IR[52]}}, rs_IR[52:32], 2'b00, {41{rs_IR[20]}}, rs_IR[20:0], 2'b00};
@@ -251,40 +344,84 @@ module ex_stage(clk, reset,
   assign br_disp	= { {41{rs_IR[20]}}, rs_IR[20:0], 2'b00 };
   assign alu_imm	= { 56'b0, rs_IR[20:13] };
 	`endif
+// END OF Setting up Possible Immediates 
 
-
- // `define SEL(WIDTH, WHICH) WIDTH*(WHICH)-1:WIDTH*(WHICH - 1) // defined in sys_def.vh
-
-
-	// All combinational logics go here
+// Small Decoder for Branch Instructions
 	always @*
 	begin
-		ALU_opa_select[1:0] = 0;
-		ALU_opb_select[1:0] = 0;
+		cond_branch[0] = `FALSE;
+		uncond_branch[0] = `FALSE;
+
+		case ({rs_IR[31:29], 3'b0})
+			6'h18:
+				case (rs_IR[31:26])
+					`JSR_GRP:	uncond_branch[0] = `TRUE;
+				endcase
+			6'h30, 6'h38:
+				case (rs_IR[31:26])
+					`BR_INST, `BSR_INST: uncond_branch[0] = `TRUE;
+          `FBEQ_INST, `FBLT_INST, `FBLE_INST, `FBNE_INST, `FBGE_INST, `FBGT_INST: // FP conditionals not implemented
+					default: cond_branch[0] = `TRUE;
+				endcase
+		endcase
+	end
+
+	`ifdef SUPERSCALAR
+	always @*
+	begin
+		cond_branch[1] = `FALSE;
+		uncond_branch[1] = `FALSE;
+
+		case ({rs_IR[63:61], 3'b0})
+			6'h18:
+				case (rs_IR[63:58])
+					`JSR_GRP:	uncond_branch[1] = `TRUE;
+				endcase
+			6'h30, 6'h38:
+				case (rs_IR[63:58])
+					`BR_INST, `BSR_INST: uncond_branch[1] = `TRUE;
+          `FBEQ_INST, `FBLT_INST, `FBLE_INST, `FBNE_INST, `FBGE_INST, `FBGT_INST: // FP conditionals not implemented
+					default: cond_branch[1] = `TRUE;
+				endcase
+		endcase
+	end
+	`endif
+// END OF Small Decoder for Branch Instructions
+
+// Small Decoder for ALU operation
+// Mostly a direct copy from id_stage.v
+// ALU_opa/opb_select[SEL(2,1)] : opa/opb_select signals for the 1st instruction
+// ALU_opa/opb_select[SEL(2,2)] : opa/opb_select signals for the 2nd instruction
+// ALU_opa/opb[SEL(64,1)]  : opa/opb for the 1st instruction
+// ALU_opa/opb[SEL(64,2)]  : opa/opb for the 2nd instruction
+	always @*
+	begin
+		ALU_opa_select[SEL(2,1)] = 0;
+		ALU_opb_select[SEL(2,1)] = 0;
 
 		case({rs_IR[31:29], 3'b0})
 			6'h10: 	
 				begin
-					ALU_opa_select[1:0] = `ALU_OPA_IS_REGA;
-					ALU_opb_select[1:0] = rs_IR[12] ? `ALU_OPB_IS_ALU_IMM : `ALU_OPB_IS_REGB;
+					ALU_opa_select[SEL(2,1)] = `ALU_OPA_IS_REGA;
+					ALU_opb_select[SEL(2,1)] = rs_IR[12] ? `ALU_OPB_IS_ALU_IMM : `ALU_OPB_IS_REGB;
 				end
 			6'h18:
 				case(rs_IR[31:26])
 					`JSR_GRP:	
 						begin
-							ALU_opa_select[1:0] = `ALU_OPA_IS_NOT3;
-							ALU_opb_select[1:0] = `ALU_OPB_IS_REGB;
+							ALU_opa_select[SEL(2,1)] = `ALU_OPA_IS_NOT3;
+							ALU_opb_select[SEL(2,1)] = `ALU_OPB_IS_REGB;
 						end
 				endcase
 			6'h08, 6'h20, 6'h28:	
 				begin
-					ALU_opa_select[1:0] = `ALU_OPA_IS_MEM_DISP;
-					ALU_opb_select[1:0] = `ALU_OPB_IS_REGB;
+					ALU_opa_select[SEL(2,1)] = `ALU_OPA_IS_MEM_DISP;
+					ALU_opb_select[SEL(2,1)] = `ALU_OPB_IS_REGB;
 				end
 			6'h30, 6'h38: 
 				begin
-					ALU_opa_select[1:0] = `ALU_OPA_IS_NPC;
-					ALU_opb_select[1:0] = `ALU_OPB_IS_BR_DISP;
+					ALU_opa_select[SEL(2,1)] = `ALU_OPA_IS_NPC;
+					ALU_opb_select[SEL(2,1)] = `ALU_OPB_IS_BR_DISP;
 				end
 		endcase
 	end
@@ -308,32 +445,32 @@ module ex_stage(clk, reset,
 `ifdef SUPERSCALAR
 	always @*
 	begin
-		ALU_opa_select[3:2] = 0;
-		ALU_opb_select[3:2] = 0;
+		ALU_opa_select[SEL(2,2)] = 0;
+		ALU_opb_select[SEL(2,2)] = 0;
 
 		case({rs_IR[63:61], 3'b0})
 			6'h10: 	
 				begin
-					ALU_opa_select[3:2] = `ALU_OPA_IS_REGA;
-					ALU_opb_select[3:2] = rs_IR[44] ? `ALU_OPB_IS_ALU_IMM : `ALU_OPB_IS_REGB;
+					ALU_opa_select[SEL(2,2)] = `ALU_OPA_IS_REGA;
+					ALU_opb_select[SEL(2,2)] = rs_IR[44] ? `ALU_OPB_IS_ALU_IMM : `ALU_OPB_IS_REGB;
 				end
 			6'h18:
 				case(rs_IR[63:58])
 					`JSR_GRP:	
 						begin
-							ALU_opa_select[3:2] = `ALU_OPA_IS_NOT3;
-							ALU_opb_select[3:2] = `ALU_OPB_IS_REGB;
+							ALU_opa_select[SEL(2,2)] = `ALU_OPA_IS_NOT3;
+							ALU_opb_select[SEL(2,2)] = `ALU_OPB_IS_REGB;
 						end
 				endcase
 			6'h08, 6'h20, 6'h28:	
 				begin
-					ALU_opa_select[3:2] = `ALU_OPA_IS_MEM_DISP;
-					ALU_opb_select[3:2] = `ALU_OPB_IS_REGB;
+					ALU_opa_select[SEL(2,2)] = `ALU_OPA_IS_MEM_DISP;
+					ALU_opb_select[SEL(2,2)] = `ALU_OPB_IS_REGB;
 				end
 			6'h30, 6'h38: 
 				begin
-					ALU_opa_select[3:2] = `ALU_OPA_IS_NPC;
-					ALU_opb_select[3:2] = `ALU_OPB_IS_BR_DISP;
+					ALU_opa_select[SEL(2,2)] = `ALU_OPA_IS_NPC;
+					ALU_opb_select[SEL(2,2)] = `ALU_OPB_IS_BR_DISP;
 				end
 		endcase
 	end
@@ -354,25 +491,34 @@ module ex_stage(clk, reset,
     endcase 
   end
 `endif
+// END OF  Small Decoder for ALU operation
 
 	// All sequential elements go here
 	always @(posedge clk)
 	begin
 		if(reset) begin
-			cdb_tag_out					<= `SD {`PRE_IDX*`SCALAR{1'b0}};
-			cdb_valid_out				<= `SD {`SCALAR{1'b0}};
-			cdb_value_out				<= `SD {64*`SCALAR{1'b0}};
-			rob_idx_out					<= `SD {`ROB_IDX*`SCALAR{1'b0}};
-			branch_NT						<= `SD {`SCALAR{1'b0}};
-			branch_target_ADDR	<= `SD {64*`SCALAR{1'b0}};
+			cdb_tag_out			<= `SD {`PRE_IDX*`SCALAR{1'b0}};
+			cdb_valid_out		<= `SD {`SCALAR{1'b0}};
+			cdb_value_out		<= `SD {64*`SCALAR{1'b0}};
+			rob_idx_out			<= `SD {`ROB_IDX*`SCALAR{1'b0}};
+			branch_NT_out		<= `SD {`SCALAR{1'b0}};
+			isBranch_out		<= `SD {`SCALAR{1'b0}};
+			ALU_free				<= `SD {`SCALAR{1'b0}};
+			MULT_free				<= `SD {`SCALAR{1'b0}};
+			MEM_free				<= `SD 1'b0;
+			stall						<= `SD 1'b0;
 		end
 		else begin
-			cdb_tag_out					<= `SD next_cdb_tag_out;
-			cdb_valid_out				<= `SD next_cdb_valid_out;
-			cdb_value_out				<= `SD next_cdb_value_out;
-			rob_idx_out					<= `SD next_rob_idx_out;
-			branch_NT						<= `SD next_branch_NT;
-			branch_target_ADDR	<= `SD next_branch_target_ADDR;
+			cdb_tag_out			<= `SD next_cdb_tag_out;
+			cdb_valid_out		<= `SD next_cdb_valid_out;
+			cdb_value_out		<= `SD next_cdb_value_out;
+			rob_idx_out			<= `SD next_rob_idx_out;
+			branch_NT_out		<= `SD next_branch_NT_out;
+			isBranch_out		<= `SD next_isBranch_out;
+			ALU_free				<= `SD next_ALU_free;
+			MULT_free				<= `SD next_MULT_free;
+			MEM_free				<= `SD next_MEM_free;
+			stall						<= `SD next_stall;
 		end
 	end
 
@@ -383,46 +529,18 @@ module ex_stage(clk, reset,
    //
 	MEM_CONT MEM_CONT0 ();
 
-  ALU ALU0 (// Inputs
-             .opa(ALU_opa[SEL(64, 1)]),
-             .opb(ALU_opb[SEL(64, 1)]),
-             .func(ALU_func),
+  ALU ALU1 (// Inputs
+             .opa(ALU_opa_in[SEL(64, 1)]),
+             .opb(ALU_opb_in[SEL(64, 1)]),
+             .func(ALU_func_in),
 
              // Output
              .result(ALU_result[SEL(64, 1)])
             );
 
-	BRcond BRcond0 (// Inputs
-							.opa(BRcond_opa),
-							.func(BRcond_func),
-
-							// Outputs
-							.cond(BRcond_result)
-							);
-
-	MULT MULT0 (// Inputs
-							.clk(clk),
-							.reset(reset),
-							.mplier(MULT_mplier),
-							.mcand(MULT_mcand),
-							.start(MULT_start),
-							.product(MULT_product),
-							.done(MULT_done)
-							);
-
-`ifdef SUPERSCALAR
-  ALU ALU1 (// Inputs
-             .opa(ALU_opa[SEL(64, 2)]),
-             .opb(ALU_opb[SEL(64, 2)]),
-             .func(ALU_func),
-
-             // Output
-             .result(ALU_result[SEL(64, 2)])
-            );
-
 	BRcond BRcond1 (// Inputs
-							.opa(BRcond_opa),
-							.func(BRcond_func),
+							.opa(BRcond_opa_in),
+							.func(BRcond_func_in),
 
 							// Outputs
 							.cond(BRcond_result)
@@ -431,11 +549,55 @@ module ex_stage(clk, reset,
 	MULT MULT1 (// Inputs
 							.clk(clk),
 							.reset(reset),
-							.mplier(MULT_mplier),
-							.mcand(MULT_mcand),
-							.start(MULT_start),
+							.mplier(MULT_mplier_in),
+							.mcand(MULT_mcand_in),
+							.start(MULT_start_in),
 							.product(MULT_product),
-							.done(MULT_done)
+							.done(MULT_done),
+							.rs_IR_in(),
+							.npc_in(),
+							.rob_idx_in(),
+							.EX_en_in(),
+							.rs_IR_out(),
+							.npc_out(),
+							.rob_idx_out(),
+							.EX_en_out()
+							);
+
+`ifdef SUPERSCALAR
+  ALU ALU2 (// Inputs
+             .opa(ALU_opa_in[SEL(64, 2)]),
+             .opb(ALU_opb_in[SEL(64, 2)]),
+             .func(ALU_func_in),
+
+             // Output
+             .result(ALU_result[SEL(64, 2)])
+            );
+
+	BRcond BRcond2 (// Inputs
+							.opa(BRcond_opa_in),
+							.func(BRcond_func_in),
+
+							// Outputs
+							.cond(BRcond_result)
+							);
+
+	MULT MULT2 (// Inputs
+							.clk(clk),
+							.reset(reset),
+							.mplier(MULT_mplier_in),
+							.mcand(MULT_mcand_in),
+							.start(MULT_start_in),
+							.product(MULT_product),
+							.done(MULT_done),
+							.rs_IR_in(),
+							.npc_in(),
+							.rob_idx_in(),
+							.EX_en_in(),
+							.rs_IR_out(),
+							.npc_out(),
+							.rob_idx_out(),
+							.EX_en_out()
 							);
 `endif
 
