@@ -26,11 +26,11 @@ module if_id(clk, reset, if_id_enable,din1_en, din2_en, dout1_req, dout2_req, if
 
 
  //NPC circular buffer
-	cb #(.CB_IDX(`IF_ID_IDX),.CB_WIDTH(64),.CB_LENGTH(`IF_ID_SZ)) cb0 (.clk(clk), .reset(reset), .move_tail(), .tail_new(), .din1_en(din1_enTemp), .din2_en(din2_enTemp),.dout1_req(dout1_reqTemp), .dout2_req(dout2_reqTemp), .din1(if_NPC_out1), .din2(if_NPC_out2), .dout1(if_id_NPC1), .dout2(if_id_NPC2), .full(full), .full_almost(full));
+	cb #(.CB_IDX(`IF_ID_IDX),.CB_WIDTH(64),.CB_LENGTH(`IF_ID_SZ)) cb0 (.clk(clk), .reset(reset), .move_tail(0), .tail_new(0), .din1_en(din1_enTemp), .din2_en(din2_enTemp),.dout1_req(dout1_reqTemp), .dout2_req(dout2_reqTemp), .din1(if_NPC_out1), .din2(if_NPC_out2), .dout1(if_id_NPC1), .dout2(if_id_NPC2), .full(full), .full_almost(full));
  //IR circular buffer
-	cb #(.CB_IDX(`IF_ID_IDX),.CB_WIDTH(32),.CB_LENGTH(`IF_ID_SZ)) cb1 (.clk(clk), .reset(reset), .move_tail(), .tail_new(), .din1_en(din1_enTemp), .din2_en(din2_enTemp),.dout1_req(dout1_reqTemp), .dout2_req(dout2_reqTemp), .din1(if_IR_out1), .din2(if_IR_out2), .dout1(if_id_IR1), .dout2(if_id_IR2), .full(), .full_almost());
+	cb #(.CB_IDX(`IF_ID_IDX),.CB_WIDTH(32),.CB_LENGTH(`IF_ID_SZ)) cb1 (.clk(clk), .reset(reset), .move_tail(0), .tail_new(0), .din1_en(din1_enTemp), .din2_en(din2_enTemp),.dout1_req(dout1_reqTemp), .dout2_req(dout2_reqTemp), .din1(if_IR_out1), .din2(if_IR_out2), .dout1(if_id_IR1), .dout2(if_id_IR2), .full(), .full_almost());
  //valid circular buffer
-	cb #(.CB_IDX(`IF_ID_IDX),.CB_WIDTH(1),.CB_LENGTH(`IF_ID_SZ)) cb2 (.clk(clk), .reset(reset), .move_tail(), .tail_new(), .din1_en(din1_enTemp), .din2_en(din2_enTemp),.dout1_req(dout1_reqTemp), .dout2_req(dout2_reqTemp), .din1(if_valid_inst_out1), .din2(if_valid_inst_out2), .dout1(if_id_valid_inst1), .dout2(if_id_valid_inst2), .full(), .full_almost());
+	cb #(.CB_IDX(`IF_ID_IDX),.CB_WIDTH(1),.CB_LENGTH(`IF_ID_SZ)) cb2 (.clk(clk), .reset(reset), .move_tail(0), .tail_new(0), .din1_en(din1_enTemp), .din2_en(din2_enTemp),.dout1_req(dout1_reqTemp), .dout2_req(dout2_reqTemp), .din1(if_valid_inst_out1), .din2(if_valid_inst_out2), .dout1(if_id_valid_inst1), .dout2(if_id_valid_inst2), .full(), .full_almost());
 
 	always@*
 		begin
