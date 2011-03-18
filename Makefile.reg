@@ -25,12 +25,12 @@ all:    simv
 #####
 
 TESTBENCH = 	sys_defs.vh	    \
-		testbench/testbench_RS.v
-SIMFILES =	verilog/superrs.v verilog/rs.v verilog/pe.v verilog/ps.v
-SYNFILES =  synth/SUPER_RS.vg
+		testbench/testbench_reg.v
+SIMFILES =	verilog/regfile.v
+SYNFILES =  synth/regfile.vg
 
-synth/SUPER_RS.vg:	$(SIMFILES) synth/rs.tcl
-	cd synth && dc_shell-t -f ./rs.tcl | tee synth.out
+synth/regfile.vg:	$(SIMFILES) synth/regfile.tcl
+	cd synth && dc_shell-t -f ./regfile.tcl | tee synth.out
 
 #####
 # Should be no need to modify after here
