@@ -15,7 +15,7 @@
 
 // Memory-Controller
 module MEM_CONT (//Inputs from the Input Logic 
-									rega_in, regb_in, disp_in, rd_in, wr_in, 
+									LSQ_idx, rega_in, regb_in, disp_in, rd_in, wr_in, 
 									pdest_idx_in, rs_IR_in, npc_in, rob_idx_in, EX_en_in,
 								 //Inputs from LSQ
 								 	LSQ_free, LSQ_rob_idx, LSQ_pdest_idx, LSQ_mem_value, 
@@ -28,6 +28,7 @@ module MEM_CONT (//Inputs from the Input Logic
 									MEM_rob_idx_out, MEM_LSQ_free
 									);
 	// Inputs from the input logic in EX stage
+	input [`LSQ_IDX-1:0]	
 	input [63:0]					rega_in;
 	input [63:0]					regb_in;
 	input [63:0]					disp_in;
