@@ -14,19 +14,65 @@
 `timescale 1ns/100ps
 
 // Memory-Controller
-module MEM_CONT ();
-// Make it!
+module MEM_CONT (//Inputs from the Input Logic 
+									rega_in, regb_in, disp_in, rd_in, wr_in, 
+									pdest_idx_in, rs_IR_in, npc_in, rob_idx_in, EX_en_in,
+								 //Inputs from LSQ
+								 	LSQ_free, LSQ_rob_idx, LSQ_pdest_idx, LSQ_mem_value, 
+									LSQ_done, LSQ_rd_mem, LSQ_wr_mem,
+								 //Outputs to LSQ
+								 	MEM_ADDR, MEM_rob_idx, MEM_pdest_idx, MEM_reg_value, 
+									MEM_rd_mem, MEM_wr_mem,
+								 //Outputs to EX/CDB registers
+								 	MEM_valid_value, MEM_done, MEM_value, MEM_pdest_idx_out, 
+									MEM_rob_idx_out, MEM_LSQ_free
+									);
+	// Inputs from the input logic in EX stage
+	input [63:0]					rega_in;
+	input [63:0]					regb_in;
+	input [63:0]					disp_in;
+	input 								rd_in;
+	input 								wr_in;
+	input [`PRF_IDX-1:0]	pdest_idx_in;
+	input [31:0]					rs_IR_in;
+	input [63:0]					npc_in;
+	input [`ROB_IDX-1:0]	rob_idx_in;
+	input 								EX_en_in;
+	// Inputs from LSQ
+	input									LSQ_free;
+	input [`ROB_IDX-1:0]	LSQ_rob_idx;
+	input [`PRF_IDX-1:0]	LSQ_pdest_idx;
+	input [63:0]					LSQ_mem_value;
+	input 								LSQ_done;
+	input									LSQ_rd_mem;
+	input									LSQ_wr_mem;
+	// Outputs to LSQ
+	output [63:0]					MEM_ADDR;
+	output [`ROB_IDX-1:0]	MEM_rob_idx;
+	output [`PRF_IDX-1:0]	MEM_pdest_idx;
+	output [63:0]					MEM_reg_value;
+	output								MEM_rd_mem;
+	output								MEM_wr_mem;
+	// Outputs to EX/CDB registers
+	output								MEM_valid_value;
+	output								MEM_done;
+	output [63:0]					MEM_value;
+	output [`PRF_IDX-1:0]	MEM_pdest_idx_out;
+	output [`ROB_IDX-1:0]	MEM_rob_idx_out;
+	output 								MEM_LSQ_free;
+
 endmodule // MEM_CONT
 
 // Multipliers
 module MULT(clk, reset, mplier, mcand, start, product, done
-						rs_IR_in, npc_in, rob_idx_in, EX_en_in,
-						rs_IR_out, npc_out, rob_idx_out, EX_en_out
+						pdest_idx_in, rs_IR_in, npc_in, rob_idx_in, EX_en_in,
+						pdest_idx_out, rs_IR_out, npc_out, rob_idx_out, EX_en_out
 						);
 
   input clk, reset, start;
   input [63:0] mcand, mplier;
 	
+	input [`PRF_IDX-1:0] pdest_idx_in;
 	input [31:0] rs_IR_in;
 	input [63:0] npc_in;
 	input [`ROB_IDX-1:0] rob_idx_in;
@@ -35,6 +81,7 @@ module MULT(clk, reset, mplier, mcand, start, product, done
   output [63:0] product;
   output done;
 
+	output reg [`PRF_IDX-1:0] pdest_idx_out;
 	output reg [31:0] rs_IR_out;
 	output reg [63:0] npc_out;
 	output reg [`ROB_IDX-1:0] rob_idx_out;
@@ -42,6 +89,7 @@ module MULT(clk, reset, mplier, mcand, start, product, done
 
   wire [63:0] mcand_out, mplier_out;
   wire [(7*64)-1:0] internal_products, internal_mcands, internal_mpliers;
+	wire [(7*`PRF_IDX)-1:0] internal_pdest_idx;
 	wire [(7*32)-1:0] internal_rs_IR;
   wire [(7*64)-1:0] internal_npc;
 	wire [(7*`ROB_IDX)-1:0] internal_rob_idx;
@@ -59,10 +107,12 @@ module MULT(clk, reset, mplier, mcand, start, product, done
      .mplier_out({mplier_out,internal_mpliers}),
      .mcand_out({mcand_out,internal_mcands}),
      .done({done,internal_dones}),
+		 .pdest_idx_in({internal_pdest_idx, pdest_idx_in}),
 		 .rs_IR_in({internal_rs_IR, rs_IR_in}),
 		 .npc_in({internal_npc, npc_in}),
 		 .rob_idx_in({internal_rob_idx, rob_idx_in}),
 		 .EX_en_in({internal_EX_en, EX_en_in}),
+		 .pdest_idx_out({pdest_idx_out, internal_pdest_idx}),
 		 .rs_IR_out({rs_IR_out, internal_rs_IR}),
 		 .npc_out({npc_out, internal_npc}),
 		 .rob_idx_out({rob_idx_out, internal_rob_idx}),
@@ -74,13 +124,14 @@ endmodule // MULT
 module mult_stage(clk, reset, stall, 
                   product_in,  mplier_in,  mcand_in,  start,
                   product_out, mplier_out, mcand_out, done,
-									rs_IR_in, npc_in, rob_idx_in, EX_en_in,
-									rs_IR_out, npc_out, rob_idx_out, EX_en_out
+									pdest_idx_in, rs_IR_in, npc_in, rob_idx_in, EX_en_in,
+									pdest_idx_out, rs_IR_out, npc_out, rob_idx_out, EX_en_out
 									);
 
   input clk, reset, stall, start;
   input [63:0] product_in, mplier_in, mcand_in;
 
+	input [`PRF_IDX-1:0] pdest_idx_in;
 	input [31:0] rs_IR_in;
 	input [63:0] npc_in;
 	input [`ROB_IDX-1:0] rob_idx_in;
@@ -89,6 +140,7 @@ module mult_stage(clk, reset, stall,
   output done;
   output [63:0] product_out, mplier_out, mcand_out;
 	
+	output reg [`PRF_IDX-1:0] pdest_idx_out;
 	output reg [31:0] rs_IR_out;
 	output reg [63:0] npc_out;
 	output reg [`ROB_IDX-1:0] rob_idx_out;
@@ -114,6 +166,7 @@ module mult_stage(clk, reset, stall,
   	  partial_prod_reg 	<= `SD 64'b0;
     	mplier_out       	<= `SD 64'b0;
     	mcand_out        	<= `SD 64'b0;
+			pdest_idx_out			<= `SD {`PRF_IDX{1'b0}};
 			rs_IR_out					<= `SD 32'b0;
 			npc_out						<= `SD 64'b0;
 			rob_idx_out				<= `SD {`ROB_IDX{1'b0}};
@@ -124,6 +177,7 @@ module mult_stage(clk, reset, stall,
   	  partial_prod_reg 	<= `SD partial_prod_reg;
     	mplier_out       	<= `SD mplier_out;
     	mcand_out        	<= `SD mcand_out;
+			pdest_idx_out			<= `SD pdest_idx_out;
 			rs_IR_out					<= `SD rs_IR_out;
 			npc_out						<= `SD npc_out;
 			rob_idx_out				<= `SD rob_idx_out;
@@ -134,6 +188,7 @@ module mult_stage(clk, reset, stall,
     	partial_prod_reg 	<= `SD partial_product;
     	mplier_out       	<= `SD next_mplier;
     	mcand_out        	<= `SD next_mcand;
+			pdest_idx_out			<= `SD pdest_idx_in;
 			rs_IR_out					<= `SD rs_IR_in;
 			npc_out						<= `SD npc_in;
 			rob_idx_out				<= `SD rob_idx_in;
@@ -250,21 +305,73 @@ module BRcond(// Inputs
   end
 endmodule // BRcond
 
-module ex_stage(clk, reset,
-								// Inputs
-								pdest_idx, prega_value, pregb_value, 
-								ALUop, rd_mem, wr_mem,
-								rs_IR, npc, rob_idx, EX_en,
 
-								// Outputs
-								cdb_tag_out, cdb_valid_out, cdb_value_out,	// to CDB
-								rob_idx_out, branch_NT_out, isBranch_out,		// to ROB
-								stall,																			// to the pipeline register (in front of ex_stage)
-								ALU_free, MULT_free, MEM_free								// to RS
-               );
+// EX-CDB Interface
+module EX_CDB_Interface (//Inputs
+												ALU_result, BRcond_result, ALU_pdest_idx, ALU_rs_IR, ALU_npc, ALU_rob_idx, ALU_EX_en,	
+												MULT_product, MULT_done, MULT_pdest_idx, MULT_rs_IR, MULT_npc, MULT_rob_idx, MULT_EX_en,
+												MEM_valid_value, MEM_done, MEM_value, MEM_pdest_idx, MEM_rs_IR, MEM_npc, MEM_rob_idx, MEM_EX_en, MEM_LSQ_free,
+												//Outputs
+												cdb_tag_out, cdb_valid_out, cdb_value_out, 
+												rob_idx_out, branch_NT_out, 
+												ALU_free, MULT_free, MEM_free,
+												ALU_stall, MULT_stall, 
+												rs_IR_out, npc_out
+												);
+	input [64*`SCALAR-1:0]				ALU_result;
+	input [`SCALAR-1:0] 					BRcond_result;
+	input [`PRF_IDX*`SCALAR-1:0]	ALU_pdest_idx;
+	input [32*`SCALAR-1:0]				ALU_rs_IR;
+	input [64*`SCALAR-1:0]				ALU_npc;
+	input [`ROB_IDX*`SCALAR-1:0]	ALU_rob_idx;
+	input [`SCALAR-1:0]						ALU_EX_en;
+	input [64*`SCALAR-1:0]				MULT_product;
+	input [`SCALAR-1:0]						MULT_done;
+	input [`PRF_IDX*`SCALAR-1:0]	MULT_pdest_idx;
+	input [32*`SCALAR-1:0]				MULT_rs_IR;
+	input [64*`SCALAR-1:0]				MULT_npc;
+	input [`ROB_IDX*`SCALAR-1:0]	MULT_rob_idx;
+	input [`SCALAR-1:0]						MULT_EX_en;
+	input [`SCALAR-1:0]						MEM_valid_value;
+	input [`SCALAR-1:0]						MEM_done;
+	input [64*`SCALAR-1:0]				MEM_value;
+	input [`PRF_IDX*`SCALAR-1:0]	MEM_pdest_idx;
+	input [32*`SCALAR-1:0]				MEM_rs_IR;
+	input [64*`SCALAR-1:0]				MEM_npc;
+	input [`ROB_IDX*`SCALAR-1:0]	MEM_rob_idx;
+	input [`SCALAR-1:0]						MEM_EX_en;
+	input [`SCALAR-1:0]						MEM_LSQ_free;
 
-  input clk;  
-  input reset;
+
+	output [`PRF_IDX*`SCALAR-1:0] cdb_tag_out;
+	output [`SCALAR-1:0] 					cdb_valid_out;
+	output [64*`SCALAR-1:0] 			cdb_value_out;
+	output [`ROB_IDX*`SCALAR-1:0] rob_idx_out;
+	output [`SCALAR-1:0] 					branch_NT_out;
+	output [`SCALAR-1:0] 					ALU_free;
+	output [`SCALAR-1:0] 					MULT_free;
+	output [`SCALAR-1:0]					MEM_free;
+	output [`SCALAR-1:0]					ALU_stall;
+	output [`SCALAR-1:0]					MULT_stall;
+	output [32*`SCALAR-1:0] 			rs_IR_out;
+	output [64*`SCALAR-1:0] 			npc_out;
+
+
+
+
+endmodule
+
+module EX_input_logic (//Inputs
+												pdest_idx, prega_value, pregb_value, ALUop, 
+												rd_mem, wr_mem, rs_IR, npc, rob_idx, EX_en,
+											 //Outputs
+											 	ALU_opa_out, ALU_opb_out, ALU_func_out, BRcond_opa_out, BRcond_func_out, 
+												ALU_pdest_idx_out, ALU_rs_IR_out, ALU_npc_out, ALU_rob_idx_out, ALU_EX_en_out,
+											 	MULT_mplier_out, MULT_mcand_out, MULT_start_out,
+												MULT_pdest_idx_out, MULT_rs_IR_out, MULT_npc_out, MULT_rob_idx_out, MULT_EX_en_out,
+												MEM_rega_out, MEM_regb_out, MEM_disp_out, MEM_rd_out, MEM_wr_out,
+												MEM_pdest_idx_out, MEM_rs_IR_out, MEM_npc_out, MEM_rob_idx_out, MEM_EX_en_out
+											);
 
 	input	[`PRF_IDX*`SCALAR-1:0] pdest_idx;
 	input	[64*`SCALAR-1:0] prega_value;
@@ -277,27 +384,34 @@ module ex_stage(clk, reset,
 	input	[`ROB_IDX*`SCALAR-1:0] rob_idx;
 	input	[`SCALAR-1:0] EX_en;
 
-	output reg	[`PRF_IDX*`SCALAR-1:0] cdb_tag_out;
-	output reg	[`SCALAR-1:0] cdb_valid_out;
-	output reg	[64*`SCALAR-1:0] cdb_value_out;
-	output reg	[`ROB_IDX*`SCALAR-1:0] rob_idx_out;
-	output reg	[`SCALAR-1:0] branch_NT_out;
-	output reg	[`SCALAR-1:0] isBranch_out;
-	output reg	[`SCALAR-1:0] ALU_free;
-	output reg	[`SCALAR-1:0] MULT_free;
-	output reg	MEM_free;
-	output reg	stall;
-
-	reg	[`PRF_IDX*`SCALAR-1:0] next_cdb_tag_out;
-	reg	[`SCALAR-1:0] next_cdb_valid_out;
-	reg	[64*`SCALAR-1:0] next_cdb_value_out;
-	reg	[`ROB_IDX*`SCALAR-1:0] next_rob_idx_out;
-	reg	[`SCALAR-1:0] next_branch_NT_out;
-	reg	[`SCALAR-1:0] next_isBranch_out;
-	reg	[`SCALAR-1:0] next_ALU_free;
-	reg	[`SCALAR-1:0] next_MULT_free;
-	reg	next_MEM_free;
-	reg	next_stall;
+	output [64*`SCALAR-1:0]				ALU_opa_out;
+	output [64*`SCALAR-1:0]				ALU_opb_out;
+	output [5*`SCALAR-1:0]				ALU_func_out;
+	output [64*`SCALAR-1:0]				BRcond_opa_out;
+	output [3*`SCALAR-1:0]				BRcond_func_out;
+	output [`PRF_IDX*`SCALAR-1:0]	ALU_pdest_idx_out;
+	output [32*`SCALAR-1:0]				ALU_rs_IR_out;
+	output [64*`SCALAR-1:0]				ALU_npc_out;
+	output [`ROB_IDX*`SCALAR-1:0]	ALU_rob_idx_out;
+	output [`SCALAR-1:0]					ALU_EX_en_out;
+	output [64*`SCALAR-1:0]				MULT_mplier_out;
+	output [64*`SCALAR-1:0]				MULT_mcand_out;
+	output [`SCALAR-1:0]					MULT_start_out;
+	output [`PRF_IDX*`SCALAR-1:0]	MULT_pdest_idx_out;
+	output [32*`SCALAR-1:0]				MULT_rs_IR_out;
+	output [64*`SCALAR-1:0]				MULT_npc_out;
+	output [`ROB_IDX*`SCALAR-1:0]	MULT_rob_idx_out;
+	output [`SCALAR-1:0]					MULT_EX_en_out;
+	output [64*`SCALAR-1:0]				MEM_rega_out;
+	output [64*`SCALAR-1:0]				MEM_regb_out;
+	output [64*`SCALAR-1:0]				MEM_disp_out;
+	output [`SCALAR-1:0]					MEM_rd_out;
+	output [`SCALAR-1:0]					MEM_wr_out;
+	output [`PRF_IDX*`SCALAR-1:0]	MEM_pdest_idx_out;
+	output [32*`SCALAR-1:0]				MEM_rs_IR_out;
+	output [64*`SCALAR-1:0]				MEM_npc_out;
+	output [`ROB_IDX*`SCALAR-1:0]	MEM_rob_idx_out;
+	output [`SCALAR-1:0]					MEM_EX_en_out;
 
 // Outputs from the small decoder for ALU
 	reg [2*`SCALAR-1:0] ALU_opa_select;
@@ -308,28 +422,11 @@ module ex_stage(clk, reset,
 	wire [64*`SCALAR-1:0] MULT_opb = ALU_opb;
 // END OF Outputs from the small decoder for ALU
 
-// Outputs from the input logic
-// BRCond is a part of ALU
-	reg [64*`SCALAR-1:0] ALU_opa_in;
-	reg [64*`SCALAR-1:0] ALU_opb_in;
-	reg [5*`SCALAR-1:0] ALU_func_in;
-	reg [64*`SCALAR-1:0] BRcond_opa_in;
-	reg [3*`SCALAR-1:0] BRcond_func_in;
-	reg [32*`SCALAR-1:0] ALU_rs_
-	reg [64*`SCALAR-1:0] MULT_mplier_in;
-	reg [64*`SCALAR-1:0] MULT_mcand_in;
-	reg [`SCALAR-1:0] MULT_start_in;
-
 // Outputs from Setting up Possible Immediates
   wire [64*`SCALAR-1:0] mem_disp;
   wire [64*`SCALAR-1:0] br_disp;
   wire [64*`SCALAR-1:0] alu_imm;
 // END OF Outputs from Setting up Possible Immediates
-
-// Outputs from the small decoder for Branch Instructions
-	reg [`SCALAR-1:0] cond_branch, uncond_branch;
-	wire [`SCALAR-1:0] isBranch = cond_branch | uncond_branch;
-// END OF Outputs from the small decoder for Branch Instructions
 
 // Setting up Possible Immediates 
 //   mem_disp: sign-extended 16-bit immediate for memory format
@@ -345,48 +442,6 @@ module ex_stage(clk, reset,
   assign alu_imm	= { 56'b0, rs_IR[20:13] };
 	`endif
 // END OF Setting up Possible Immediates 
-
-// Small Decoder for Branch Instructions
-	always @*
-	begin
-		cond_branch[0] = `FALSE;
-		uncond_branch[0] = `FALSE;
-
-		case ({rs_IR[31:29], 3'b0})
-			6'h18:
-				case (rs_IR[31:26])
-					`JSR_GRP:	uncond_branch[0] = `TRUE;
-				endcase
-			6'h30, 6'h38:
-				case (rs_IR[31:26])
-					`BR_INST, `BSR_INST: uncond_branch[0] = `TRUE;
-          `FBEQ_INST, `FBLT_INST, `FBLE_INST, `FBNE_INST, `FBGE_INST, `FBGT_INST: // FP conditionals not implemented
-					default: cond_branch[0] = `TRUE;
-				endcase
-		endcase
-	end
-
-	`ifdef SUPERSCALAR
-	always @*
-	begin
-		cond_branch[1] = `FALSE;
-		uncond_branch[1] = `FALSE;
-
-		case ({rs_IR[63:61], 3'b0})
-			6'h18:
-				case (rs_IR[63:58])
-					`JSR_GRP:	uncond_branch[1] = `TRUE;
-				endcase
-			6'h30, 6'h38:
-				case (rs_IR[63:58])
-					`BR_INST, `BSR_INST: uncond_branch[1] = `TRUE;
-          `FBEQ_INST, `FBLT_INST, `FBLE_INST, `FBNE_INST, `FBGE_INST, `FBGT_INST: // FP conditionals not implemented
-					default: cond_branch[1] = `TRUE;
-				endcase
-		endcase
-	end
-	`endif
-// END OF Small Decoder for Branch Instructions
 
 // Small Decoder for ALU operation
 // Mostly a direct copy from id_stage.v
@@ -493,113 +548,517 @@ module ex_stage(clk, reset,
 `endif
 // END OF  Small Decoder for ALU operation
 
-	// All sequential elements go here
-	always @(posedge clk)
-	begin
-		if(reset) begin
-			cdb_tag_out			<= `SD {`PRE_IDX*`SCALAR{1'b0}};
-			cdb_valid_out		<= `SD {`SCALAR{1'b0}};
-			cdb_value_out		<= `SD {64*`SCALAR{1'b0}};
-			rob_idx_out			<= `SD {`ROB_IDX*`SCALAR{1'b0}};
-			branch_NT_out		<= `SD {`SCALAR{1'b0}};
-			isBranch_out		<= `SD {`SCALAR{1'b0}};
-			ALU_free				<= `SD {`SCALAR{1'b0}};
-			MULT_free				<= `SD {`SCALAR{1'b0}};
-			MEM_free				<= `SD 1'b0;
-			stall						<= `SD 1'b0;
-		end
-		else begin
-			cdb_tag_out			<= `SD next_cdb_tag_out;
-			cdb_valid_out		<= `SD next_cdb_valid_out;
-			cdb_value_out		<= `SD next_cdb_value_out;
-			rob_idx_out			<= `SD next_rob_idx_out;
-			branch_NT_out		<= `SD next_branch_NT_out;
-			isBranch_out		<= `SD next_isBranch_out;
-			ALU_free				<= `SD next_ALU_free;
-			MULT_free				<= `SD next_MULT_free;
-			MEM_free				<= `SD next_MEM_free;
-			stall						<= `SD next_stall;
-		end
-	end
+endmodule
 
 
+module ex_stage(clk, reset,
+								// Inputs
+								pdest_idx, prega_value, pregb_value, 
+								ALUop, rd_mem, wr_mem,
+								rs_IR, npc, rob_idx, EX_en,
 
-   //
-   // instantiate the Functional Units 
-   //
-	MEM_CONT MEM_CONT0 ();
+								// Outputs
+								cdb_tag_out, cdb_valid_out, cdb_value_out,	// to CDB
+								rob_idx_out, branch_NT_out, 								// to ROB
+								ALU_free, MULT_free, MEM_free,							// to RS
+								rs_IR_out, npc_out													// for Debugging
+               );
 
-  ALU ALU1 (// Inputs
-             .opa(ALU_opa_in[SEL(64, 1)]),
-             .opb(ALU_opb_in[SEL(64, 1)]),
-             .func(ALU_func_in),
+  input clk;  
+  input reset;
 
-             // Output
+// Outputs from the input pipeline registers (RS/EX)
+	input	[`PRF_IDX*`SCALAR-1:0] pdest_idx;
+	input	[64*`SCALAR-1:0] prega_value;
+	input	[64*`SCALAR-1:0] pregb_value;
+	input	[5*`SCALAR-1:0] ALUop;
+	input	[`SCALAR-1:0] rd_mem;
+	input	[`SCALAR-1:0] wr_mem;
+	input	[32*`SCALAR-1:0] rs_IR;
+	input	[64*`SCALAR-1:0] npc;
+	input	[`ROB_IDX*`SCALAR-1:0] rob_idx;
+	input	[`SCALAR-1:0] EX_en;
+// END OF Outputs from the input pipeline registers (RS/EX)
+
+// Outputs from the Output Logic
+	output [`PRF_IDX*`SCALAR-1:0] cdb_tag_out;
+	output [`SCALAR-1:0] cdb_valid_out;
+	output [64*`SCALAR-1:0] cdb_value_out;
+	output [`ROB_IDX*`SCALAR-1:0] rob_idx_out;
+	output [`SCALAR-1:0] branch_NT_out;
+	output [`SCALAR-1:0] ALU_free;
+	output [`SCALAR-1:0] MULT_free;
+	output [`SCALAR-1:0] MEM_free;
+	output [32*`SCALAR-1:0] rs_IR_out;
+	output [64*`SCALAR-1:0] npc_out;
+// END OF Outputs from the Output Logic
+
+// Stall Signals
+	// For EX/CDB pipeline registers (come from EX_CDB_Interface)
+	wire [`SCALAR-1:0] ALU_stall;
+	wire [`SACLAR-1:0] MULT_stall;
+// END OF Stall Signals
+
+// Inputs to the functional units
+	wire [64*`SCALAR-1:0]				ALU_opa_in;
+	wire [64*`SCALAR-1:0]				ALU_opb_in;
+	wire [5*`SCALAR-1:0]				ALU_func_in;
+	wire [64*`SCALAR-1:0]				BRcond_opa_in;
+	wire [3*`SCALAR-1:0]				BRcond_func_in;
+	wire [`PRF_IDX*`SCALAR-1:0]	ALU_pdest_idx_in;
+	wire [32*`SCALAR-1:0]				ALU_rs_IR_in;
+	wire [64*`SCALAR-1:0]				ALU_npc_in;
+	wire [`ROB_IDX*`SCALAR-1:0]	ALU_rob_idx_in;
+	wire [`SCALAR-1:0]					ALU_EX_en_in;
+	wire [64*`SCALAR-1:0]				MULT_mplier_in;
+	wire [64*`SCALAR-1:0]				MULT_mcand_in;
+	wire [`SCALAR-1:0]					MULT_start_in;
+	wire [`PRF_IDX*`SCALAR-1:0]	MULT_pdest_idx_in;
+	wire [32*`SCALAR-1:0]				MULT_rs_IR_in;
+	wire [64*`SCALAR-1:0]				MULT_npc_in;
+	wire [`ROB_IDX*`SCALAR-1:0]	MULT_rob_idx_in;
+	wire [`SCALAR-1:0]					MULT_EX_en_in;
+	wire [64*`SCALAR-1:0]				MEM_rega_in;
+	wire [64*`SCALAR-1:0]				MEM_regb_in;
+	wire [64*`SCALAR-1:0]				MEM_disp_in;
+	wire [`SCALAR-1:0]					MEM_rd_in;
+	wire [`SCALAR-1:0]					MEM_wr_in;
+	wire [`PRF_IDX*`SCALAR-1:0]	MEM_pdest_idx_in;
+	wire [32*`SCALAR-1:0]				MEM_rs_IR_in;
+	wire [64*`SCALAR-1:0]				MEM_npc_in;
+	wire [`ROB_IDX*`SCALAR-1:0]	MEM_rob_idx_in;
+	wire [`SCALAR-1:0]					MEM_EX_en_in;
+// END OF Inputs to the functional units
+	
+// Outputs from the functional units
+	wire [64*`SCALAR-1:0]				ALU_result;
+	wire [`SCALAR-1:0] 					BRcond_result;
+	wire [`PRF_IDX*`SCALAR-1:0]	ALU_pdest_idx = ALU_pdest_idx_in;
+	wire [32*`SCALAR-1:0]				ALU_rs_IR = ALU_rs_IR_in;
+	wire [64*`SCALAR-1:0]				ALU_npc = ALU_npc_in;
+	wire [`ROB_IDX*`SCALAR-1:0]	ALU_rob_idx = ALU_rob_idx_in;
+	wire [`SCALAR-1:0]					ALU_EX_en = ALU_EX_en_in;
+	wire [64*`SCALAR-1:0]				MULT_product;
+	wire [`SCALAR-1:0]					MULT_done;
+	wire [`PRF_IDX*`SCALAR-1:0]	MULT_pdest_idx;
+	wire [32*`SCALAR-1:0]				MULT_rs_IR;
+	wire [64*`SCALAR-1:0]				MULT_npc;
+	wire [`ROB_IDX*`SCALAR-1:0]	MULT_rob_idx;
+	wire [`SCALAR-1:0]					MULT_EX_en;
+	wire [`SCALAR-1:0]					MEM_valid_value;
+	wire [`SCALAR-1:0]					MEM_done;
+	wire [64*`SCALAR-1:0]				MEM_value;
+	wire [`PRF_IDX*`SCALAR-1:0]	MEM_pdest_idx;
+	wire [32*`SCALAR-1:0]				MEM_rs_IR;
+	wire [64*`SCALAR-1:0]				MEM_npc;
+	wire [`ROB_IDX*`SCALAR-1:0]	MEM_rob_idx;
+	wire [`SCALAR-1:0]					MEM_EX_en;
+	wire [`SCALAR-1:0]					MEM_LSQ_free;
+// END OF Outputs from the functional units
+
+// Outputs from the EX/CDB registers
+	reg [64*`SCALAR-1:0]				ALU_result_reg;
+	reg [`SCALAR-1:0] 					BRcond_result_reg;
+	reg [`PRF_IDX*`SCALAR-1:0]	ALU_pdest_idx_reg;
+	reg [32*`SCALAR-1:0]				ALU_rs_IR_reg;
+	reg [64*`SCALAR-1:0]				ALU_npc_reg;
+	reg [`ROB_IDX*`SCALAR-1:0]	ALU_rob_idx_reg;
+	reg [`SCALAR-1:0]						ALU_EX_en_reg;
+	reg [64*`SCALAR-1:0]				MULT_product_reg;
+	reg [`SCALAR-1:0]						MULT_done_reg;
+	reg [`PRF_IDX*`SCALAR-1:0]	MULT_pdest_idx_reg;
+	reg [32*`SCALAR-1:0]				MULT_rs_IR_reg;
+	reg [64*`SCALAR-1:0]				MULT_npc_reg;
+	reg [`ROB_IDX*`SCALAR-1:0]	MULT_rob_idx_reg;
+	reg [`SCALAR-1:0]						MULT_EX_en_reg;
+	reg [`SCALAR-1:0]						MEM_valid_value_reg;
+	reg [`SCALAR-1:0]						MEM_done_reg;
+	reg [64*`SCALAR-1:0]				MEM_value_reg;
+	reg [`PRF_IDX*`SCALAR-1:0]	MEM_pdest_idx_reg;
+	reg [32*`SCALAR-1:0]				MEM_rs_IR_reg;
+	reg [64*`SCALAR-1:0]				MEM_npc_reg;
+	reg [`ROB_IDX*`SCALAR-1:0]	MEM_rob_idx_reg;
+	reg [`SCALAR-1:0]						MEM_EX_en_reg;
+	reg [`SCALAR-1:0]						MEM_LSQ_free_reg;
+// END OF Outputs from the EX/CDB registers
+
+	EX_input_logic EX_input_logic0 (
+																	.pdest_idx(pdest_idx), 
+																	.prega_value(prega_value), 
+																	.pregb_value(pregb_value), 
+																	.ALUop(ALUop), 
+																	.rd_mem(rd_mem), 
+																	.wr_mem(wr_mem), 
+																	.rs_IR(rs_IR), 
+																	.npc(npc), 
+																	.rob_idx(rob_idx), 
+																	.EX_en(EX_en),
+											 						.ALU_opa_out(ALU_opa_in), 
+																	.ALU_opb_out(ALU_opb_in), 
+																	.ALU_func_out(ALU_func_in), 
+																	.BRcond_opa_out(BRcond_opa_in), 
+																	.BRcond_func_out(BRcond_func_in), 
+																	.ALU_pdest_idx_out(ALU_pdest_idx_in), 
+																	.ALU_rs_IR_out(ALU_rs_IR_in), 
+																	.ALU_npc_out(ALU_npc_in), 
+																	.ALU_rob_idx_out(ALU_rob_idx_in), 
+																	.ALU_EX_en_out(ALU_EX_en_in),
+																 	.MULT_mplier_out(MULT_mplier_in), 
+																	.MULT_mcand_out(MULT_mcand_in), 
+																	.MULT_start_out(MULT_start_in),
+																	.MULT_pdest_idx_out(MULT_pdest_idx_in), 
+																	.MULT_rs_IR_out(MULT_rs_IR_in), 
+																	.MULT_npc_out(MULT_npc_in), 
+																	.MULT_rob_idx_out(MULT_rob_idx_in), 
+																	.MULT_EX_en_out(MULT_EX_en_in),
+																	.MEM_rega_out(MEM_rega_in), 
+																	.MEM_regb_out(MEM_regb_in), 
+																	.MEM_disp_out(MEM_disp_in), 
+																	.MEM_rd_out(MEM_rd_in), 
+																	.MEM_wr_out(MEM_wr_in),
+																	.MEM_pdest_idx_out(MEM_pdest_idx_in), 
+																	.MEM_rs_IR_out(MEM_rs_IR_in), 
+																	.MEM_npc_out(MEM_npc_in), 
+																	.MEM_rob_idx_out(MEM_rob_idx_in), 
+																	.MEM_EX_en_out(MEM_EX_en_in)
+																	);
+
+
+// Functional units
+	MEM_CONT MEM_CONT1 (
+											.rega_in(MEM_rega_in[SEL(64,1)]), 
+											.regb_in(MEM_regb_in[SEL(64,1)]), 
+											.disp_in(MEM_disp_in[SEL(64,1)]), 
+											.rd_in(MEM_rd_in[SEL(1,1)]), 
+											.wr_in(MEM_wr_in[SEL(1,1)]), 
+											.pdest_idx_in(MEM_pdest_idx_in[SEL(`PRF_IDX,1)]), 
+											.rs_IR_in(MEM_rs_IR_in[SEL(32,1)]), 
+											.npc_in(MEM_npc_in[SEL(64,1)]), 
+											.rob_idx_in(MEM_rob_idx_in[SEL(`ROB_IDX,1)]), 
+											.EX_en_in(MEM_EX_en_in[SEL(1,1)]),
+								 			.LSQ_free(), 
+											.LSQ_rob_idx(), 
+											.LSQ_pdest_idx(), 
+											.LSQ_mem_value(), 
+											.LSQ_done(), 
+											.LSQ_rd_mem(), 
+											.LSQ_wr_mem(),
+								 			.MEM_ADDR(), 
+											.MEM_rob_idx(), 
+											.MEM_pdest_idx(), 
+											.MEM_reg_value(), 
+											.MEM_rd_mem(), 
+											.MEM_wr_mem(),
+								 			.MEM_valid_value(MEM_valid_value[SEL(1,1)]), 
+											.MEM_done(MEM_done[SEL(1,1)]), 
+											.MEM_value(MEM_value[SEL(64,1)]), 
+											.MEM_pdest_idx_out(MEM_pdest_idx[SEL(`PRF_IDX,1)]), 
+											.MEM_rob_idx_out(MEM_rob_idx[SEL(`ROB_IDX,1)]), 
+											.MEM_LSQ_free(MEM_LSQ_free[SEL(1,1)])
+										);
+
+  ALU ALU1 ( .opa(ALU_opa_in[SEL(64,1)]),
+             .opb(ALU_opb_in[SEL(64,1)]),
+             .func(ALU_func_in[SEL(5,1)]),
              .result(ALU_result[SEL(64, 1)])
             );
 
-	BRcond BRcond1 (// Inputs
-							.opa(BRcond_opa_in),
-							.func(BRcond_func_in),
+	BRcond BRcond1 (.opa(BRcond_opa_in[SEL(64,1)]),
+									.func(BRcond_func_in[SEL(3,1)]),
+									.cond(BRcond_result[SEL(1,1)])
+									);
 
-							// Outputs
-							.cond(BRcond_result)
-							);
-
-	MULT MULT1 (// Inputs
-							.clk(clk),
+	MULT MULT1 (.clk(clk),
 							.reset(reset),
-							.mplier(MULT_mplier_in),
-							.mcand(MULT_mcand_in),
-							.start(MULT_start_in),
-							.product(MULT_product),
-							.done(MULT_done),
-							.rs_IR_in(),
-							.npc_in(),
-							.rob_idx_in(),
-							.EX_en_in(),
-							.rs_IR_out(),
-							.npc_out(),
-							.rob_idx_out(),
-							.EX_en_out()
+							.mplier(MULT_mplier_in[SEL(64,1)]),
+							.mcand(MULT_mcand_in[SEL(64,1)]),
+							.start(MULT_start_in[SEL(1,1)]),
+							.product(MULT_product[SEL(64,1)]),
+							.done(MULT_done[SEL(1,1)]),
+							.pdest_idx_in(MULT_pdest_idx_in[SEL(`PRF_IDX,1)]),
+							.rs_IR_in(MULT_rs_IR_in[SEL(32,1)]),
+							.npc_in(MULT_npc_in[SEL(64,1)]),
+							.rob_idx_in(MULT_rob_idx_in[SEL(`ROB_IDX,1)]),
+							.EX_en_in(MULT_EX_en_in[SEL(1,1)]),
+							.pdest_idx_out(MULT_pdest_idx[SEL(`PRF_IDX,1)]),
+							.rs_IR_out(MULT_rs_IR[SEL(32,1)]),
+							.npc_out(MULT_npc[SEL(64,1)]),
+							.rob_idx_out(MULT_rob_idx[SEL(`ROB_IDX,1)]),
+							.EX_en_out(MULT_EX_en[SEL(1,1)])
 							);
 
 `ifdef SUPERSCALAR
-  ALU ALU2 (// Inputs
-             .opa(ALU_opa_in[SEL(64, 2)]),
-             .opb(ALU_opb_in[SEL(64, 2)]),
-             .func(ALU_func_in),
+	MEM_CONT MEM_CONT2 (
+											.rega_in(MEM_rega_in[SEL(64,2)]), 
+											.regb_in(MEM_regb_in[SEL(64,2)]), 
+											.disp_in(MEM_disp_in[SEL(64,2)]), 
+											.rd_in(MEM_rd_in[SEL(1,2)]), 
+											.wr_in(MEM_wr_in[SEL(1,2)]), 
+											.pdest_idx_in(MEM_pdest_idx_in[SEL(`PRF_IDX,2)]), 
+											.rs_IR_in(MEM_rs_IR_in[SEL(32,2)]), 
+											.npc_in(MEM_npc_in[SEL(64,2)]), 
+											.rob_idx_in(MEM_rob_idx_in[SEL(`ROB_IDX,2)]), 
+											.EX_en_in(MEM_EX_en_in[SEL(1,2)]),
+								 			.LSQ_free(), 
+											.LSQ_rob_idx(), 
+											.LSQ_pdest_idx(), 
+											.LSQ_mem_value(), 
+											.LSQ_done(), 
+											.LSQ_rd_mem(), 
+											.LSQ_wr_mem(),
+								 			.MEM_ADDR(), 
+											.MEM_rob_idx(), 
+											.MEM_pdest_idx(), 
+											.MEM_reg_value(), 
+											.MEM_rd_mem(), 
+											.MEM_wr_mem(),
+								 			.MEM_valid_value(MEM_valid_value[SEL(1,2)]), 
+											.MEM_done(MEM_done[SEL(1,2)]), 
+											.MEM_value(MEM_value[SEL(64,2)]), 
+											.MEM_pdest_idx_out(MEM_pdest_idx[SEL(`PRF_IDX,2)]), 
+											.MEM_rob_idx_out(MEM_rob_idx[SEL(`ROB_IDX,2)]), 
+											.MEM_LSQ_free(MEM_LSQ_free[SEL(1,2)])
+										);
 
-             // Output
+  ALU ALU2 ( .opa(ALU_opa_in[SEL(64, 2)]),
+             .opb(ALU_opb_in[SEL(64, 2)]),
+             .func(ALU_func_in[SEL(5,2)]),
              .result(ALU_result[SEL(64, 2)])
             );
 
-	BRcond BRcond2 (// Inputs
-							.opa(BRcond_opa_in),
-							.func(BRcond_func_in),
+	BRcond BRcond2 (.opa(BRcond_opa_in[SEL(64,2)]),
+									.func(BRcond_func_in[SEL(3,2)]),
+									.cond(BRcond_result[SEL(1,2)])
+									);
 
-							// Outputs
-							.cond(BRcond_result)
-							);
-
-	MULT MULT2 (// Inputs
-							.clk(clk),
+	MULT MULT2 (.clk(clk),
 							.reset(reset),
-							.mplier(MULT_mplier_in),
-							.mcand(MULT_mcand_in),
-							.start(MULT_start_in),
-							.product(MULT_product),
-							.done(MULT_done),
-							.rs_IR_in(),
-							.npc_in(),
-							.rob_idx_in(),
-							.EX_en_in(),
-							.rs_IR_out(),
-							.npc_out(),
-							.rob_idx_out(),
-							.EX_en_out()
+							.mplier(MULT_mplier_in[SEL(64,2)]),
+							.mcand(MULT_mcand_in[SEL(64,2)]),
+							.start(MULT_start_in[SEL(1,2)]),
+							.product(MULT_product[SEL(64,2)]),
+							.done(MULT_done[SEL(1,2)]),
+							.pdest_idx_in(MULT_pdest_idx_in[SEL(`PRF_IDX,2)]),
+							.rs_IR_in(MULT_rs_IR_in[SEL(32,2)]),
+							.npc_in(MULT_npc_in[SEL(64,2)]),
+							.rob_idx_in(MULT_rob_idx_in[SEL(`ROB_IDX,2)]),
+							.EX_en_in(MULT_EX_en_in[SEL(1,2)]),
+							.pdest_idx_out(MULT_pdest_idx[SEL(`PRF_IDX,2)]),
+							.rs_IR_out(MULT_rs_IR[SEL(32,2)]),
+							.npc_out(MULT_npc[SEL(64,2)]),
+							.rob_idx_out(MULT_rob_idx[SEL(`ROB_IDX,2)]),
+							.EX_en_out(MULT_EX_en[SEL(1,2)])
 							);
 `endif
+// END OF Functional units
+
+// Output pipeline register (EX/CDB)
+	always @(posedge clk)
+	begin
+		if(reset) begin
+			ALU_result_reg			<= `SD {64*`SCALAR{1'b0}};
+			BRcond_result_reg		<= `SD {`SCALAR{1'b0}};
+			ALU_pdest_idx_reg		<= `SD {`PRF_IDX*`SCALAR{1'b0}};
+			ALU_rs_IR_reg				<= `SD {32*`SCALAR{1'b0}};			
+			ALU_npc_reg					<= `SD {64*`SCALAR{1'b0}};		
+			ALU_rob_idx_reg			<= `SD {`ROB_IDX*`SCALAR{1'b0}};
+			ALU_EX_en_reg				<= `SD {`SCALAR{1'b0}};				
+			MULT_product_reg		<= `SD {64*`SCALAR{1'b0}};	
+			MULT_done_reg				<= `SD {`SCALAR{1'b0}};	
+			MULT_pdest_idx_reg	<= `SD {`PRF_IDX*`SCALAR{1'b0}};
+			MULT_rs_IR_reg			<= `SD {32*`SCALAR{1'b0}};			
+			MULT_npc_reg				<= `SD {64*`SCALAR{1'b0}};		
+			MULT_rob_idx_reg		<= `SD {`ROB_IDX*`SCALAR{1'b0}};
+			MULT_EX_en_reg			<= `SD {`SCALAR{1'b0}};				
+			MEM_valid_value_reg	<= `SD {`SCALAR{1'b0}};				
+			MEM_done_reg				<= `SD {`SCALAR{1'b0}};				
+			MEM_value_reg				<= `SD {64*`SCALAR{1'b0}};	
+			MEM_pdest_idx_reg		<= `SD {`PRF_IDX*`SCALAR{1'b0}};
+			MEM_rs_IR_reg				<= `SD {32*`SCALAR{1'b0}};			
+			MEM_npc_reg					<= `SD {64*`SCALAR{1'b0}};		
+			MEM_rob_idx_reg			<= `SD {`ROB_IDX*`SCALAR{1'b0}};
+			MEM_EX_en_reg				<= `SD {`SCALAR{1'b0}};				
+			MEM_LSQ_free_reg		<= `SD {`SCALAR{1'b1}};				
+		end
+		`ifdef SUPERSCALAR
+		else if({ALU_stall, MULT_stall} != 4'b0000) begin
+			if(ALU_stall==2'b01) begin
+				ALU_result_reg			<= `SD {ALU_result[SEL(64,2)], ALU_result_reg[SEL(64,1)]};
+				BRcond_result_reg		<= `SD {BRcond_result[SEL(1,2)], BRcond_result_reg[SEL(1,1)]};
+				ALU_pdest_idx_reg		<= `SD {ALU_pdest_idx[SEL(`PRF_IDX,2)], ALU_pdest_idx_reg[SEL(`PRF_IDX,1)]};
+				ALU_rs_IR_reg				<= `SD {ALU_rs_IR[SEL(32,2)], ALU_rs_IR_reg[SEL(32,1)]};
+				ALU_npc_reg					<= `SD {ALU_npc[SEL(64,2)], ALU_npc_reg[SEL(64,1)]};
+				ALU_rob_idx_reg			<= `SD {ALU_rob_idx[SEL(`ROB_IDX,2)], ALU_rob_idx_reg[SEL(`ROB_IDX,1)]};
+				ALU_EX_en_reg				<= `SD {ALU_EX_en[SEL(1,2)], ALU_EX_en_reg[SEL(1,1)]};
+			end
+			else if(ALU_stall==2'b10) begin
+				ALU_result_reg			<= `SD {ALU_result_reg[SEL(64,2)], ALU_result[SEL(64,1)]};
+				BRcond_result_reg		<= `SD {BRcond_result_reg[SEL(1,2)], BRcond_result[SEL(1,1)]};
+				ALU_pdest_idx_reg		<= `SD {ALU_pdest_idx_reg[SEL(`PRF_IDX,2)], ALU_pdest_idx[SEL(`PRF_IDX,1)]};
+				ALU_rs_IR_reg				<= `SD {ALU_rs_IR_reg[SEL(32,2)], ALU_rs_IR[SEL(32,1)]};
+				ALU_npc_reg					<= `SD {ALU_npc_reg[SEL(64,2)], ALU_npc[SEL(64,1)]};
+				ALU_rob_idx_reg			<= `SD {ALU_rob_idx_reg[SEL(`ROB_IDX,2)], ALU_rob_idx[SEL(`ROB_IDX,1)]};
+				ALU_EX_en_reg				<= `SD {ALU_EX_en_reg[SEL(1,2)], ALU_EX_en[SEL(1,1)]};
+			end
+			else begin
+				ALU_result_reg			<= `SD ALU_result;
+				BRcond_result_reg		<= `SD BRcond_result;
+				ALU_pdest_idx_reg		<= `SD ALU_pdest_idx;
+				ALU_rs_IR_reg				<= `SD ALU_rs_IR;
+				ALU_npc_reg					<= `SD ALU_npc;
+				ALU_rob_idx_reg			<= `SD ALU_rob_idx;
+				ALU_EX_en_reg				<= `SD ALU_EX_en;
+			end
+			if (MULT_stall==2'b01) begin
+				MULT_product_reg		<= `SD {MULT_product[SEL(64,2)], MULT_product_reg[SEL(64,1)]};
+				MULT_done_reg				<= `SD {MULT_done[SEL(1,2)], MULT_done_reg[SEL(1,1)]};
+				MULT_pdest_idx_reg	<= `SD {MULT_pdest_idx[SEL(`PRF_IDX,2)], MULT_pdest_idx_reg[SEL(`PRF_IDX,1)]};
+				MULT_rs_IR_reg			<= `SD {MULT_rs_IR[SEL(32,2)], MULT_rs_IR_reg[SEL(32,1)]};
+				MULT_npc_reg				<= `SD {MULT_npc[SEL(64,2)], MULT_npc_reg[SEL(64,1)]};
+				MULT_rob_idx_reg		<= `SD {MULT_rob_idx[SEL(`ROB_IDX,2)], MULT_rob_idx_reg[SEL(`ROB_IDX,1)]};
+				MULT_EX_en_reg			<= `SD {MULT_EX_en[SEL(1,2)], MULT_EX_en_reg[SEL(1,1)]};
+			end
+			else if (MULT_stall==2'b10) begin
+				MULT_product_reg		<= `SD {MULT_product_reg[SEL(64,2)], MULT_product[SEL(64,1)]};
+				MULT_done_reg				<= `SD {MULT_done_reg[SEL(1,2)], MULT_done[SEL(1,1)]};
+				MULT_pdest_idx_reg	<= `SD {MULT_pdest_idx_reg[SEL(`PRF_IDX,2)], MULT_pdest_idx[SEL(`PRF_IDX,1)]};
+				MULT_rs_IR_reg			<= `SD {MULT_rs_IR_reg[SEL(32,2)], MULT_rs_IR[SEL(32,1)]};
+				MULT_npc_reg				<= `SD {MULT_npc_reg[SEL(64,2)], MULT_npc[SEL(64,1)]};
+				MULT_rob_idx_reg		<= `SD {MULT_rob_idx_reg[SEL(`ROB_IDX,2)], MULT_rob_idx[SEL(`ROB_IDX,1)]};
+				MULT_EX_en_reg			<= `SD {MULT_EX_en_reg[SEL(1,2)], MULT_EX_en[SEL(1,1)]};
+			end
+			else begin
+				MULT_product_reg		<= `SD MULT_product;
+				MULT_done_reg				<= `SD MULT_done;
+				MULT_pdest_idx_reg	<= `SD MULT_pdest_idx;
+				MULT_rs_IR_reg			<= `SD MULT_rs_IR;
+				MULT_npc_reg				<= `SD MULT_npc;
+				MULT_rob_idx_reg		<= `SD MULT_rob_idx;
+				MULT_EX_en_reg			<= `SD MULT_EX_en;
+			end
+			MEM_value_reg				<= `SD MEM_value;
+			MEM_pdest_idx_reg		<= `SD MEM_pdest_idx;
+			MEM_rs_IR_reg				<= `SD MEM_rs_IR;
+			MEM_npc_reg					<= `SD MEM_npc;
+			MEM_rob_idx_reg			<= `SD MEM_rob_idx;
+			MEM_EX_en_reg				<= `SD MEM_EX_en;
+			MEM_LSQ_free_reg		<= `SD MEM_LSQ_free;
+		end
+		`else
+		else if({ALU_stall, MULT_stall} != 2'b00) begin
+			if(ALU_stall) begin
+				ALU_result_reg			<= `SD ALU_result_reg;
+				BRcond_result_reg		<= `SD BRcond_result_reg;
+				ALU_pdest_idx_reg		<= `SD ALU_pdest_idx_reg;
+				ALU_rs_IR_reg				<= `SD ALU_rs_IR_reg;
+				ALU_npc_reg					<= `SD ALU_npc_reg;
+				ALU_rob_idx_reg			<= `SD ALU_rob_idx_reg;
+				ALU_EX_en_reg				<= `SD ALU_EX_en_reg;
+			end
+			else begin
+				ALU_result_reg			<= `SD ALU_result;
+				BRcond_result_reg		<= `SD BRcond_result;
+				ALU_pdest_idx_reg		<= `SD ALU_pdest_idx;
+				ALU_rs_IR_reg				<= `SD ALU_rs_IR;
+				ALU_npc_reg					<= `SD ALU_npc;
+				ALU_rob_idx_reg			<= `SD ALU_rob_idx;
+				ALU_EX_en_reg				<= `SD ALU_EX_en;
+			end
+			if (MULT_stall) begin
+				MULT_product_reg		<= `SD MULT_product_reg;
+				MULT_done_reg				<= `SD MULT_done_reg;
+				MULT_pdest_idx_reg	<= `SD MULT_pdest_idx_reg;
+				MULT_rs_IR_reg			<= `SD MULT_rs_IR_reg;
+				MULT_npc_reg				<= `SD MULT_npc_reg;
+				MULT_rob_idx_reg		<= `SD MULT_rob_idx_reg;
+				MULT_EX_en_reg			<= `SD MULT_EX_en_reg;
+			end
+			else begin
+				MULT_product_reg		<= `SD MULT_product;
+				MULT_done_reg				<= `SD MULT_done;
+				MULT_pdest_idx_reg	<= `SD MULT_pdest_idx;
+				MULT_rs_IR_reg			<= `SD MULT_rs_IR;
+				MULT_npc_reg				<= `SD MULT_npc;
+				MULT_rob_idx_reg		<= `SD MULT_rob_idx;
+				MULT_EX_en_reg			<= `SD MULT_EX_en;
+			end
+			MEM_value_reg				<= `SD MEM_value;
+			MEM_pdest_idx_reg		<= `SD MEM_pdest_idx;
+			MEM_rs_IR_reg				<= `SD MEM_rs_IR;
+			MEM_npc_reg					<= `SD MEM_npc;
+			MEM_rob_idx_reg			<= `SD MEM_rob_idx;
+			MEM_EX_en_reg				<= `SD MEM_EX_en;
+			MEM_LSQ_free_reg		<= `SD MEM_LSQ_free;
+		end
+		`endif
+		else begin
+			ALU_result_reg			<= `SD ALU_result;
+			BRcond_result_reg		<= `SD BRcond_result;
+			ALU_pdest_idx_reg		<= `SD ALU_pdest_idx;
+			ALU_rs_IR_reg				<= `SD ALU_rs_IR;
+			ALU_npc_reg					<= `SD ALU_npc;
+			ALU_rob_idx_reg			<= `SD ALU_rob_idx;
+			ALU_EX_en_reg				<= `SD ALU_EX_en;
+			MULT_product_reg		<= `SD MULT_product;
+			MULT_done_reg				<= `SD MULT_done;
+			MULT_pdest_idx_reg	<= `SD MULT_pdest_idx;
+			MULT_rs_IR_reg			<= `SD MULT_rs_IR;
+			MULT_npc_reg				<= `SD MULT_npc;
+			MULT_rob_idx_reg		<= `SD MULT_rob_idx;
+			MULT_EX_en_reg			<= `SD MULT_EX_en;
+			MEM_valid_value_reg	<= `SD MEM_valid_value;
+			MEM_done_reg				<= `SD MEM_done;
+			MEM_value_reg				<= `SD MEM_value;
+			MEM_pdest_idx_reg		<= `SD MEM_pdest_idx;
+			MEM_rs_IR_reg				<= `SD MEM_rs_IR;
+			MEM_npc_reg					<= `SD MEM_npc;
+			MEM_rob_idx_reg			<= `SD MEM_rob_idx;
+			MEM_EX_en_reg				<= `SD MEM_EX_en;
+			MEM_LSQ_free_reg		<= `SD MEM_LSQ_free;
+		end
+	end
+// END OF Output pipeline register (EX/CDB)
+
+// EX-CDB Interface
+EX_CDB_Interface EX_CDB_Interface0	(//Inputs
+																			.ALU_result(ALU_result_reg),
+																			.BRcond_result(BRcond_result_reg),
+																			.ALU_pdest_idx(ALU_pdest_idx_reg),
+																			.ALU_rs_IR(ALU_rs_IR_reg),
+																			.ALU_npc(ALU_npc_reg),
+																			.ALU_rob_idx(ALU_rob_idx_reg),
+																			.ALU_EX_en(ALU_EX_en_reg),
+																			.MULT_product(MULT_product_reg),
+																			.MULT_done(MULT_done_reg),
+																			.MULT_pdest_idx(MULT_pdest_idx_reg),
+																			.MULT_rs_IR(MULT_rs_IR_reg),
+																			.MULT_npc(MULT_npc_reg),
+																			.MULT_rob_idx(MULT_rob_idx_reg),
+																			.MULT_EX_en(MULT_EX_en_reg),
+																			.MEM_valid_value(MEM_valid_value_reg),
+																			.MEM_done(MEM_done_reg),
+																			.MEM_value(MEM_value_reg),
+																			.MEM_pdest_idx(MEM_pdest_idx_reg),
+																			.MEM_rs_IR(MEM_rs_IR_reg),
+																			.MEM_npc(MEM_npc_reg),
+																			.MEM_rob_idx(MEM_rob_idx_reg),
+																			.MEM_EX_en(MEM_EX_en_reg),
+																			.MEM_LSQ_free(MEM_LSQ_free_reg),
+
+																		//Outputs
+																			.cdb_tag_out(cdb_tag_out),
+																			.cdb_valid_out(cdb_valid_out),
+																			.cdb_value_out(cdb_value_out),
+																			.rob_idx_out(rob_index_out),
+																			.branch_NT_out(branch_NT_out),
+																			.ALU_free(ALU_free),
+																			.MULT_free(MULT_free),
+																			.MEM_free(MEM_free),
+																			.ALU_stall(ALU_stall),
+																			.MULT_stall(MULT_stall),
+																			.rs_IR_out(rs_IR_out),
+																			.npc_out(npc_out)
+																			);
 
 
 endmodule // module ex_stage
