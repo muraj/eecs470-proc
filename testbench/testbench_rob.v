@@ -9,7 +9,7 @@ module testbench;
 
   integer count,limbo,idx;  //TEST VARS
 
-  reg clk, reset, din1_req, din2_req;
+  reg clk, reset, din1_req, din2_req, up1_req, up2_req;
 	reg [31:0] ir_in1, ir_in2;
 	reg [63:0] npc_in1, npc_in2;
 	reg [`PRF_IDX-1:0] pdest_in1, pdest_in2;
@@ -35,7 +35,7 @@ module testbench;
 						rob_idx_in1, rob_idx_in2,
 						rob_idx_out1, rob_idx_out2,
 						ir_out1, ir_out2, npc_out1, npc_out2, pdest_out1, pdest_out2,
-						branch_miss, ba_out;
+						branch_miss, ba_out
 						);
 						
 	always
@@ -88,7 +88,7 @@ module testbench;
     $display("Head : %d",rob0.head);
 		$display("Tail : %d\n",rob0.tail);
     
-    $display("Entry 0 | %d",rob0.rdy[0]);
+    $display("Entry 0 | %d\t\t%",rob0.data_rdy[0], rob0.data_bt_ex[0], rob0.data_ba_ex[0], rob0.cb_npc.data[0], rob0.cb_pdest.data[0], rob0.cb_bt_pd.data[0], rob0.cb_ba_pd.data[0]);
 
     $display("==========================\n");
 	  end
