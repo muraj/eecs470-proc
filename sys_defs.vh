@@ -292,7 +292,7 @@
 `endif
 `define PRF_IDX (6)
 `define PRF_SZ (1<<`PRF_IDX)
-`define ROB_IDX (5)
+`define ROB_IDX (4)
 `define ROB_SZ (1<<`ROB_IDX)
 `define RS_IDX (4)
 `define RS_SZ (1<<`RS_IDX)

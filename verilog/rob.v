@@ -14,7 +14,9 @@ module rob (clk, reset,
 						// allocated rob indices
 						rob_idx_out1, rob_idx_out2,
 						// output values at retirement
-						ir_out1, ir_out2, npc_out1, npc_out2, pdest_out1, pdest_out2
+						ir_out1, ir_out2, npc_out1, npc_out2, pdest_out1, pdest_out2,
+						// branch miss signal
+						branch_miss, ba_out
 						);
 
   input clk, reset, din1_req, din2_req;
@@ -31,6 +33,8 @@ module rob (clk, reset,
 	output [`PRF_IDX-1:0] pdest_out1, pdest_out2;
 	output [31:0] ir_out1, ir_out2;
 	output [63:0] npc_out1, npc_out2;
+	output reg branch_miss;
+	output reg [63:0] ba_out;
 
 
   // Data input indicators for outside world
@@ -47,10 +51,6 @@ module rob (clk, reset,
 	assign retire1 = !empty && data_rdy[head];
 	assign retire2 = !empty_almost && retire1 && data_rdy[head_p1];
 	
-	// Branch miss
-	reg branch_miss, move_tail;
-	reg tail_new;
-
 	// ===================================================
 	// Duplicate cb functionality for things to be updated
 	// ===================================================
@@ -64,6 +64,9 @@ module rob (clk, reset,
 
 
 	reg [`ROB_IDX-1:0] next_head, next_tail;
+	reg [`ROB_IDX-1:0] tail_new;
+	reg move_tail;
+
 
 	// i/o counter
 	reg [`ROB_IDX:0] iocount;
@@ -109,12 +112,14 @@ module rob (clk, reset,
 		if (retire1) begin
 			if ((data_bt_ex[head] != bt_pd_out1) || (data_ba_ex[head] != ba_pd_out1)) begin
 				branch_miss = 1;
+				ba_out = data_ba_ex[head];
 				dout2_valid = 0;	
 				move_tail = 1;
 				tail_new = next_head;
 			end else if (retire2) begin
 				if ((data_bt_ex[head_p1] != bt_pd_out2) || (data_ba_ex[head_p1] != ba_pd_out2)) begin
 					branch_miss = 1;
+					ba_out = data_ba_ex[head_p1];
 					move_tail = 1;
 					tail_new = next_head;
 				end 
