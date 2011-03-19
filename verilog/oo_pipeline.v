@@ -40,9 +40,9 @@ module oo_pipeline (// Inputs
                  if_id_NPC,
                  if_id_IR,
                  if_id_valid_inst,
-                 id_ex_NPC,
-                 id_ex_IR,
-                 id_ex_valid_inst,
+                 id_dp_NPC,
+                 id_dp_IR,
+                 id_dp_valid_inst,
                  ex_mem_NPC,
                  ex_mem_IR,
                  ex_mem_valid_inst,
@@ -53,7 +53,7 @@ module oo_pipeline (// Inputs
 
   input         clock;             // System clock
   input         reset;             // System reset
-/*
+
 	input  [3:0]  mem2proc_response; // Tag from memory about current request
   input  [63:0] mem2proc_data;     // Data coming back from memory
   input  [3:0]  mem2proc_tag;      // Tag from memory about current reply
@@ -68,155 +68,60 @@ module oo_pipeline (// Inputs
   output [63:0] pipeline_commit_wr_data;
   output        pipeline_commit_wr_en;
   output [63:0] pipeline_commit_NPC;
-*/
-  output [63:0] if_NPC_out;
-  output [31:0] if_IR_out;
-  output        if_valid_inst_out;
-  output [63:0] if_id_NPC;
-  output [31:0] if_id_IR;
-  output        if_id_valid_inst;
-  output [63:0] id_ex_NPC;
-  output [31:0] id_ex_IR;
-  output        id_ex_valid_inst;
-  output [63:0] ex_mem_NPC;
-  output [31:0] ex_mem_IR;
-  output        ex_mem_valid_inst;
-  output [63:0] mem_wb_NPC;
-  output [31:0] mem_wb_IR;
-  output        mem_wb_valid_inst;
 
-
-  decoder decoder_0 (// Input
-                     .inst(if_id_IR),
-                     .valid_inst_in(if_id_valid_inst),
-
-                     // Outputs
-                     .opa_select(id_opa_select_out),
-                     .opb_select(id_opb_select_out),
-                     .alu_func(id_alu_func_out),
-                     .dest_reg(dest_reg_select),
-                     .rd_mem(id_rd_mem_out),
-                     .wr_mem(id_wr_mem_out),
-                     .ldl_mem(id_ldl_mem_out),
-                     .stc_mem(id_stc_mem_out),
-                     .cond_branch(id_cond_branch_out),
-                     .uncond_branch(id_uncond_branch_out),
-                     .halt(id_halt_out),
-                     .cpuid(id_cpuid_out),
-                     .illegal(id_illegal_out),
-                     .valid_inst(id_valid_inst_out)
-                    );
-
-  decoder decoder_1 (// Input
-                     .inst(if_id_IR),
-                     .valid_inst_in(if_id_valid_inst),
-
-                     // Outputs
-                     .opa_select(id_opa_select_out),
-                     .opb_select(id_opb_select_out),
-                     .alu_func(id_alu_func_out),
-                     .dest_reg(dest_reg_select),
-                     .rd_mem(id_rd_mem_out),
-                     .wr_mem(id_wr_mem_out),
-                     .ldl_mem(id_ldl_mem_out),
-                     .stc_mem(id_stc_mem_out),
-                     .cond_branch(id_cond_branch_out),
-                     .uncond_branch(id_uncond_branch_out),
-                     .halt(id_halt_out),
-                     .cpuid(id_cpuid_out),
-                     .illegal(id_illegal_out),
-                     .valid_inst(id_valid_inst_out)
-                    );
-
-
-
-
-
-
+  output [64*`SCALAR-1:0] if_NPC_out;
+  output [32*`SCALAR-1:0] if_IR_out;
+  output [`SCALAR-1:0]    if_valid_inst_out;
+  output [64*`SCALAR-1:0] if_id_NPC;
+  output [32*`SCALAR-1:0] if_id_IR;
+  output [`SCALAR-1:0]    if_id_valid_inst;
+  output [64*`SCALAR-1:0] id_dp_NPC;
+  output [32*`SCALAR-1:0] id_dp_IR;
+  output [`SCALAR-1:0]    id_dp_valid_inst;
 
   // Pipeline register enables
-  wire   if_id_enable, id_ex_enable, ex_mem_enable, mem_wb_enable;
+  wire   if_id_enable, id_dp_enable;
 
   // Outputs from IF-Stage
-  wire [63:0] if_NPC_out;
-  wire [31:0] if_IR_out;
-  wire        if_valid_inst_out;
+  wire [64*`SCALAR-1:0] if_NPC_out;
+  wire [32*`SCALAR-1:0] if_IR_out;
+  wire [`SCALAR-1:0]    if_valid_inst_out;
 
   // Outputs from IF/ID Pipeline Register
-  reg  [63:0] if_id_NPC;
-  reg  [31:0] if_id_IR;
-  reg         if_id_valid_inst;
+  reg  [64*`SCALAR-1:0] if_id_NPC;
+  reg  [32*`SCALAR-1:0] if_id_IR;
+  reg  [`SCALAR-1:0 ]   if_id_valid_inst;
    
   // Outputs from ID stage
-  wire [63:0] id_rega_out;
-  wire [63:0] id_regb_out;
-  wire  [1:0] id_opa_select_out;
-  wire  [1:0] id_opb_select_out;
-  wire  [4:0] id_dest_reg_idx_out;
-  wire  [4:0] id_alu_func_out;
-  wire        id_rd_mem_out;
-  wire        id_wr_mem_out;
-  wire        id_ldl_mem_out;
-  wire        id_stc_mem_out;
-  wire        id_cond_branch_out;
-  wire        id_uncond_branch_out;
-  wire        id_halt_out;
-  wire        id_cpuid_out;
-  wire        id_illegal_out;
-  wire        id_valid_inst_out;
+  wire [5*`SCALAR-1:0]  id_dest_reg_idx_out;
+  wire [5*`SCALAR-1:0]  id_alu_func_out;
+  wire [5*`SCALAR-1:0]  id_rega_idx_out;
+  wire [5*`SCALAR-1:0]  id_regb_idx_out;
+  wire [`SCALAR-1:0]    id_rd_mem_out;
+  wire [`SCALAR-1:0]    id_wr_mem_out;
+  wire [`SCALAR-1:0]    id_cond_branch_out;
+  wire [`SCALAR-1:0]    id_uncond_branch_out;
+  wire [`SCALAR-1:0]    id_halt_out;
+  wire [`SCALAR-1:0]    id_cpuid_out;
+  wire [`SCALAR-1:0]    id_illegal_out;
+  wire [`SCALAR-1:0]    id_valid_inst_out;
 
   // Outputs from ID/EX Pipeline Register
-  reg  [63:0] id_ex_NPC;
-  reg  [31:0] id_ex_IR;
-  reg  [63:0] id_ex_rega;
-  reg  [63:0] id_ex_regb;
-  reg   [1:0] id_ex_opa_select;
-  reg   [1:0] id_ex_opb_select;
-  reg   [4:0] id_ex_dest_reg_idx;
-  reg   [4:0] id_ex_alu_func;
-  reg         id_ex_rd_mem;
-  reg         id_ex_wr_mem;
-  reg         id_ex_cond_branch;
-  reg         id_ex_uncond_branch;
-  reg         id_ex_halt;
-  reg         id_ex_illegal;
-  reg         id_ex_valid_inst;
+  reg  [64*`SCALAR-1:0] id_dp_NPC;
+  reg  [32*`SCALAR-1:0] id_dp_IR;
+  reg  [5*`SCALAR-1:0]  id_dp_rega_idx;
+  reg  [5*`SCALAR-1:0]  id_dp_regb_idx;
+  reg  [5*`SCALAR-1:0]  id_dp_dest_reg_idx;
+  reg  [5*`SCALAR-1:0]  id_dp_alu_func;
+  reg  [`SCALAR-1:0]    id_dp_rd_mem;
+  reg  [`SCALAR-1:0]    id_dp_wr_mem;
+  reg  [`SCALAR-1:0]    id_dp_cond_branch;
+  reg  [`SCALAR-1:0]    id_dp_uncond_branch;
+  reg  [`SCALAR-1:0]    id_dp_halt;
+  reg  [`SCALAR-1:0]    id_dp_illegal;
+  reg  [`SCALAR-1:0]    id_dp_valid_inst;
    
-  // Outputs from EX-Stage
-  wire [63:0] ex_alu_result_out;
-  wire        ex_take_branch_out;
-
-  // Outputs from EX/MEM Pipeline Register
-  reg  [63:0] ex_mem_NPC;
-  reg  [31:0] ex_mem_IR;
-  reg   [4:0] ex_mem_dest_reg_idx;
-  reg         ex_mem_rd_mem;
-  reg         ex_mem_wr_mem;
-  reg         ex_mem_halt;
-  reg         ex_mem_illegal;
-  reg         ex_mem_valid_inst;
-  reg  [63:0] ex_mem_rega;
-  reg  [63:0] ex_mem_alu_result;
-  reg         ex_mem_take_branch;
-  
-  // Outputs from MEM-Stage
-  wire [63:0] mem_result_out;
-  wire        mem_stall_out;
-
-  // Outputs from MEM/WB Pipeline Register
-  reg  [63:0] mem_wb_NPC;
-  reg  [31:0] mem_wb_IR;
-  reg         mem_wb_halt;
-  reg         mem_wb_illegal;
-  reg         mem_wb_valid_inst;
-  reg   [4:0] mem_wb_dest_reg_idx;
-  reg  [63:0] mem_wb_result;
-  reg         mem_wb_take_branch;
-
-  // Outputs from WB-Stage  (These loop back to the register file in ID)
-  wire [63:0] wb_reg_wr_data_out;
-  wire  [4:0] wb_reg_wr_idx_out;
-  wire        wb_reg_wr_en_out;
+	// CDB FIXME
 
   // Memory interface/arbiter wires
   wire [63:0] proc2Dmem_addr, proc2Imem_addr;
@@ -234,10 +139,18 @@ module oo_pipeline (// Inputs
   wire [63:0] Icache_data_out, proc2Icache_addr;
   wire        Icache_valid_out;
 
+	// Added declarations
+	wire [`SCALAR-1:0] stall_id;
+	wire rob_mispredict, bp_taken;
+	wire [63:0] rob_target_pc, bp_pc;
+
+
+	// From the original version
   assign pipeline_completed_insts = {3'b0, mem_wb_valid_inst};
+	// FIXME
   assign pipeline_error_status = 
-    mem_wb_illegal ? `HALTED_ON_ILLEGAL
-                   : mem_wb_halt ? `HALTED_ON_HALT
+    id_dp_illegal ? `HALTED_ON_ILLEGAL
+                   : id_dp_halt ? `HALTED_ON_HALT
                                  : `NO_ERROR;
 
   assign pipeline_commit_wr_idx = wb_reg_wr_idx_out;
@@ -304,12 +217,21 @@ module oo_pipeline (// Inputs
   //                  IF-Stage                    //
   //                                              //
   //////////////////////////////////////////////////
+
+	// should be removed
+	assign rob_mispredict = 0;
+	assign bp_taken = 0;
+	assign rob_target_pc = 0;
+	assign bp_pc = 0;
+
   if_stage if_stage_0 (// Inputs
                        .clock (clock),
                        .reset (reset),
-                       .mem_wb_valid_inst(mem_wb_valid_inst),
-                       .ex_mem_take_branch(ex_mem_take_branch),
-                       .ex_mem_target_pc(ex_mem_alu_result),
+                       .stall (!if_id_enable),
+                       .rob_mispredict(rob_mispredict),
+                       .rob_target_pc(rob_target_pc),
+                       .id_bp_taken(bp_taken),
+                       .id_bp_pc(bp_pc),
                        .Imem2proc_data(Icache_data_out),
                        .Imem_valid(Icache_valid_out),
                        
@@ -326,7 +248,8 @@ module oo_pipeline (// Inputs
   //            IF/ID Pipeline Register           //
   //                                              //
   //////////////////////////////////////////////////
-  assign if_id_enable = 1'b1; // always enabled
+  assign if_id_enable = ~|stall_id;
+
   always @(posedge clock)
   begin
     if(reset)
@@ -354,237 +277,150 @@ module oo_pipeline (// Inputs
                        .reset   (reset),
                        .if_id_IR   (if_id_IR),
                        .if_id_valid_inst(if_id_valid_inst),
-                       .wb_reg_wr_en_out   (wb_reg_wr_en_out),
-                       .wb_reg_wr_idx_out  (wb_reg_wr_idx_out),
-                       .wb_reg_wr_data_out (wb_reg_wr_data_out),
                        
                        // Outputs
-                       .id_ra_value_out(id_rega_out),
-                       .id_rb_value_out(id_regb_out),
-                       .id_opa_select_out(id_opa_select_out),
-                       .id_opb_select_out(id_opb_select_out),
+                       .id_ra_idx_out(id_rega_idx_out),
+                       .id_rb_idx_out(id_regb_idx_out),
                        .id_dest_reg_idx_out(id_dest_reg_idx_out),
                        .id_alu_func_out(id_alu_func_out),
                        .id_rd_mem_out(id_rd_mem_out),
                        .id_wr_mem_out(id_wr_mem_out),
-                       .id_ldl_mem_out(id_ldl_mem_out),
-                       .id_stc_mem_out(id_stc_mem_out),
                        .id_cond_branch_out(id_cond_branch_out),
                        .id_uncond_branch_out(id_uncond_branch_out),
                        .id_halt_out(id_halt_out),
-                       .id_cpuid_out(id_cpuid_out),
                        .id_illegal_out(id_illegal_out),
                        .id_valid_inst_out(id_valid_inst_out)
                       );
 
-  // Note: Decode signals for load-lock/store-conditional and "get CPU ID"
-  //  instructions (id_{ldl,stc}_mem_out, id_cpuid_out) are not connected
-  //  to anything because the provided EX and MEM stages do not implement
-  //  these instructions.  You will have to implement these instructions
-  //  if you plan to do a multicore project.
+  //////////////////////////////////////////////////
+  //                                              //
+  //            ID/DP Pipeline Register           //
+  //                                              //
+  //////////////////////////////////////////////////
 
-  //////////////////////////////////////////////////
-  //                                              //
-  //            ID/EX Pipeline Register           //
-  //                                              //
-  //////////////////////////////////////////////////
-  assign id_ex_enable = 1'b1; // always enabled
+	// needs to be removed
+	assign rs_stall = 2'd0;
+	assign rob_full = 0;
+	assign rob_full_almost = 0;
+
+	assign stall_id[0] = &rs_stall | rob_full;
+	`ifdef SUPERSCALAR
+	assign stall_id[1] = ^rs_stall | rob_full_almost;
+	`endif
+
+  assign id_dp_enable = !stall_id;
+
   always @(posedge clock)
   begin
     if (reset)
     begin
-      id_ex_NPC           <= `SD 0;
-      id_ex_IR            <= `SD `NOOP_INST;
-      id_ex_rega          <= `SD 0;
-      id_ex_regb          <= `SD 0;
-      id_ex_opa_select    <= `SD 0;
-      id_ex_opb_select    <= `SD 0;
-      id_ex_dest_reg_idx  <= `SD `ZERO_REG;
-      id_ex_alu_func      <= `SD 0;
-      id_ex_rd_mem        <= `SD 0;
-      id_ex_wr_mem        <= `SD 0;
-      id_ex_cond_branch   <= `SD 0;
-      id_ex_uncond_branch <= `SD 0;
-      id_ex_halt          <= `SD 0;
-      id_ex_illegal       <= `SD 0;
-      id_ex_valid_inst    <= `SD 0;
+      id_dp_NPC           <= `SD 0;
+      id_dp_IR            <= `SD `NOOP_INST;
+      id_dp_rega_idx      <= `SD 0;
+      id_dp_regb_idx      <= `SD 0;
+      id_dp_dest_reg_idx  <= `SD `ZERO_REG;
+      id_dp_alu_func      <= `SD 0;
+      id_dp_rd_mem        <= `SD 0;
+      id_dp_wr_mem        <= `SD 0;
+      id_dp_cond_branch   <= `SD 0;
+      id_dp_uncond_branch <= `SD 0;
+      id_dp_halt          <= `SD 0;
+      id_dp_illegal       <= `SD 0;
+      id_dp_valid_inst    <= `SD 0;
     end // if (reset)
     else
     begin
-      if (id_ex_enable)
+      if (id_dp_enable)
       begin
-        id_ex_NPC           <= `SD if_id_NPC;
-        id_ex_IR            <= `SD if_id_IR;
-        id_ex_rega          <= `SD id_rega_out;
-        id_ex_regb          <= `SD id_regb_out;
-        id_ex_opa_select    <= `SD id_opa_select_out;
-        id_ex_opb_select    <= `SD id_opb_select_out;
-        id_ex_dest_reg_idx  <= `SD id_dest_reg_idx_out;
-        id_ex_alu_func      <= `SD id_alu_func_out;
-        id_ex_rd_mem        <= `SD id_rd_mem_out;
-        id_ex_wr_mem        <= `SD id_wr_mem_out;
-        id_ex_cond_branch   <= `SD id_cond_branch_out;
-        id_ex_uncond_branch <= `SD id_uncond_branch_out;
-        id_ex_halt          <= `SD id_halt_out;
-        id_ex_illegal       <= `SD id_illegal_out;
-        id_ex_valid_inst    <= `SD id_valid_inst_out;
-      end // if
+        id_dp_NPC           <= `SD if_id_NPC;
+        id_dp_IR            <= `SD if_id_IR;
+        id_dp_rega_idx      <= `SD id_rega_idx_out;
+        id_dp_regb_idx      <= `SD id_regb_idx_out;
+        id_dp_dest_reg_idx  <= `SD id_dest_reg_idx_out;
+        id_dp_alu_func      <= `SD id_alu_func_out;
+        id_dp_rd_mem        <= `SD id_rd_mem_out;
+        id_dp_wr_mem        <= `SD id_wr_mem_out;
+        id_dp_cond_branch   <= `SD id_cond_branch_out;
+        id_dp_uncond_branch <= `SD id_uncond_branch_out;
+        id_dp_halt          <= `SD id_halt_out;
+        id_dp_illegal       <= `SD id_illegal_out;
+        id_dp_valid_inst    <= `SD id_valid_inst_out;
+      end else if (stall_id[1]) begin
+			// need to move ir2 to ir1
+        id_dp_NPC           [`SEL(64,1)] <= `SD id_dp_NPC					   [`SEL(64:2)];
+        id_dp_IR            [`SEL(32,1)] <= `SD id_dp_IR					   [`SEL(32,2)];
+        id_dp_rega_idx      [`SEL(5,1)]  <= `SD id_dp_rega				   [`SEL(5,2)];
+        id_dp_regb_idx      [`SEL(5,1)]  <= `SD id_dp_regb           [`SEL(5,2)];
+        id_dp_dest_reg_idx  [`SEL(5,1)]  <= `SD id_dp_dest_reg_idx   [`SEL(5,2)];
+        id_dp_alu_func      [`SEL(5,1)]  <= `SD id_dp_alu_func		   [`SEL(5,2)];
+        id_dp_rd_mem        [`SEL(1,1)]  <= `SD id_dp_rd_mem			   [`SEL(1,2)];
+        id_dp_wr_mem        [`SEL(1,1)]  <= `SD id_dp_wr_mem  		   [`SEL(1,2)];
+        id_dp_cond_branch   [`SEL(1,1)]  <= `SD id_dp_cond_branch    [`SEL(1,2)];
+        id_dp_uncond_branch [`SEL(1,1)]  <= `SD id_dp_uncond_branch  [`SEL(1,2)];
+        id_dp_halt          [`SEL(1,1)]  <= `SD id_dp_halt           [`SEL(1,2)];
+        id_dp_illegal       [`SEL(1,1)]  <= `SD id_dp_illegal        [`SEL(1,2)];
+        id_dp_valid_inst    [`SEL(1,1)]  <= `SD id_dp_valid_inst     [`SEL(1,2)];
+			// mark ir2 as invalid
+        id_dp_valid_inst    [`SEL(1,2)]  <= `SD 1'b0;  
+
+			end
     end // else: !if(reset)
   end // always
 
+  //////////////////////////////////////////////////
+  //                                              //
+  //                  DP-Stage                    //
+  //                                              //
+  //////////////////////////////////////////////////
+/*
+	rob rob0 (.clk(), .reset(),
+						.din1_rdy(), .din2_rdy(), .dout1_valid(), .dout2_valid(), 
+						.din1_req(), .din2_req(),
+						.dup1_req(), .dup2_req(),
+						.ir_in1(), .ir_in2(), .npc_in1(), .npc_in2(), .pdest_in1(), .pdest_in2(), .ba_pd_in1(), .ba_pd_in2(), .bt_pd_in1(), .bt_pd_in2(), .isbranch_in1(), .isbranch_in2(),
+						.ba_ex_in1(), .ba_ex_in2(), .bt_ex_in1(), .bt_ex_in2(),
+						.rob_idx_in1(), .rob_idx_in2(),
+						.rob_idx_out1(), .rob_idx_out2(),
+						.ir_out1(), .ir_out2(), .npc_out1(), .npc_out2(), .pdest_out1(), .pdest_out2(),
+						.branch_miss(), .ba_out()
+						);
 
+  SUPER_RS rs0 (.clk(), .reset(),
+                //INPUTS
+                .inst_valid(), .prega_idx(), .pregb_idx(), .pdest_idx(), .prega_valid(), .pregb_valid(), //RAT
+                .ALUop(), .rd_mem(), .wr_mem(), .rs_IR(), . npc(), .cond_branch(), .uncond_branch(),     //Issue Stage
+                .multfu_free(), .exfu_free(), .memfu_free(), .cdb_valid(), .cdb_tag(), .entry_flush(),   //Pipeline communication
+                .rob_idx(), //ROB
+
+                //OUTPUT
+                .rs_stall(), .rs_rdy(), //Hazard detect
+                .pdest_idx_out(), .prega_idx_out(), .pregb_idx_out(), .ALUop_out(), .rd_mem_out(), //FU
+                .wr_mem_out(), .rs_IR_out(), .npc_out(), .rob_idx_out(), .en_out(), //FU
+                .rs_idx_out() //ROB
+         			 );
+*/
   //////////////////////////////////////////////////
   //                                              //
   //                  EX-Stage                    //
   //                                              //
   //////////////////////////////////////////////////
-  ex_stage ex_stage_0 (// Inputs
-                       .clock(clock),
-                       .reset(reset),
-                       .id_ex_NPC(id_ex_NPC), 
-                       .id_ex_IR(id_ex_IR),
-                       .id_ex_rega(id_ex_rega),
-                       .id_ex_regb(id_ex_regb),
-                       .id_ex_opa_select(id_ex_opa_select),
-                       .id_ex_opb_select(id_ex_opb_select),
-                       .id_ex_alu_func(id_ex_alu_func),
-                       .id_ex_cond_branch(id_ex_cond_branch),
-                       .id_ex_uncond_branch(id_ex_uncond_branch),
-                       
-                       // Outputs
-                       .ex_alu_result_out(ex_alu_result_out),
-                       .ex_take_branch_out(ex_take_branch_out)
-                      );
 
+ex_stage ex_stage0(.clk(clk), .reset(reset),
+								// Inputs
+								.LSQ_idx(), .pdest_idx(), .prega_value(), .pregb_value(),
+								.ALUop(), .rd_mem(), .wr_mem(),
+								.rs_IR(), .npc(), .rob_idx(), .EX_en(),
 
-  //////////////////////////////////////////////////
-  //                                              //
-  //           EX/MEM Pipeline Register           //
-  //                                              //
-  //////////////////////////////////////////////////
-  assign ex_mem_enable = ~mem_stall_out;
-  always @(posedge clock)
-  begin
-    if (reset)
-    begin
-      ex_mem_NPC          <= `SD 0;
-      ex_mem_IR           <= `SD `NOOP_INST;
-      ex_mem_dest_reg_idx <= `SD `ZERO_REG;
-      ex_mem_rd_mem       <= `SD 0;
-      ex_mem_wr_mem       <= `SD 0;
-      ex_mem_halt         <= `SD 0;
-      ex_mem_illegal      <= `SD 0;
-      ex_mem_valid_inst   <= `SD 0;
-      ex_mem_rega         <= `SD 0;
-      ex_mem_alu_result   <= `SD 0;
-      ex_mem_take_branch  <= `SD 0;
-    end
-    else
-    begin
-      if (ex_mem_enable)
-      begin
-        // these are forwarded directly from ID/EX latches
-        ex_mem_NPC          <= `SD id_ex_NPC;
-        ex_mem_IR           <= `SD id_ex_IR;
-        ex_mem_dest_reg_idx <= `SD id_ex_dest_reg_idx;
-        ex_mem_rd_mem       <= `SD id_ex_rd_mem;
-        ex_mem_wr_mem       <= `SD id_ex_wr_mem;
-        ex_mem_halt         <= `SD id_ex_halt;
-        ex_mem_illegal      <= `SD id_ex_illegal;
-        ex_mem_valid_inst   <= `SD id_ex_valid_inst;
-        ex_mem_rega         <= `SD id_ex_rega;
-        // these are results of EX stage
-        ex_mem_alu_result   <= `SD ex_alu_result_out;
-        ex_mem_take_branch  <= `SD ex_take_branch_out;
-      end // if
-    end // else: !if(reset)
-  end // always
+								// Inputs (from LSQ)
+								.LSQ_rob_idx(0), .LSQ_pdest_idx(0), .LSQ_mem_value(0), .LSQ_done(0), .LSQ_rd_mem(0), .LSQ_wr_mem(0),
 
-   
-  //////////////////////////////////////////////////
-  //                                              //
-  //                 MEM-Stage                    //
-  //                                              //
-  //////////////////////////////////////////////////
-  mem_stage mem_stage_0 (// Inputs
-                         .clock(clock),
-                         .reset(reset),
-                         .ex_mem_rega(ex_mem_rega),
-                         .ex_mem_alu_result(ex_mem_alu_result), 
-                         .ex_mem_rd_mem(ex_mem_rd_mem),
-                         .ex_mem_wr_mem(ex_mem_wr_mem),
-                         .Dmem2proc_data(mem2proc_data),
-                         .Dmem2proc_tag(mem2proc_tag),
-                         .Dmem2proc_response(Dmem2proc_response),
-                         
-                         // Outputs
-                         .mem_result_out(mem_result_out),
-                         .mem_stall_out(mem_stall_out),
-                         .proc2Dmem_command(proc2Dmem_command),
-                         .proc2Dmem_addr(proc2Dmem_addr),
-                         .proc2Dmem_data(proc2mem_data)
-                        );
+								// Outputs
+								.cdb_tag_out(), .cdb_valid_out(), .cdb_value_out(),	// to CDB
+								.mem_value_valid_out(), .rob_idx_out(), .branch_NT_out(), // to ROB
+								.ALU_free(), .MULT_free(), // to RS
 
-  wire [4:0] mem_dest_reg_idx_out = 
-      mem_stall_out ? `ZERO_REG : ex_mem_dest_reg_idx;
-  wire mem_valid_inst_out = ex_mem_valid_inst & ~mem_stall_out;
-
-  //////////////////////////////////////////////////
-  //                                              //
-  //           MEM/WB Pipeline Register           //
-  //                                              //
-  //////////////////////////////////////////////////
-  assign mem_wb_enable = 1'b1; // always enabled
-  always @(posedge clock)
-  begin
-    if (reset)
-    begin
-      mem_wb_NPC          <= `SD 0;
-      mem_wb_IR           <= `SD `NOOP_INST;
-      mem_wb_halt         <= `SD 0;
-      mem_wb_illegal      <= `SD 0;
-      mem_wb_valid_inst   <= `SD 0;
-      mem_wb_dest_reg_idx <= `SD `ZERO_REG;
-      mem_wb_take_branch  <= `SD 0;
-      mem_wb_result       <= `SD 0;
-    end
-    else
-    begin
-      if (mem_wb_enable)
-      begin
-        // these are forwarded directly from EX/MEM latches
-        mem_wb_NPC          <= `SD ex_mem_NPC;
-        mem_wb_IR           <= `SD ex_mem_IR;
-        mem_wb_halt         <= `SD ex_mem_halt;
-        mem_wb_illegal      <= `SD ex_mem_illegal;
-        mem_wb_valid_inst   <= `SD mem_valid_inst_out;
-        mem_wb_dest_reg_idx <= `SD mem_dest_reg_idx_out;
-        mem_wb_take_branch  <= `SD ex_mem_take_branch;
-        // these are results of MEM stage
-        mem_wb_result       <= `SD mem_result_out;
-      end // if
-    end // else: !if(reset)
-  end // always
-
-
-  //////////////////////////////////////////////////
-  //                                              //
-  //                  WB-Stage                    //
-  //                                              //
-  //////////////////////////////////////////////////
-  wb_stage wb_stage_0 (// Inputs
-                       .clock(clock),
-                       .reset(reset),
-                       .mem_wb_NPC(mem_wb_NPC),
-                       .mem_wb_result(mem_wb_result),
-                       .mem_wb_dest_reg_idx(mem_wb_dest_reg_idx),
-                       .mem_wb_take_branch(mem_wb_take_branch),
-                       .mem_wb_valid_inst(mem_wb_valid_inst),
-
-                       // Outputs
-                       .reg_wr_data_out(wb_reg_wr_data_out),
-                       .reg_wr_idx_out(wb_reg_wr_idx_out),
-                       .reg_wr_en_out(wb_reg_wr_en_out)
-                      );
+								// Outputs (to LSQ)
+								.EX_LSQ_idx(), .EX_MEM_ADDR(), .EX_MEM_reg_value()
+               );
 
 endmodule  // module verisimple

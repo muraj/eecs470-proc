@@ -228,8 +228,8 @@ module id_stage(
               if_id_valid_inst,
 
               // Outputs
-              id_ra_value_out,
-              id_rb_value_out,
+              id_ra_idx_out,
+              id_rb_idx_out,
               id_opa_select_out,
               id_opb_select_out,
               id_dest_reg_idx_out,
@@ -252,10 +252,10 @@ module id_stage(
   input  [32*`SCALAR-1:0]  if_id_IR;             // incoming instruction
   input  [`SCALAR-1:0]     if_id_valid_inst;
 
-  output  [64*`SCALAR-1:0] id_ra_value_out;      // reg A value
-  output  [64*`SCALAR-1:0] id_rb_value_out;      // reg B value
-  output  [2*`SCALAR-1:0]  id_opa_select_out;    // ALU opa mux select (ALU_OPA_xxx *)
-  output  [2*`SCALAR-1:0]  id_opb_select_out;    // ALU opb mux select (ALU_OPB_xxx *)
+  output  [5*`SCALAR-1:0]  id_opa_select_out;      // reg A value
+  output  [5*`SCALAR-1:0]  id_opb_select_out;      // reg B value
+  output  [5*`SCALAR-1:0]  id_ra_idx_out;      // reg A value
+  output  [5*`SCALAR-1:0]  id_rb_idx_out;      // reg B value
   output  [5*`SCALAR-1:0]  id_dest_reg_idx_out;  // destination (writeback) register index
            						                           // (ZERO_REG if no writeback)
   output  [5*`SCALAR-1:0]	 id_alu_func_out;      // ALU function select (ALU_xxx *)
@@ -276,30 +276,23 @@ module id_stage(
   reg     [5*`SCALAR-1:0] id_dest_reg_idx_out;     // not state: behavioral mux output
 
 	wire [31:0] if_id_IR1 = if_id_IR[`SEL(32,1)];
-	wire [31:0] if_id_IR2 = if_id_IR[`SEL(32,2)];
    
     // instruction fields read from IF/ID pipeline register
   wire    [4:0] ra_idx1 = if_id_IR1[25:21];   // inst operand A register index
   wire    [4:0] rb_idx1 = if_id_IR1[20:16];   // inst operand B register index
   wire    [4:0] rc_idx1 = if_id_IR1[4:0];     // inst operand C register index
+	
+	assign id_ra_idx_out[`SEL(5,1)] = ra_idx1;
+	assign id_rb_idx_out[`SEL(5,1)] = rb_idx1;
+	`ifdef SUPERSCALAR
+	wire   [31:0] if_id_IR2 = if_id_IR[`SEL(32,2)];
   wire    [4:0] ra_idx2 = if_id_IR2[25:21];   // inst operand A register index
   wire    [4:0] rb_idx2 = if_id_IR2[20:16];   // inst operand B register index
   wire    [4:0] rc_idx2 = if_id_IR2[4:0];     // inst operand C register index
+	assign id_ra_idx_out[`SEL(5,2)] = ra_idx2;
+	assign id_rb_idx_out[`SEL(5,2)] = rb_idx2;
+	`endif
 
-
-/*    // Instantiate the register file used by this pipeline
-  regfile regf_0 (.rda_idx(ra_idx),
-                  .rda_out(id_ra_value_out), 
-      
-                  .rdb_idx(rb_idx),
-                  .rdb_out(id_rb_value_out),
-
-                  .wr_clk(clock),
-                  .wr_en(wb_reg_wr_en_out),
-                  .wr_idx(wb_reg_wr_idx_out),
-                  .wr_data(wb_reg_wr_data_out)
-                 );
-*/
 
     // instantiate the instruction decoder
   decoder decoder_0 (// Input
@@ -356,7 +349,8 @@ module id_stage(
         default:       id_dest_reg_idx_out[`SEL(5,1)] = `ZERO_REG; 
       endcase
     end
-   
+  
+	`ifdef SUPERSCALAR
   always @*
     begin
       case (dest_reg_select[`SEL(2,2)])
@@ -366,5 +360,6 @@ module id_stage(
         default:       id_dest_reg_idx_out[`SEL(5,2)] = `ZERO_REG; 
       endcase
     end
+	`endif
 
 endmodule // module id_stage
