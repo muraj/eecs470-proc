@@ -13,25 +13,28 @@
 
 module testbench;
 
-  integer idx;  //TEST VARS
+  integer idx, iter;  //TEST VARS
   `define REG_IDX (4)
   `define REG_SZ (1<<`REG_IDX)
   `define DATA_SZ (64)
   // Registers and wires used in the testbench
-  reg  clk;
+  reg  clk, reset, copy;
   reg  [`SCALAR*`REG_IDX-1:0] rda_idx;
   reg  [`SCALAR*`REG_IDX-1:0] rdb_idx;
   reg  [`SCALAR*`REG_IDX-1:0] wr_idx;
   reg  [`SCALAR*`DATA_SZ-1:0] wr_data;
   reg  [`SCALAR-1:0] wr_en;
+  reg  [`REG_SZ*`DATA_SZ-1:0] regs_in;
 
+  wire  [`REG_SZ*`DATA_SZ-1:0] regs_out;
   wire  [`SCALAR*`DATA_SZ-1:0] rda_out;
   wire  [`SCALAR*`DATA_SZ-1:0] rdb_out;
 
   regfile #(.IDX_WIDTH(`REG_IDX), .DATA_WIDTH(`DATA_SZ))
                      file (rda_idx, rda_out,                // read port A
                            rdb_idx, rdb_out,                // read port B
-                           wr_idx, wr_data, wr_en, clk); // write port
+                           regs_out,
+                           wr_idx, wr_data, wr_en, clk, reset, copy, regs_in); // write port
 
   // Generate System Clock
   always
@@ -95,6 +98,8 @@ module testbench;
   initial
   begin
     clk = 1'b0;
+    copy = 1'b0;
+    reset = 1'b0;
     idx = 1;
     @(negedge clk);
     // Initialize input signals
@@ -194,15 +199,6 @@ module testbench;
     rda_idx[`SEL(`REG_IDX, 1)] = idx;
     rda_idx[`SEL(`REG_IDX, 2)] = idx+1;
     @(posedge clk);
-    $display("wr_en: %b", file.wr_en);
-    $display("rda_idx: %h", file.rda_idx);
-    $display("rdb_idx: %h", file.rdb_idx);
-    $display("rda_out: %h", file.rda_out);
-    $display("rdb_out: %h", file.rdb_out);
-    $display("rda_reg: %h", file.rda_reg);
-    $display("rdb_reg: %h", file.rdb_reg);
-    $display("wr_data: %h", file.wr_data);
-    $display("wr_idx: %h", file.wr_idx);
     show_entry_content();
     if(rda_out[`SEL(`DATA_SZ, 1)] !== 64'hFEEEFEEE || rda_out[`SEL(`DATA_SZ, 2)] !== 64'hFDFDFDFD) begin
         $display("@@@ Fail! Time: %4.0f  Test case: Write forward 2 values superscalar", $time);
@@ -210,6 +206,42 @@ module testbench;
     end
     else
         $display("@@@ Success! Time: %4.0f  Test case: Write forward 2 values superscalar", $time);
+    @(negedge clk);
+    wr_en = 2'b00;
+	$display("=============================================================\n");
+    $display("@@@ Time: %4.0f  Test case: RESET!", $time);
+    $display("=============================================================\n");
+    @(negedge clk);
+    reset = 1'b1;
+    @(negedge clk);
+    reset = 1'b0;
+    show_entry_content();
+    `ifndef SYNTH
+    for(iter = 0; iter < `REG_SZ; iter=iter+1) begin
+        if(file.registers[iter] != 0) begin
+            $display("@@@ Fail! on reset");
+            $finish;
+        end
+    end 
+    `endif
+    if(regs_out != 0) begin
+        $display("@@@ Fail! output reset not correct");
+    end
+	$display("=============================================================\n");
+    $display("@@@ Time: %4.0f  Test case: COPY!", $time);
+    $display("=============================================================\n");
+    @(negedge clk);
+    regs_in = {`DATA_SZ{64'hBADDCAFE}};
+    copy = 1'b1;
+    @(negedge clk);
+    show_entry_content();
+    copy = 1'b0;
+    for(iter = 0; iter < `REG_SZ; iter=iter+1) begin
+        if(file.registers[iter] != (iter == `ZERO_REG ? 0 : 64'hBADDCAFE)) begin
+            $display("@@@ Fail! on copy: reg[%0d] = %h != %h", iter, file.registers[iter], (iter == `ZERO_REG ? 0 : 64'hBADDCAFE));
+            $finish;
+        end
+    end 
     $display("@@@ Success!  All tests passed");
     $finish;
   end
