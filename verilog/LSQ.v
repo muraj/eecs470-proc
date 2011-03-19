@@ -19,11 +19,14 @@ module LSQ (clk, reset,
 						LSQ_idx_in, ADDR_in, reg_value_in,
 
 						//Inputs (to control the outputs manuall)
-						rob_idx_in, pdest_idx_in, mem_value_in, done_in, rd_mem_in, wr_mem_in
+						rob_idx_in, pdest_idx_in, mem_value_in, done_in, rd_mem_in, wr_mem_in,
 
 						//Outputs
 						rob_idx_out, pdest_idx_out, mem_value_out, done_out, rd_mem_out, wr_mem_out
 						);
+
+	input clk, reset;
+
 	input [`LSQ_IDX*`SCALAR-1:0]	LSQ_idx_in;
 	input [64*`SCALAR-1:0]				ADDR_in;
 	input [64*`SCALAR-1:0]				reg_value_in;
