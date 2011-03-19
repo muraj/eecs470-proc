@@ -68,7 +68,7 @@ module rob (clk, reset,
 
   // Data input indicators for outside world
 	assign din1_rdy = !full;
-	assign din2_rdy = !full || !full_almost;
+	assign din2_rdy = !full && !full_almost;
 
 	assign rob_idx_out1 = tail;
 	assign rob_idx_out2 = tail_p1;
@@ -111,6 +111,7 @@ module rob (clk, reset,
 		dout1_valid = retire1;
 		dout2_valid = retire2;
 		branch_miss = 0;
+		move_tail = 0;
 
 		// deal with branch misses
 		if (retire1 && isbranch_out1) begin
@@ -196,12 +197,12 @@ module rob (clk, reset,
 			// data updates
 			if (dup1_req) begin
 				data_ba_ex[rob_idx_in1] <= `SD ba_ex_in1;
-				data_bt_ex[rob_idx_in1] 	<= `SD bt_ex_in1;
-				data_rdy[rob_idx_in1] 		<= `SD 1'b1;
+				data_bt_ex[rob_idx_in1] <= `SD bt_ex_in1;
+				data_rdy[rob_idx_in1] 	<= `SD 1'b1;
 				if (dup2_req) begin
 					data_ba_ex[rob_idx_in2] <= `SD ba_ex_in2;
-					data_bt_ex[rob_idx_in2] 	<= `SD bt_ex_in2;
-					data_rdy[rob_idx_in2] 		<= `SD 1'b1;
+					data_bt_ex[rob_idx_in2]	<= `SD bt_ex_in2;
+					data_rdy[rob_idx_in2] 	<= `SD 1'b1;
 				end
 			end
 

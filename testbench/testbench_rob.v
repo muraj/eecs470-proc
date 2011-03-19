@@ -100,7 +100,7 @@ module testbench;
     $display("Entry  5 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[5], rob0.data_bt_ex[5], rob0.data_ba_ex[5], rob0.cb_npc.data[5], rob0.cb_pdest.data[5], rob0.cb_bt_pd.data[5], rob0.cb_ba_pd.data[5]);
     $display("Entry  6 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[6], rob0.data_bt_ex[6], rob0.data_ba_ex[6], rob0.cb_npc.data[6], rob0.cb_pdest.data[6], rob0.cb_bt_pd.data[6], rob0.cb_ba_pd.data[6]);
     $display("Entry  7 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[7], rob0.data_bt_ex[7], rob0.data_ba_ex[7], rob0.cb_npc.data[7], rob0.cb_pdest.data[7], rob0.cb_bt_pd.data[7], rob0.cb_ba_pd.data[7]);
-    $display("Entry  8 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[8], rob0.data_bt_ex[8], rob0.data_ba_ex[8], rob0.cb_npc.data[8], rob0.cb_pdest.data[8], rob0.cb_bt_pd.data[8], rob0.cb_ba_pd.data[8]);
+/*  $display("Entry  8 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[8], rob0.data_bt_ex[8], rob0.data_ba_ex[8], rob0.cb_npc.data[8], rob0.cb_pdest.data[8], rob0.cb_bt_pd.data[8], rob0.cb_ba_pd.data[8]);
     $display("Entry  9 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[9], rob0.data_bt_ex[9], rob0.data_ba_ex[9], rob0.cb_npc.data[9], rob0.cb_pdest.data[9], rob0.cb_bt_pd.data[9], rob0.cb_ba_pd.data[9]);
     $display("Entry 10 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[10], rob0.data_bt_ex[10], rob0.data_ba_ex[10], rob0.cb_npc.data[10], rob0.cb_pdest.data[10], rob0.cb_bt_pd.data[10], rob0.cb_ba_pd.data[10]);
     $display("Entry 11 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[11], rob0.data_bt_ex[11], rob0.data_ba_ex[11], rob0.cb_npc.data[11], rob0.cb_pdest.data[11], rob0.cb_bt_pd.data[11], rob0.cb_ba_pd.data[11]);
@@ -108,7 +108,7 @@ module testbench;
     $display("Entry 13 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[13], rob0.data_bt_ex[13], rob0.data_ba_ex[13], rob0.cb_npc.data[13], rob0.cb_pdest.data[13], rob0.cb_bt_pd.data[13], rob0.cb_ba_pd.data[13]);
     $display("Entry 14 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[14], rob0.data_bt_ex[14], rob0.data_ba_ex[14], rob0.cb_npc.data[14], rob0.cb_pdest.data[14], rob0.cb_bt_pd.data[14], rob0.cb_ba_pd.data[14]);
     $display("Entry 15 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[15], rob0.data_bt_ex[15], rob0.data_ba_ex[15], rob0.cb_npc.data[15], rob0.cb_pdest.data[15], rob0.cb_bt_pd.data[15], rob0.cb_ba_pd.data[15]);
-
+*/
 		$display("==============================================================\n");
 	  end
 	endtask
@@ -132,7 +132,7 @@ module testbench;
 
 
   // Task to allocate an instruction 
-  task allocate_inst;
+  task new_inst;
 	input [1:0] num_inst;
   input [`PRF_IDX-1:0] dest_idx1, dest_idx2;
 	input bt_pd1, bt_pd2, isbranch1, isbranch2;
@@ -141,6 +141,7 @@ module testbench;
 
     if (num_inst >= 1) begin
 			din1_req = 1;
+			din2_req = 0;
 			
 			NPC = NPC + 1;
 			npc_in1 = NPC;  // arbitrary
@@ -149,7 +150,7 @@ module testbench;
 			bt_pd_in1 = bt_pd1;
 			ba_pd_in1 = ba_pd1; 
 			isbranch_in1 = isbranch1;
-			$display("Allocating Inst @%4.0fns: PRF=%d, ISBR=%b, BT:%b, BA:%d\n",	$time, dest_idx1, isbranch1, bt_pd1, ba_pd1);
+			$display("Allocating Inst @%4.0fns: PRF=%0d, ISBR=%b, BT:%b, BA:%0d",	$time, dest_idx1, isbranch1, bt_pd1, ba_pd1);
 
 			if (num_inst == 2) begin
 				din2_req = 1;
@@ -161,7 +162,7 @@ module testbench;
 				bt_pd_in2 = bt_pd2;
 				ba_pd_in2 = ba_pd2; 
 				isbranch_in2 = isbranch2;
-				$display("Allocating Inst @%4.0fns: PRF=%d, ISBR=%b, BT:%b, BA:%d\n",	$time, dest_idx2, isbranch2, bt_pd2, ba_pd2);
+				$display("Allocating Inst @%4.0fns: PRF=%0d, ISBR=%b, BT:%b, BA:%0d",	$time, dest_idx2, isbranch2, bt_pd2, ba_pd2);
 			end
 
 		end else begin
@@ -180,19 +181,23 @@ module testbench;
 	input [63:0] ba_ex1, ba_ex2; 
   begin
 
+		rob_idx_in1 = rob1;
+		rob_idx_in2 = rob2;
+
     if (num_inst >= 1) begin
 			dup1_req = 1;
+			dup2_req = 0;
 			
 			bt_ex_in1 = bt_ex1;
 			ba_ex_in1 = ba_ex1;
-			$display("Updating ROB#%0d @%4.0fns: BT=%b, BA=%d\n",	rob1, $time, bt_ex1, ba_ex1);
+			$display("Updating ROB #%0d @%4.0fns: BT=%b, BA=%0d",	rob1, $time, bt_ex1, ba_ex1);
 
 			if (num_inst == 2) begin
 				dup2_req = 1;
 				
 				bt_ex_in1 = bt_ex1;
 				ba_ex_in1 = ba_ex1;
-				$display("Updating ROB#%0d @%4.0fns: BT=%b, BA=%d\n",	rob2, $time, bt_ex2, ba_ex2);
+				$display("Updating ROB #%0d @%4.0fns: BT=%b, BA=%0d",	rob2, $time, bt_ex2, ba_ex2);
 			end
 
 		end else begin
@@ -214,25 +219,45 @@ module testbench;
   
     @(negedge clk);
 		
+		// #############################
+		// USAGE:
+		// new_inst(num_inst, dest_idx1, dest_idx2, bt_pd1, bt_pd2, isbranch1, isbranch2, ba_pd1, ba_pd2) 
+		// up_inst(num_inst, rob1, rob2, bt_ex1, bt_ex2, ba_ex1, ba_ex2);
+		// #############################
+
     $display("=============================================================");
     $display("@@@ Test case #1: Insert & Remove one at a time");
     $display("=============================================================\n");
     
     $display("============[        INSERT       ]==========================\n");
-		show_io();
 		// insert one at a time
+		new_inst(2,2,3,0,0,0,0,0,0);
+    @(negedge clk);show_contents();show_io();
+		new_inst(2,2,3,1,0,0,0,0,0);
+    @(negedge clk);show_contents();show_io();
+		new_inst(1,5,3,0,0,0,0,0,0);
+    @(negedge clk);show_contents();show_io();
+    @(negedge clk);show_contents();show_io();
+    @(negedge clk);show_contents();show_io();
+    @(negedge clk);show_contents();show_io();
+    @(negedge clk);show_contents();show_io();
+    @(negedge clk);show_contents();show_io();
+    @(negedge clk);show_contents();show_io();
+    @(negedge clk);show_contents();show_io();
+    @(negedge clk);show_contents();show_io();
+    @(negedge clk);show_contents();show_io();
+    @(negedge clk);show_contents();show_io();
+    @(negedge clk);show_contents();show_io();
+    @(negedge clk);show_contents();show_io();
+		new_inst(0,5,3,0,0,0,0,0,0);
     @(negedge clk);show_contents();show_io();
 
     $display("============[        REMOVE       ]==========================\n");
-    
-		show_io();
-		// remove two at a time
+		up_inst(2,0,1,0,0,0,0);
     @(negedge clk);show_contents();show_io();
+		up_inst(1,4,0,0,0,0,0);
     @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-
+		up_inst(0,4,0,0,0,0,0);
 
 
 		// Test case #2: Pull items
@@ -241,11 +266,14 @@ module testbench;
     $display("=============================================================\n");
 
 
+
 		// Test case #3: Insert & pull items at the same time 
     $display("=============================================================");
-    $display("@@@ Test case #3: Insert & Pull test");
+    $display("@@@ Test case #3: Branch Misprediction");
     $display("=============================================================\n");
-    
+    // address mispredict
+
+		// direction mispredict
 
 
 
