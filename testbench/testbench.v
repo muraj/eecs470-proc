@@ -10,17 +10,6 @@
 
 `timescale 1ns/100ps
 
-extern void print_header(string str);
-extern void print_cycles();
-extern void print_stage(string div, int inst, int npc, int valid_inst);
-extern void print_reg(int wb_reg_wr_data_out_hi, int wb_reg_wr_data_out_lo,
-                      int wb_reg_wr_idx_out, int wb_reg_wr_en_out);
-extern void print_membus(int proc2mem_command, int mem2proc_response,
-                         int proc2mem_addr_hi, int proc2mem_addr_lo,
-                         int proc2mem_data_hi, int proc2mem_data_lo);
-extern void print_close();
-
-
 module testbench;
 
   // Registers and wires used in the testbench
@@ -45,32 +34,23 @@ module testbench;
   wire [63:0] pipeline_commit_NPC;
 
 
-  wire [63:0] if_NPC_out;
-  wire [31:0] if_IR_out;
-  wire        if_valid_inst_out;
-  wire [63:0] if_id_NPC;
-  wire [31:0] if_id_IR;
-  wire        if_id_valid_inst;
-  wire [63:0] id_ex_NPC;
-  wire [31:0] id_ex_IR;
-  wire        id_ex_valid_inst;
-  wire [63:0] ex_mem_NPC;
-  wire [31:0] ex_mem_IR;
-  wire        ex_mem_valid_inst;
-  wire [63:0] mem_wb_NPC;
-  wire [31:0] mem_wb_IR;
-  wire        mem_wb_valid_inst;
+  wire [63:0]           if_NPC_out;
+  wire [`SCALAR*32-1:0] if_IR_out;
+  wire [`SCALAR-1:0]    if_valid_inst_out;
+  wire [`SCALAR*64-1:0] if_id_NPC;
+  wire [`SCALAR*32-1:0] if_id_IR;
+  wire [`SCALAR-1:0]    if_id_valid_inst;
+  wire [`SCALAR*64-1:0] id_dp_NPC;
+  wire [`SCALAR*32-1:0] id_dp_IR;
+  wire [`SCALAR-1:0]    id_dp_valid_inst;
 
   // Strings to hold instruction opcode
   reg  [8*7:0] if_instr_str;
   reg  [8*7:0] id_instr_str;
   reg  [8*7:0] ex_instr_str;
-  reg  [8*7:0] mem_instr_str;
-  reg  [8*7:0] wb_instr_str;
-
 
   // Instantiate the Pipeline
-  pipeline pipeline_0 (// Inputs
+  oo_pipeline pipeline_0 (// Inputs
                        .clock             (clock),
                        .reset             (reset),
                        .mem2proc_response (mem2proc_response),
@@ -95,15 +75,9 @@ module testbench;
                        .if_id_NPC(if_id_NPC),
                        .if_id_IR(if_id_IR),
                        .if_id_valid_inst(if_id_valid_inst),
-                       .id_ex_NPC(id_ex_NPC),
-                       .id_ex_IR(id_ex_IR),
-                       .id_ex_valid_inst(id_ex_valid_inst),
-                       .ex_mem_NPC(ex_mem_NPC),
-                       .ex_mem_IR(ex_mem_IR),
-                       .ex_mem_valid_inst(ex_mem_valid_inst),
-                       .mem_wb_NPC(mem_wb_NPC),
-                       .mem_wb_IR(mem_wb_IR),
-                       .mem_wb_valid_inst(mem_wb_valid_inst)
+                       .id_dp_NPC(id_dp_NPC),
+                       .id_dp_IR(id_dp_IR),
+                       .id_dp_valid_inst(id_dp_valid_inst)
                       );
 
 
@@ -194,11 +168,6 @@ module testbench;
     reset = 1'b0;
     $display("@@  %t  Deasserting System reset......\n@@\n@@", $realtime);
 
-    wb_fileno = $fopen("writeback.out");
-    
-    //Open header AFTER throwing the reset otherwise the reset state is displayed
-    print_header("                                                                            D-MEM Bus &\n");
-    print_header("Cycle:      IF      |     ID      |     EX      |     MEM     |     WB      Reg Result");
   end
 
 
@@ -226,34 +195,6 @@ module testbench;
                $realtime);
     else
     begin
-      `SD;
-      `SD;
-      
-       // print the piepline stuff via c code to the pipeline.out
-       print_cycles();
-       print_stage(" ", if_IR_out, if_NPC_out[31:0], {31'b0,if_valid_inst_out});
-       print_stage("|", if_id_IR, if_id_NPC[31:0], {31'b0,if_id_valid_inst});
-       print_stage("|", id_ex_IR, id_ex_NPC[31:0], {31'b0,id_ex_valid_inst});
-       print_stage("|", ex_mem_IR, ex_mem_NPC[31:0], {31'b0,ex_mem_valid_inst});
-       print_stage("|", mem_wb_IR, mem_wb_NPC[31:0], {31'b0,mem_wb_valid_inst});
-       print_reg(pipeline_commit_wr_data[63:32], pipeline_commit_wr_data[31:0],
-                 {27'b0,pipeline_commit_wr_idx}, {31'b0,pipeline_commit_wr_en});
-       print_membus({30'b0,proc2mem_command}, {28'b0,mem2proc_response},
-                    proc2mem_addr[63:32], proc2mem_addr[31:0],
-                    proc2mem_data[63:32], proc2mem_data[31:0]);
-
-
-       // print the writeback information to writeback.out
-       if(pipeline_completed_insts>0) begin
-         if(pipeline_commit_wr_en)
-           $fdisplay(wb_fileno, "PC=%x, REG[%d]=%x",
-                     pipeline_commit_NPC-4,
-                     pipeline_commit_wr_idx,
-                     pipeline_commit_wr_data);
-        else
-          $fdisplay(wb_fileno, "PC=%x, ---",pipeline_commit_NPC-4);
-      end
-
       // deal with any halting conditions
       if(pipeline_error_status!=`NO_ERROR)
       begin
@@ -276,8 +217,6 @@ module testbench;
         endcase
         $display("@@@\n@@");
         show_clk_count;
-        print_close(); // close the pipe_print output file
-        $fclose(wb_fileno);
         #100 $finish;
       end
 
@@ -288,9 +227,7 @@ module testbench;
   always @* begin
     if_instr_str  = get_instr_string(if_IR_out, if_valid_inst_out);
     id_instr_str  = get_instr_string(if_id_IR, if_id_valid_inst);
-    ex_instr_str  = get_instr_string(id_ex_IR, id_ex_valid_inst);
-    mem_instr_str = get_instr_string(ex_mem_IR, ex_mem_valid_inst);
-    wb_instr_str  = get_instr_string(mem_wb_IR, mem_wb_valid_inst);
+    ex_instr_str  = get_instr_string(id_dp_IR, id_dp_valid_inst);
   end
 
   function [8*7:0] get_instr_string;

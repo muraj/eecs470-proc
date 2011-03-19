@@ -31,23 +31,20 @@ TESTBENCH = 	sys_defs.vh	    \
 		testbench/testbench.v	\
 		testbench/mem.v		    \
 		testbench/pipe_print.c
-SIMFILES =	verilog/pipeline.v	\
+SIMFILES =	verilog/oo_pipeline.v	\
 		verilog/regfile.v	\
 		verilog/icache.v	\
 		verilog/if_stage.v	\
 		verilog/id_stage.v	\
-		verilog/ex_stage.v	\
-		verilog/mem_stage.v	\
-		verilog/wb_stage.v	\
 		verilog/cachemem.v 
-SYNFILES = synth/pipeline.vg
+SYNFILES = synth/oo_pipeline.vg
 
 # For visual debugger
 VISTESTBENCH = $(TESTBENCH:testbench.v=visual_testbench.v) \
 		testbench/visual_c_hooks.c
 
-synth/pipeline.vg:        $(SIMFILES) synth/pipeline.tcl synth/cachemem128x64.vg
-	cd synth && dc_shell-t -f ./pipeline.tcl | tee pipeline_synth.out 
+synth/pipeline.vg:        $(SIMFILES) synth/oo_pipeline.tcl synth/cachemem128x64.vg
+	cd synth && dc_shell-t -f ./oo_pipeline.tcl | tee pipeline_synth.out 
 
 synth/cachemem128x64.vg:  verilog/cachemem.v
 	cd synth && dc_shell-t -f ./icache.tcl | tee cachemem128x64_synth.out
