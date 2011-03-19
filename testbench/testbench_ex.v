@@ -5,6 +5,8 @@
 module testbench;
 
   integer count, limbo, idx, NPC;  //TEST VARS
+	integer full_cycle;
+	real cycle;
 
   reg clk, reset;
 
@@ -85,8 +87,13 @@ module testbench;
     clk = ~clk;
   end
 
+	always @(posedge clk or negedge clk)	cycle = cycle + 0.5;
+	always @(posedge clk) full_cycle = full_cycle + 1;
+
+
 	task reset_all;
 	  begin
+			full_cycle = 0;	cycle = 0;
 			LSQ_idx_in = 0; pdest_idx_in = 0; prega_value_in = 0; pregb_value_in = 0;
 			ALUop_in = 0; rd_mem_in = 0; wr_mem_in = 0; rs_IR_in = 0; npc_in = 0;
 			rob_idx_in = 0; EX_en_in = 0;
@@ -96,7 +103,7 @@ module testbench;
 
 	task show_input;
 		begin
-	    $display("==< INPUTS >=======================================================================================================================");
+	    $display("Cycle: %4.1f ==< INPUTS >===========================================================================================================", cycle);
 			$display("Way | LSQ_idx | pdest |     prega_value    |     pregb_value    | ALUop | rd/wr |    rs_IR   |        npc         | rob_idx | EX_en");
  	    $display("-----------------------------------------------------------------------------------------------------------------------------------");
   	  $display(" 1  |   %2d    |  %2d   | 0x%16h | 0x%16h | 0x%2h  | %1d / %1d | 0x%8h | 0x%16h |   %2d    |   %1d", ex_stage0.LSQ_idx[`SEL(`LSQ_IDX,1)], ex_stage0.pdest_idx[`SEL(`PRF_IDX,1)], ex_stage0.prega_value[`SEL(64,1)], ex_stage0.pregb_value[`SEL(64,1)], ex_stage0.ALUop[`SEL(5,1)], ex_stage0.rd_mem[`SEL(1,1)], ex_stage0.wr_mem[`SEL(1,1)], ex_stage0.rs_IR[`SEL(32,1)], ex_stage0.npc[`SEL(64,1)], ex_stage0.rob_idx[`SEL(`ROB_IDX,1)], ex_stage0.EX_en[`SEL(1,1)]);
@@ -107,7 +114,7 @@ module testbench;
 
 	task show_fu_output;
 		begin
-	    $display("==< FU OUTPUTS >================================================================================================================================================================");
+	    $display("Cycle: %4.1f ==< FU OUTPUTS >====================================================================================================================================================", cycle);
   	  $display("    ||                               ALU                              ||                             MULT                     ||                        MEM                     ");
       $display("Way ||       result       | BRresult | pdest | rob_idx | done | fr/st ||        result       | pdest | rob_idx | done | fr/st ||      value (valid)     | pdest | rob_idx | done");
       $display("--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
@@ -119,7 +126,7 @@ module testbench;
 
 	task show_cdb_output;
 		begin
-	    $display("==< CDB OUTPUTS >=====================================================================");
+	    $display("Cycle: %4.1f ==< CDB OUTPUTS >=========================================================", cycle);
      	$display("Way | cdb_tag | cdb_valid |      cdb_value     | mem_value_valid | rob_idx | branch_NT");
       $display("--------------------------------------------------------------------------------------");
    		$display(" 1  |   %2d    |      %1d    | 0x%16h |        %1d        |   %2d    |     %1d", ex_stage0.cdb_tag_out[`SEL(`PRF_IDX,1)], ex_stage0.cdb_valid_out[`SEL(1,1)], ex_stage0.cdb_value_out[`SEL(64,1)], ex_stage0.mem_value_valid_out[`SEL(1,1)], ex_stage0.rob_idx_out[`SEL(`ROB_IDX,1)], ex_stage0.branch_NT_out[`SEL(1,1)]);
@@ -136,8 +143,7 @@ initial begin
 	clk = 1'b0;
 	reset_all();
 	reset = 1'b1; @(negedge clk); reset = 1'b0;
-
-	show_fu_output();
+	$display("Has been reset at %d\n", full_cycle);
 
 	@(posedge clk); show_input(); show_fu_output();
 
