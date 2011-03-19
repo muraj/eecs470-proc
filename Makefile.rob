@@ -26,7 +26,7 @@ all:    simv
 
 
 TESTBENCH = 	sys_defs.vh	    \
-		testbench/testbench_rob.v
+		testbench/testbench_rob.v verilog/cb.v
 SIMFILES =	verilog/rob.v
 
 

@@ -4,9 +4,9 @@ module rob (clk, reset,
 						// allocate requests
 						din1_req, din2_req,
 						// update requests
-						up1_req, up2_req,
+						dup1_req, dup2_req,
 						// incoming values
-						ir_in1, ir_in2, npc_in1, npc_in2, pdest_in1, pdest_in2, ba_pd_in1, ba_pd_in2, bt_pd_in1, bt_pd_in2,
+						ir_in1, ir_in2, npc_in1, npc_in2, pdest_in1, pdest_in2, ba_pd_in1, ba_pd_in2, bt_pd_in1, bt_pd_in2, isbranch_in1, isbranch_in2,
 						// values that gets updated
 						ba_ex_in1, ba_ex_in2, bt_ex_in1, bt_ex_in2, 
 						// rob indices for updates
@@ -19,13 +19,14 @@ module rob (clk, reset,
 						branch_miss, ba_out
 						);
 
-  input clk, reset, din1_req, din2_req, up1_req, up2_req;
+  input clk, reset, din1_req, din2_req, dup1_req, dup2_req;
 	input [31:0] ir_in1, ir_in2;
 	input [63:0] npc_in1, npc_in2;
 	input [`PRF_IDX-1:0] pdest_in1, pdest_in2;
 	input bt_pd_in1, bt_pd_in2;
 	input [63:0] ba_pd_in1, ba_pd_in2;
 	input bt_ex_in1, bt_ex_in2;
+	input isbranch_in1, isbranch_in2;
 	input [63:0] ba_ex_in1, ba_ex_in2;
 	input [`ROB_IDX-1:0] rob_idx_in1, rob_idx_in2;
 	
@@ -63,6 +64,7 @@ module rob (clk, reset,
 
 	wire bt_pd_out1, bt_pd_out2;
 	wire [63:0] ba_pd_out1, ba_pd_out2;
+	wire isbranch_out1, isbranch_out2;
 
   // Data input indicators for outside world
 	assign din1_rdy = !full;
@@ -111,14 +113,14 @@ module rob (clk, reset,
 		branch_miss = 0;
 
 		// deal with branch misses
-		if (retire1) begin
+		if (retire1 && isbranch_out1) begin
 			if ((data_bt_ex[head] != bt_pd_out1) || (data_ba_ex[head] != ba_pd_out1)) begin
 				branch_miss = 1;
 				ba_out = data_ba_ex[head];
 				dout2_valid = 0;	
 				move_tail = 1;
 				tail_new = next_head;
-			end else if (retire2) begin
+			end else if (retire2 && isbranch_out2) begin
 				if ((data_bt_ex[head_p1] != bt_pd_out2) || (data_ba_ex[head_p1] != ba_pd_out2)) begin
 					branch_miss = 1;
 					ba_out = data_ba_ex[head_p1];
@@ -192,11 +194,11 @@ module rob (clk, reset,
 			data_rdy[tail_p1]			<= `SD next_data_rdy2;
 
 			// data updates
-			if (up1_req) begin
+			if (dup1_req) begin
 				data_ba_ex[rob_idx_in1] <= `SD ba_ex_in1;
 				data_bt_ex[rob_idx_in1] 	<= `SD bt_ex_in1;
 				data_rdy[rob_idx_in1] 		<= `SD 1'b1;
-				if (up2_req) begin
+				if (dup2_req) begin
 					data_ba_ex[rob_idx_in2] <= `SD ba_ex_in2;
 					data_bt_ex[rob_idx_in2] 	<= `SD bt_ex_in2;
 					data_rdy[rob_idx_in2] 		<= `SD 1'b1;
@@ -218,38 +220,21 @@ module rob (clk, reset,
 	// ===================================================
 
 	// Circular buffer for IR
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(32), .CB_LENGTH(`ROB_SZ)) cb_ir (
-		.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), 
-		.din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),
-		.din1(ir_in1), .din2(ir_in2), .dout1(ir_out1), .dout2(ir_out2), 
-		.full(), .full_almost(), .head(), .tail());
+	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(32), .CB_LENGTH(`ROB_SZ)) cb_ir (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2), .din1(ir_in1), .din2(ir_in2), .dout1(ir_out1), .dout2(ir_out2), .full(), .full_almost(), .head(), .tail());
 
 	// Circular buffer for NPC
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(64), .CB_LENGTH(`ROB_SZ)) cb_npc (
-		.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), 
-		.din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),
-		.din1(npc_in1), .din2(npc_in2), .dout1(npc_out1), .dout2(npc_out2), 
-		.full(), .full_almost(), .head(), .tail());
+	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(64), .CB_LENGTH(`ROB_SZ)) cb_npc (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2), .din1(npc_in1), .din2(npc_in2), .dout1(npc_out1), .dout2(npc_out2), .full(), .full_almost(), .head(), .tail());
 
 	// Circular buffer for PDEST_IDX
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(`PRF_IDX), .CB_LENGTH(`ROB_SZ)) cb_pdest (
-		.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), 
-		.din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),
-		.din1(pdest_in1), .din2(pdest_in2), .dout1(pdest_out1), .dout2(pdest_out2), 
-		.full(), .full_almost(), .head(), .tail());
+	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(`PRF_IDX), .CB_LENGTH(`ROB_SZ)) cb_pdest (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(pdest_in1), .din2(pdest_in2), .dout1(pdest_out1), .dout2(pdest_out2), .full(), .full_almost(), .head(), .tail());
 
 	// Circular buffer for Predicted Branch Address
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(64), .CB_LENGTH(`ROB_SZ)) cb_ba_pd (
-		.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), 
-		.din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),
-		.din1(ba_pd_in1), .din2(ba_pd_in2), .dout1(ba_pd_out1), .dout2(ba_pd_out2), 
-		.full(), .full_almost(), .head(), .tail());
+	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(64), .CB_LENGTH(`ROB_SZ)) cb_ba_pd (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(ba_pd_in1), .din2(ba_pd_in2), .dout1(ba_pd_out1), .dout2(ba_pd_out2), .full(), .full_almost(), .head(), .tail());
 
 	// Circular buffer for Predicted Branch Direction
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(1), .CB_LENGTH(`ROB_SZ)) cb_bt_pd (
-		.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), 
-		.din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),
-		.din1(bt_pd_in1), .din2(bt_pd_in2), .dout1(bt_pd_out1), .dout2(bt_pd_out2), 
-		.full(), .full_almost(), .head(), .tail());
+	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(1), .CB_LENGTH(`ROB_SZ)) cb_bt_pd (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(bt_pd_in1), .din2(bt_pd_in2), .dout1(bt_pd_out1), .dout2(bt_pd_out2), .full(), .full_almost(), .head(), .tail());
+
+	// Circular buffer for Branch Instruction Indicator
+	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(1), .CB_LENGTH(`ROB_SZ)) cb_isbranch (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(isbranch_in1), .din2(isbranch_in2), .dout1(isbranch_out1), .dout2(isbranch_out2), .full(), .full_almost(), .head(), .tail());
 
 endmodule
