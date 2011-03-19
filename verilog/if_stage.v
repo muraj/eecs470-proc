@@ -14,14 +14,16 @@
 module if_stage(// Inputs
                 clock,
                 reset,
-                mem_wb_valid_inst,
-                ex_mem_take_branch,
-                ex_mem_target_pc,
+								stall,
+                rob_mispredict,
+								rob_target_pc,
+								id_bp_taken,
+								id_bp_pc,
                 Imem2proc_data,
                 Imem_valid,
                     
                 // Outputs
-                if_NPC_out,        // PC+4 of fetched instruction
+                if_NPC_out,        // PC+4 of fetched instructions
                 if_IR_out,         // fetched instruction out
                 proc2Imem_addr,
                 if_valid_inst_out  // when low, instruction is garbage
@@ -29,49 +31,54 @@ module if_stage(// Inputs
 
   input         clock;              // system clock
   input         reset;              // system reset
-  input         mem_wb_valid_inst;  // only go to next instruction when true
-                                    // makes pipeline behave as single-cycle
-  input         ex_mem_take_branch; // taken-branch signal
-  input  [63:0] ex_mem_target_pc;   // target pc: use if take_branch is TRUE
+	input					stall;
+  input         rob_mispredict; 		// branch mispredict signal
+  input  [63:0] rob_target_pc; 		  // target pc: use if rob_mispredict is TRUE
+  input         id_bp_taken; 				// branch prediction result
+  input  [63:0] id_bp_pc;			 		  // use if predicted branch is taken
   input  [63:0] Imem2proc_data;     // Data coming back from instruction-memory
   input         Imem_valid;
 
-  output [63:0] proc2Imem_addr;     // Address sent to Instruction memory
-  output [63:0] if_NPC_out;         // PC of instruction after fetched (PC+4).
-  output [31:0] if_IR_out;          // fetched instruction
-  output        if_valid_inst_out;
+  output [63:0] proc2Imem_addr;     	// Address sent to Instruction memory
+  output [64*`SCALAR-1:0] if_NPC_out; // PC of instruction after fetched (PC+8).
+  output [32*`SCALAR-1:0] if_IR_out;  // fetched instruction
+  output [`SCALAR-1:0]    if_valid_inst_out;
 
   reg    [63:0] PC_reg;               // PC we are currently fetching
-  reg           ready_for_valid;
 
   wire   [63:0] PC_plus_4;
+  wire   [63:0] PC_plus_8;
   wire   [63:0] next_PC;
   wire          PC_enable;
-  wire          next_ready_for_valid;
    
   assign proc2Imem_addr = {PC_reg[63:3], 3'b0};
 
-    // this mux is because the Imem gives us 64 bits not 32 bits
-  assign if_IR_out = PC_reg[2] ? Imem2proc_data[63:32] : Imem2proc_data[31:0];
+    // output two instructions at a time
+  assign if_IR_out[`SEL(32,1)] = Imem2proc_data[31:0];
+  assign if_IR_out[`SEL(32,2)] = Imem2proc_data[63:32];
 
     // default next PC value
   assign PC_plus_4 = PC_reg + 4;
+  assign PC_plus_8 = PC_reg + 8;
 
-    // next PC is target_pc if there is a taken branch or
-    // the next sequential PC (PC+4) if no branch
+    // Next PC is rob_target_pc if we mispredicted branch
+		// Otherwise we use the result of branch predictor
+		// The default is PC+8
     // (halting is handled with the enable PC_enable;
-  assign next_PC = ex_mem_take_branch ? ex_mem_target_pc : PC_plus_4;
+  assign next_PC = (rob_mispredict)? rob_target_pc : (id_bp_taken)? id_bp_pc : PC_plus_8;
 
     // The take-branch signal must override stalling (otherwise it may be lost)
-  assign PC_enable=if_valid_inst_out | ex_mem_take_branch;
+  assign PC_enable = !stall || rob_mispredict || id_bp_taken;
 
-    // Pass PC+4 down pipeline w/instruction
-  assign if_NPC_out = PC_plus_4;
+    // Pass PC+4 and PC+8 down pipeline w/instruction
+  assign if_NPC_out[`SEL(64,1)] = PC_plus_4;
+  assign if_NPC_out[`SEL(64,2)] = PC_plus_8;
 
-  assign if_valid_inst_out = ready_for_valid & Imem_valid;
+  assign if_valid_inst_out[`SEL(1,1)] = !id_bp_taken && Imem_valid;
+  assign if_valid_inst_out[`SEL(1,2)] = !id_bp_taken && Imem_valid;
 
-  assign next_ready_for_valid = (ready_for_valid | mem_wb_valid_inst) & 
-                                !if_valid_inst_out;
+//  assign next_ready_for_valid = (ready_for_valid | mem_wb_valid_inst) & 
+//                                !if_valid_inst_out;
 
   // This register holds the PC value
   always @(posedge clock)
@@ -82,6 +89,8 @@ module if_stage(// Inputs
       PC_reg <= `SD next_PC; // transition to next PC
   end  // always
 
+
+/*
     // This FF controls the stall signal that artificially forces
     // fetch to stall until the previous instruction has completed
   always @(posedge clock)
@@ -92,4 +101,6 @@ module if_stage(// Inputs
       ready_for_valid <= `SD next_ready_for_valid;
   end
   
+*/
+
 endmodule  // module if_stage

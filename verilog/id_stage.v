@@ -226,9 +226,6 @@ module id_stage(
               reset,
               if_id_IR,
               if_id_valid_inst,
-              wb_reg_wr_en_out,
-              wb_reg_wr_idx_out,
-              wb_reg_wr_data_out,
 
               // Outputs
               id_ra_value_out,
@@ -252,41 +249,45 @@ module id_stage(
 
   input         clock;                // system clock
   input         reset;                // system reset
-  input  [31:0] if_id_IR;             // incoming instruction
-  input         wb_reg_wr_en_out;     // Reg write enable from WB Stage
-  input   [4:0] wb_reg_wr_idx_out;    // Reg write index from WB Stage
-  input  [63:0] wb_reg_wr_data_out;   // Reg write data from WB Stage
-  input         if_id_valid_inst;
+  input  [32*`SCALAR-1:0]  if_id_IR;             // incoming instruction
+  input  [`SCALAR-1:0]     if_id_valid_inst;
 
-  output [63:0] id_ra_value_out;      // reg A value
-  output [63:0] id_rb_value_out;      // reg B value
-  output  [1:0] id_opa_select_out;    // ALU opa mux select (ALU_OPA_xxx *)
-  output  [1:0] id_opb_select_out;    // ALU opb mux select (ALU_OPB_xxx *)
-  output  [4:0] id_dest_reg_idx_out;  // destination (writeback) register index
-                                      // (ZERO_REG if no writeback)
-  output  [4:0] id_alu_func_out;      // ALU function select (ALU_xxx *)
-  output        id_rd_mem_out;        // does inst read memory?
-  output        id_wr_mem_out;        // does inst write memory?
-  output        id_ldl_mem_out;       // load-lock inst?
-  output        id_stc_mem_out;       // store-conditional inst?
-  output        id_cond_branch_out;   // is inst a conditional branch?
-  output        id_uncond_branch_out; // is inst an unconditional branch 
-                                      // or jump?
-  output        id_halt_out;
-  output        id_cpuid_out;         // get CPUID inst?
-  output        id_illegal_out;
-  output        id_valid_inst_out;    // is inst a valid instruction to be 
-                                      // counted for CPI calculations?
+  output  [64*`SCALAR-1:0] id_ra_value_out;      // reg A value
+  output  [64*`SCALAR-1:0] id_rb_value_out;      // reg B value
+  output  [2*`SCALAR-1:0]  id_opa_select_out;    // ALU opa mux select (ALU_OPA_xxx *)
+  output  [2*`SCALAR-1:0]  id_opb_select_out;    // ALU opb mux select (ALU_OPB_xxx *)
+  output  [5*`SCALAR-1:0]  id_dest_reg_idx_out;  // destination (writeback) register index
+           						                           // (ZERO_REG if no writeback)
+  output  [5*`SCALAR-1:0]	 id_alu_func_out;      // ALU function select (ALU_xxx *)
+  output  [`SCALAR-1:0]    id_rd_mem_out;        // does inst read memory?
+  output  [`SCALAR-1:0]    id_wr_mem_out;        // does inst write memory?
+  output  [`SCALAR-1:0]    id_ldl_mem_out;       // load-lock inst?
+  output  [`SCALAR-1:0]    id_stc_mem_out;       // store-conditional inst?
+  output  [`SCALAR-1:0]    id_cond_branch_out;   // is inst a conditional branch?
+  output  [`SCALAR-1:0]    id_uncond_branch_out; // is inst an unconditional branch or jump?
+
+  output [`SCALAR-1:0]     id_halt_out;
+  output [`SCALAR-1:0]     id_cpuid_out;         // get CPUID inst?
+  output [`SCALAR-1:0]     id_illegal_out;
+  output [`SCALAR-1:0]     id_valid_inst_out;    // is inst a valid instruction to be 
+  					                                    // counted for CPI calculations?
    
-  wire    [1:0] dest_reg_select;
-  reg     [4:0] id_dest_reg_idx_out;     // not state: behavioral mux output
+  wire    [2*`SCALAR-1:0] dest_reg_select;
+  reg     [5*`SCALAR-1:0] id_dest_reg_idx_out;     // not state: behavioral mux output
+
+	wire [31:0] if_id_IR1 = if_id_IR[`SEL(32,1)];
+	wire [31:0] if_id_IR2 = if_id_IR[`SEL(32,2)];
    
     // instruction fields read from IF/ID pipeline register
-  wire    [4:0] ra_idx = if_id_IR[25:21];   // inst operand A register index
-  wire    [4:0] rb_idx = if_id_IR[20:16];   // inst operand B register index
-  wire    [4:0] rc_idx = if_id_IR[4:0];     // inst operand C register index
+  wire    [4:0] ra_idx1 = if_id_IR1[25:21];   // inst operand A register index
+  wire    [4:0] rb_idx1 = if_id_IR1[20:16];   // inst operand B register index
+  wire    [4:0] rc_idx1 = if_id_IR1[4:0];     // inst operand C register index
+  wire    [4:0] ra_idx2 = if_id_IR2[25:21];   // inst operand A register index
+  wire    [4:0] rb_idx2 = if_id_IR2[20:16];   // inst operand B register index
+  wire    [4:0] rc_idx2 = if_id_IR2[4:0];     // inst operand C register index
 
-    // Instantiate the register file used by this pipeline
+
+/*    // Instantiate the register file used by this pipeline
   regfile regf_0 (.rda_idx(ra_idx),
                   .rda_out(id_ra_value_out), 
       
@@ -298,39 +299,72 @@ module id_stage(
                   .wr_idx(wb_reg_wr_idx_out),
                   .wr_data(wb_reg_wr_data_out)
                  );
+*/
 
     // instantiate the instruction decoder
   decoder decoder_0 (// Input
-                     .inst(if_id_IR),
-                     .valid_inst_in(if_id_valid_inst),
+                     .inst(if_id_IR[`SEL(64,1)]),
+                     .valid_inst_in(if_id_valid_inst[`SEL(1,1)]),
 
                      // Outputs
-                     .opa_select(id_opa_select_out),
-                     .opb_select(id_opb_select_out),
-                     .alu_func(id_alu_func_out),
-                     .dest_reg(dest_reg_select),
-                     .rd_mem(id_rd_mem_out),
-                     .wr_mem(id_wr_mem_out),
-                     .ldl_mem(id_ldl_mem_out),
-                     .stc_mem(id_stc_mem_out),
-                     .cond_branch(id_cond_branch_out),
-                     .uncond_branch(id_uncond_branch_out),
-                     .halt(id_halt_out),
-                     .cpuid(id_cpuid_out),
-                     .illegal(id_illegal_out),
-                     .valid_inst(id_valid_inst_out)
+                     .opa_select(id_opa_select_out[`SEL(2,1)]),
+                     .opb_select(id_opb_select_out[`SEL(2,1)]),
+                     .alu_func(id_alu_func_out[`SEL(5,1)]),
+                     .dest_reg(dest_reg_select[`SEL(64,1)]),
+                     .rd_mem(id_rd_mem_out[`SEL(1,1)]),
+                     .wr_mem(id_wr_mem_out[`SEL(1,1)]),
+                     .ldl_mem(id_ldl_mem_out[`SEL(1,1)]),
+                     .stc_mem(id_stc_mem_out[`SEL(1,1)]),
+                     .cond_branch(id_cond_branch_out[`SEL(1,1)]),
+                     .uncond_branch(id_uncond_branch_out[`SEL(1,1)]),
+                     .halt(id_halt_out[`SEL(1,1)]),
+                     .cpuid(id_cpuid_out[`SEL(1,1)]),
+                     .illegal(id_illegal_out[`SEL(1,1)]),
+                     .valid_inst(id_valid_inst_out[`SEL(1,1)])
                     );
+
+  decoder decoder_1 (// Input
+                     .inst(if_id_IR[`SEL(64,2)]),
+                     .valid_inst_in(if_id_valid_inst[`SEL(1,2)]),
+
+                     // Outputs
+                     .opa_select(id_opa_select_out[`SEL(2,2)]),
+                     .opb_select(id_opb_select_out[`SEL(2,2)]),
+                     .alu_func(id_alu_func_out[`SEL(5,2)]),
+                     .dest_reg(dest_reg_select[`SEL(64,2)]),
+                     .rd_mem(id_rd_mem_out[`SEL(1,2)]),
+                     .wr_mem(id_wr_mem_out[`SEL(1,2)]),
+                     .ldl_mem(id_ldl_mem_out[`SEL(1,2)]),
+                     .stc_mem(id_stc_mem_out[`SEL(1,2)]),
+                     .cond_branch(id_cond_branch_out[`SEL(1,2)]),
+                     .uncond_branch(id_uncond_branch_out[`SEL(1,2)]),
+                     .halt(id_halt_out[`SEL(1,2)]),
+                     .cpuid(id_cpuid_out[`SEL(1,2)]),
+                     .illegal(id_illegal_out[`SEL(1,2)]),
+                     .valid_inst(id_valid_inst_out[`SEL(1,2)])
+                    );
+
 
      // mux to generate dest_reg_idx based on
      // the dest_reg_select output from decoder
   always @*
     begin
-      case (dest_reg_select)
-        `DEST_IS_REGC: id_dest_reg_idx_out = rc_idx;
-        `DEST_IS_REGA: id_dest_reg_idx_out = ra_idx;
-        `DEST_NONE:    id_dest_reg_idx_out = `ZERO_REG;
-        default:       id_dest_reg_idx_out = `ZERO_REG; 
+      case (dest_reg_select[`SEL(2,1)])
+        `DEST_IS_REGC: id_dest_reg_idx_out[`SEL(5,1)] = rc_idx1;
+        `DEST_IS_REGA: id_dest_reg_idx_out[`SEL(5,1)] = ra_idx1;
+        `DEST_NONE:    id_dest_reg_idx_out[`SEL(5,1)] = `ZERO_REG;
+        default:       id_dest_reg_idx_out[`SEL(5,1)] = `ZERO_REG; 
       endcase
     end
    
+  always @*
+    begin
+      case (dest_reg_select[`SEL(2,2)])
+        `DEST_IS_REGC: id_dest_reg_idx_out[`SEL(5,2)] = rc_idx2;
+        `DEST_IS_REGA: id_dest_reg_idx_out[`SEL(5,2)] = ra_idx2;
+        `DEST_NONE:    id_dest_reg_idx_out[`SEL(5,2)] = `ZERO_REG;
+        default:       id_dest_reg_idx_out[`SEL(5,2)] = `ZERO_REG; 
+      endcase
+    end
+
 endmodule // module id_stage
