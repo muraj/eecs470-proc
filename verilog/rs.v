@@ -174,8 +174,7 @@ module rs_entry(clk, reset,
   reg  prega_rdy, pregb_rdy;
   reg  next_prega_rdy, next_pregb_rdy;
 
-  wire to_mult = ALUop_out == `ALU_MULQ;
-
+  wire rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ); 
 
   always@*
   begin
@@ -225,9 +224,9 @@ module rs_entry(clk, reset,
                           (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==(entry_en ? next_pregb_idx_out : pregb_idx_out)));
   `endif
 
-	mem_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ) & (rd_mem_out | wr_mem_out);
-	mult_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ) & to_mult;
-	ALU_rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ) & !mem_rdy & !mult_rdy; 
+	mem_rdy =  rdy & (rd_mem_out | wr_mem_out);
+	mult_rdy = rdy && ALUop_out == `ALU_MULQ;
+	ALU_rdy = rdy & !mem_rdy & !mult_rdy; 
   end
    
   always @(posedge clk)

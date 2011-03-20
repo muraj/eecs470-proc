@@ -79,6 +79,7 @@ syn_int:	$(SYNFILES) $(TESTBENCH)
 	$(VCS) $(INTFLAGS) $(TESTBENCH) $(SYNFILES) $(LIB) -o syn_int_simv -RI
 
 clean:
+	rm -rf *.out
 	rm -rf simv simv.daidir csrc vcs.key program.out
 	rm -rf vis_simv vis_simv.daidir
 	rm -rf syn_simv syn_simv.daidir syn_program.out

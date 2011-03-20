@@ -28,10 +28,11 @@ module testbench;
 
   wire [3:0]            pipeline_completed_insts;
   wire [3:0]            pipeline_error_status;
-  wire [`SCALAR*4-1:0]  pipeline_commit_wr_idx;
+  wire [`SCALAR*5-1:0]  pipeline_commit_wr_idx;
   wire [`SCALAR*64-1:0] pipeline_commit_wr_data;
-  wire [`SCALAR-1:0]    pipeline_commit_wr_en;
+  wire [`SCALAR-1:0]    pipeline_commit_wr_en;    //Whether the instruction wrote to a register
   wire [`SCALAR*64-1:0] pipeline_commit_NPC;
+  wire [`SCALAR*32-1:0] pipeline_commit_IR;
 
 
   wire [`SCALAR*64-1:0] if_NPC_out;
@@ -44,10 +45,84 @@ module testbench;
   wire [`SCALAR*32-1:0] id_dp_IR;
   wire [`SCALAR-1:0]    id_dp_valid_inst;
 
+//DEBUG SIGNALS
+`ifndef SYNTH
+  integer rs_fileno;
+  integer rs_idx;
+  wire [31:0] rs1_IR[`RS_SZ-1:0];
+  wire [63:0] rs1_npc[`RS_SZ-1:0];
+  wire [`ROB_IDX:0] rs1_rob_idx[`RS_SZ-1:0];
+  wire [`RS_SZ-1:0] rs1_rdy;
+  wire [`RS_SZ-1:0] rs1_free;
+
+`ifdef SUPERSCALAR
+  wire [31:0] rs2_IR[`RS_SZ-1:0];
+  wire [63:0] rs2_npc[`RS_SZ-1:0];
+  wire [`ROB_IDX:0] rs2_rob_idx[`RS_SZ-1:0];
+  wire [`RS_SZ-1:0] rs2_rdy;
+  wire [`RS_SZ-1:0] rs2_free;
+`endif
+
+generate
+genvar rs_iter;
+  for(rs_iter=0;rs_iter<`RS_SZ;rs_iter=rs_iter+1) begin : RS_DEBUG
+    assign rs1_IR[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.rs_IR_out;
+    assign rs1_npc[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.npc_out;
+    assign rs1_rob_idx[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.rob_idx_out;
+    assign rs1_rdy[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.rdy;
+    assign rs1_free[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.entry_free;
+    assign rs2_IR[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rs_IR;
+    assign rs2_npc[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.npc_out;
+    assign rs2_rob_idx[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rob_idx_out;
+    assign rs2_rdy[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rdy;
+    assign rs2_free[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.entry_free;
+  end
+endgenerate
+initial begin
+  rs_fileno = $fopen("resstation.out");
+  rs_idx=0;
+end
+always @(pipeline_error_status) begin
+  if(pipeline_error_status != `NO_ERROR)
+    $fclose(rs_fileno);
+end
+always @(posedge clock) begin
+ if(~reset) begin
+  $fdisplay(rs_fileno, "|=============================== Cycle: %10d ===============================|", clock_count);
+  $fdisplay(rs_fileno, "rs1_sel: %b npc: %h IR: %h", pipeline_0.rs0.rs1_sel, pipeline_0.rs0.npc, pipeline_0.rs0.rs_IR);
+  $fdisplay(rs_fileno, "|                      RS0                  |                   RS1               |");
+  $fdisplay(rs_fileno, "| IDX |   IR   |       NPC      | ROB | R/F |   IR   |       NPC      | ROB | R/F |");
+  $fdisplay(rs_fileno, "|=================================================================================|");
+  `define DISPLAY_RS(i) \
+      $fdisplay(rs_fileno, "|%4d |%7h|%16h|  %2d | %b/%b |%7h|%16h|  %2d | %b/%b |", i, \
+                rs1_IR[i], rs1_npc[i], rs1_rob_idx[i], rs1_rdy[i], rs1_free[i], \
+                rs2_IR[i], rs2_npc[i], rs2_rob_idx[i], rs2_rdy[i], rs2_free[i]);
+  `DISPLAY_RS(0)
+  `DISPLAY_RS(1)
+  `DISPLAY_RS(2)
+  `DISPLAY_RS(3)
+  `DISPLAY_RS(4)
+  `DISPLAY_RS(5)
+  `DISPLAY_RS(6)
+  `DISPLAY_RS(7)
+  `DISPLAY_RS(8)
+  `DISPLAY_RS(9)
+  `DISPLAY_RS(10)
+  `DISPLAY_RS(11)
+  `DISPLAY_RS(12)
+  `DISPLAY_RS(13)
+  `DISPLAY_RS(14)
+  `DISPLAY_RS(15)
+ end
+end
+`endif
+
+
   // Strings to hold instruction opcode
-  reg  [8*7:0] if_instr_str;
-  reg  [8*7:0] id_instr_str;
-  reg  [8*7:0] ex_instr_str;
+  reg  [8*7:0] if_instr_str[`SCALAR-1:0];
+  reg  [8*7:0] id_instr_str[`SCALAR-1:0];
+  reg  [8*7:0] dp_instr_str[`SCALAR-1:0];
+  reg  [8*7:0] co_instr_str[`SCALAR-1:0];
 
   // Instantiate the Pipeline
   oo_pipeline pipeline_0 (// Inputs
@@ -68,6 +143,7 @@ module testbench;
                        .pipeline_commit_wr_idx(pipeline_commit_wr_idx),
                        .pipeline_commit_wr_en(pipeline_commit_wr_en),
                        .pipeline_commit_NPC(pipeline_commit_NPC),
+                       .pipeline_commit_IR(pipeline_commit_IR),
 
                        .if_NPC_out(if_NPC_out),
                        .if_IR_out(if_IR_out),
@@ -167,11 +243,12 @@ module testbench;
 
     reset = 1'b0;
     $display("@@  %t  Deasserting System reset......\n@@\n@@", $realtime);
+    wb_fileno = $fopen("writeback.out");
 
 //   $monitor("@@ cycle: %d  if_NPC_out: %h  if_IR_out: %h  if_id_NPC: %h  id_dp_NPC: %h  id_dp_IR: %h  imem_valid: %b  m2p_data: %h",
 //             clock_count, if_NPC_out, if_IR_out, if_id_NPC, id_dp_NPC, id_dp_IR, pipeline_0.if_stage_0.Imem_valid, mem2proc_data);
-    $monitor("@@ cycle: %0d  if_NPC_out: %h  if_IR_out: %h  if_valid: %b rs_stall: %b",
-            clock_count, if_NPC_out, if_IR_out, pipeline_0.if_stage_0.if_valid_inst_out, pipeline_0.rs0.rs_stall);
+    $monitor("@@ cycle: %0d  if_NPC_out: %h  id_dp_NPC: %h  if_IR_out: %h  if_valid: %b rs_stall: %b  completed_inst: %0d",
+            clock_count, if_NPC_out, id_dp_NPC, if_IR_out, pipeline_0.if_stage_0.if_valid_inst_out, pipeline_0.rs0.rs_stall, pipeline_completed_insts);
   end
 
 
@@ -190,6 +267,7 @@ module testbench;
       instr_count <= `SD (instr_count + pipeline_completed_insts);
       if(clock_count > 20) begin
           $display("Debug quit");
+          $fclose(wb_fileno);
           $finish;
       end
     end
@@ -203,6 +281,31 @@ module testbench;
                $realtime);
     else
     begin
+      if(pipeline_completed_insts>0) begin
+        if(pipeline_commit_wr_en[0])
+          $fdisplay(wb_fileno, "# SCALAR 1, IR=%s cycle=%0d\nPC=%x, REG[%d]=%x",
+                    co_instr_str[0], clock_count,
+                    pipeline_commit_NPC[`SEL(64, 1)]-4,
+                    pipeline_commit_wr_idx[`SEL(5,1)],
+                    pipeline_commit_wr_data[`SEL(64,1)]);
+        else
+          $fdisplay(wb_fileno, "# SCALAR 1, IR=%s cycle=%0d\nPC=%x, ---",
+                    co_instr_str[0], clock_count,
+                    pipeline_commit_NPC[`SEL(64, 1)]-4);
+       `ifdef SUPERSCALAR
+        if(pipeline_commit_wr_en[1])
+          $fdisplay(wb_fileno, "# SCALAR 2, IR=%s cycle=%0d\nPC=%x, REG[%d]=%x",
+                    co_instr_str[1], clock_count,
+                    pipeline_commit_NPC[`SEL(64, 2)]-4,
+                    pipeline_commit_wr_idx[`SEL(5,2)],
+                    pipeline_commit_wr_data[`SEL(64,2)]);
+        else
+          $fdisplay(wb_fileno, "# SCALAR 2, IR=%s cycle=%0d\nPC=%x, ---",
+                    co_instr_str[1], clock_count,
+                    pipeline_commit_NPC[`SEL(64, 2)]-4);
+       `endif
+
+      end
       // deal with any halting conditions
       if(pipeline_error_status!=`NO_ERROR)
       begin
@@ -225,6 +328,7 @@ module testbench;
         endcase
         $display("@@@\n@@");
         show_clk_count;
+        $fclose(wb_fileno);
         #100 $finish;
       end
 
@@ -233,9 +337,16 @@ module testbench;
 
   // Translate IRs into strings for opcodes (for waveform viewer)
   always @* begin
-    if_instr_str  = get_instr_string(if_IR_out, if_valid_inst_out);
-    id_instr_str  = get_instr_string(if_id_IR, if_id_valid_inst);
-    ex_instr_str  = get_instr_string(id_dp_IR, id_dp_valid_inst);
+    if_instr_str[0]  = get_instr_string(if_IR_out[`SEL(32, 1)], if_valid_inst_out[0]);
+    id_instr_str[0]  = get_instr_string(if_id_IR[`SEL(32, 1)], if_id_valid_inst[0]);
+    dp_instr_str[0]  = get_instr_string(id_dp_IR[`SEL(32, 1)], id_dp_valid_inst[0]);
+    co_instr_str[0]  = get_instr_string(pipeline_commit_IR[`SEL(32, 1)], pipeline_commit_wr_en[0]);
+  `ifdef SUPERSCALAR
+    if_instr_str[1]  = get_instr_string(if_IR_out[`SEL(32, 2)], if_valid_inst_out[1]);
+    id_instr_str[1]  = get_instr_string(if_id_IR[`SEL(32, 2)], if_id_valid_inst[1]);
+    dp_instr_str[1]  = get_instr_string(id_dp_IR[`SEL(32, 2)], id_dp_valid_inst[1]);
+    co_instr_str[1]  = get_instr_string(pipeline_commit_IR[`SEL(32, 2)], pipeline_commit_wr_en[1]);
+  `endif
   end
 
   function [8*7:0] get_instr_string;

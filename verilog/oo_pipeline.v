@@ -59,7 +59,7 @@ module oo_pipeline (// Inputs
 
   output [3:0]  pipeline_completed_insts;
   output [3:0]  pipeline_error_status;
-  output [4*`SCALAR-1:0]  pipeline_commit_wr_idx;
+  output [5*`SCALAR-1:0]  pipeline_commit_wr_idx;
   output [64*`SCALAR-1:0] pipeline_commit_wr_data;
   output [`SCALAR-1:0]    pipeline_commit_wr_en;
   output [64*`SCALAR-1:0] pipeline_commit_NPC;
@@ -176,12 +176,12 @@ module oo_pipeline (// Inputs
   wire [`SCALAR*64-1:0]       rob_commit_npc_out;
   wire [`SCALAR*`PRF_IDX-1:0] rob_commit_wr_idx;
   wire [64*`SCALAR-1:0]       rob_commit_wr_data;
-  wire [`SCALAR-1:0]          rob_commit_wr_en;
+  wire [`SCALAR-1:0]          rob_valid_out;
   wire [64*`SCALAR-1:0]       rob_commit_NPC;
   wire [32*`SCALAR-1:0]       rob_commit_IR;
 
   // From the original version
-  assign pipeline_completed_insts = rob_commit_wr_en[0] + rob_commit_wr_en[1];
+  assign pipeline_completed_insts = rob_valid_out[0] + rob_valid_out[1];
   // FIXME
   assign pipeline_error_status = 
     id_dp_illegal ? `HALTED_ON_ILLEGAL
@@ -190,7 +190,10 @@ module oo_pipeline (// Inputs
 
   assign pipeline_commit_wr_idx = rob_commit_wr_idx;
   assign pipeline_commit_wr_data = rob_commit_wr_data;
-  assign pipeline_commit_wr_en = rob_commit_wr_en;
+  assign pipeline_commit_wr_en[0] = rob_commit_wr_idx[`SEL(`PRF_IDX,1)] != `ZERO_REG;
+  `ifdef SUPERSCALAR
+  assign pipeline_commit_wr_en[1] = rob_commit_wr_idx[`SEL(`PRF_IDX,2)] != `ZERO_REG;
+  `endif
   assign pipeline_commit_NPC = rob_commit_npc_out;
 
   assign proc2Dmem_command = `BUS_NONE;     //FIXME
@@ -415,7 +418,7 @@ module oo_pipeline (// Inputs
 
   rob rob0 (.clk(clock), .reset(reset),
 						.full(rob_full), .full_almost(rob_full_almost),
-                        .dout1_valid(rob_commit_wr_en[0]), .dout2_valid(rob_commit_wr_en[1]),//FIXME: used at retire 
+                        .dout1_valid(rob_valid_out[0]), .dout2_valid(rob_valid_out[1]),//FIXME: used at retire 
 						.din1_req(id_dp_valid_inst[0]), .din2_req(id_dp_valid_inst[1]),
 						.dup1_req(1'b0), .dup2_req(1'b0),
 						.ir_in1(id_dp_IR[`SEL(32,1)]), .ir_in2(id_dp_IR[`SEL(32,2)]), 
@@ -482,7 +485,7 @@ module oo_pipeline (// Inputs
                 .inst_valid(id_dp_valid_inst), .prega_idx(rat_prega_idx), .pregb_idx(rat_pregb_idx), .pdest_idx(rat_pdest_idx), .prega_valid(prf_valid_prega), .pregb_valid(prf_valid_pregb), //RAT
                 .ALUop(id_dp_alu_func), .rd_mem(id_dp_rd_mem), .wr_mem(id_dp_wr_mem), .rs_IR(id_dp_IR), . npc(id_dp_NPC), .cond_branch(id_dp_cond_branch), .uncond_branch(id_dp_uncond_branch),     //Issue Stage
                 .multfu_free(2'b0), .exfu_free(2'b0), .memfu_free(2'b0), .cdb_valid(cdb_valid), .cdb_tag(cdb_tag), .entry_flush({`RS_SZ{0}}),   //Pipeline communication
-                .rob_idx(), //ROB
+                .rob_idx(rob_idx_out), //ROB
 
                 //OUTPUT
                 .rs_stall(rs_stall), .rs_rdy(), //Hazard detect

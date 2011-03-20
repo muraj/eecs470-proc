@@ -41,7 +41,7 @@ do
 	cp -f ./program.mem $comp_dir/program.mem;
 	(make $1 > /dev/null) || exit;
 	(cd $comp_dir; make > /dev/null) || exit;
-	diff writeback.out $comp_dir/writeback.out > results.txt;
+	diff -I '^#' writeback.out $comp_dir/writeback.out > results.txt; # Ignore extra comments
 	printf "%-40s " "$(basename $f)";
 	printf "%-8s" `grep CPI ${1:+${1}_}program.out | cut -d " " -f 9`;
 	if [ -s results.txt ]; then
