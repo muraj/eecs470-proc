@@ -4,9 +4,14 @@
 
 module testbench;
 
-  integer count, limbo, idx, NPC;  //TEST VARS
+  integer count, limbo, idx; 
+	integer NPC, NUM_CYCLES, i;
 	integer full_cycle;
 	real cycle;
+	reg [63:0] 	temp64;
+	reg [31:0] 	temp32;
+	reg					temp;
+	reg	[3:0]		free;
 
   reg clk, reset;
 
@@ -22,6 +27,18 @@ module testbench;
 	reg	[64*`SCALAR-1:0] 				npc_in;
 	reg	[`ROB_IDX*`SCALAR-1:0] 	rob_idx_in;
 	reg	[`SCALAR-1:0] 					EX_en_in;
+
+	reg [`LSQ_IDX*`SCALAR-1:0]	LSQ_idx_reg;
+	reg	[`PRF_IDX*`SCALAR-1:0]	pdest_idx_reg;
+	reg	[64*`SCALAR-1:0] 				prega_value_reg;
+	reg	[64*`SCALAR-1:0] 				pregb_value_reg;
+	reg	[5*`SCALAR-1:0] 				ALUop_reg;
+	reg	[`SCALAR-1:0] 					rd_mem_reg;
+	reg	[`SCALAR-1:0] 					wr_mem_reg;
+	reg	[32*`SCALAR-1:0] 				rs_IR_reg;
+	reg	[64*`SCALAR-1:0] 				npc_reg;
+	reg	[`ROB_IDX*`SCALAR-1:0] 	rob_idx_reg;
+	reg	[`SCALAR-1:0] 					EX_en_reg;
 
 // Inputs to LSQ (WARNING: It's a fake LSQ. It just splits out everything as it is)
 	reg [`ROB_IDX*`SCALAR-1:0]	LSQ_rob_idx_in;
@@ -66,10 +83,10 @@ module testbench;
 
 	ex_stage ex_stage0 (.clk(clk), .reset(reset),
 
-											.LSQ_idx(LSQ_idx_in), .pdest_idx(pdest_idx_in), 
-											.prega_value(prega_value_in), .pregb_value(pregb_value_in), 
-											.ALUop(ALUop_in), .rd_mem(rd_mem_in), .wr_mem(wr_mem_in),
-											.rs_IR(rs_IR_in), .npc(npc_in), .rob_idx(rob_idx_in), .EX_en(EX_en_in),
+											.LSQ_idx(LSQ_idx_reg), .pdest_idx(pdest_idx_reg), 
+											.prega_value(prega_value_reg), .pregb_value(pregb_value_reg), 
+											.ALUop(ALUop_reg), .rd_mem(rd_mem_reg), .wr_mem(wr_mem_reg),
+											.rs_IR(rs_IR_reg), .npc(npc_reg), .rob_idx(rob_idx_reg), .EX_en(EX_en_reg),
 
 											.LSQ_rob_idx(LSQ_EX_rob_idx), .LSQ_pdest_idx(LSQ_EX_pdest_idx), .LSQ_mem_value(LSQ_EX_mem_value), 
 											.LSQ_done(LSQ_EX_done), .LSQ_rd_mem(LSQ_EX_rd_mem), .LSQ_wr_mem(LSQ_EX_wr_mem),
@@ -87,19 +104,71 @@ module testbench;
     clk = ~clk;
   end
 
-	always @(posedge clk or negedge clk)	cycle = cycle + 0.5;
-	always @(posedge clk) full_cycle = full_cycle + 1;
+	always @(posedge clk) begin
+		if(reset) begin
+			LSQ_idx_reg			<= `SD 0;
+			pdest_idx_reg		<= `SD 0;
+			prega_value_reg	<= `SD 0;
+			pregb_value_reg	<= `SD 0;
+			ALUop_reg				<= `SD 0;
+			rd_mem_reg			<= `SD 0;
+			wr_mem_reg			<= `SD 0;
+			rs_IR_reg				<= `SD 0;
+			npc_reg					<= `SD 0;
+			rob_idx_reg			<= `SD 0;
+			EX_en_reg				<= `SD 0;
+		end
+		else begin
+			LSQ_idx_reg			<= `SD LSQ_idx_in;
+			pdest_idx_reg		<= `SD pdest_idx_in;
+			prega_value_reg	<= `SD prega_value_in;
+			pregb_value_reg	<= `SD pregb_value_in;
+			ALUop_reg				<= `SD ALUop_in;
+			rd_mem_reg			<= `SD rd_mem_in;
+			wr_mem_reg			<= `SD wr_mem_in;
+			rs_IR_reg				<= `SD rs_IR_in;
+			npc_reg					<= `SD npc_in;
+			rob_idx_reg			<= `SD rob_idx_in;
+			EX_en_reg				<= `SD EX_en_in;
+		end
+	end
 
+
+	always @(posedge clk or negedge clk)	
+		cycle = cycle + 0.5;
+
+	always @(posedge clk)
+	begin
+		full_cycle = full_cycle + 1;
+		NPC = NPC + 8;
+	end
 
 	task reset_all;
 	  begin
-			full_cycle = 0;	cycle = 0;
+			i = 0; full_cycle = 0;	cycle = 0; NPC = 0;
 			LSQ_idx_in = 0; pdest_idx_in = 0; prega_value_in = 0; pregb_value_in = 0;
 			ALUop_in = 0; rd_mem_in = 0; wr_mem_in = 0; rs_IR_in = 0; npc_in = 0;
 			rob_idx_in = 0; EX_en_in = 0;
 			LSQ_rob_idx_in = 0; LSQ_pdest_idx_in = 0; LSQ_mem_value_in = 0; LSQ_done_in = 0; LSQ_rd_mem_in = 0; LSQ_wr_mem_in = 0;
   	end
   endtask
+
+	task show_inst;
+		begin
+	    $display("Cycle: %4.1f ==< NEW INSTRUCTION >======================================================================================================", cycle);
+			$display("Way     | LSQ_idx | pdest |     prega_value    |     pregb_value    | ALUop | rd/wr |    rs_IR   |        npc         | rob_idx | EX_en");
+ 	    $display("----------------------------------------------------------------------------------------------------------------------------------------");
+			if(EX_en_in[0]==1'b0) 									$display(" 1 NOOP |   %2d    |  %2d   | 0x%16h | 0x%16h | 0x%2h  | %1d / %1d | 0x%8h | 0x%16h |   %2d    |   %1d", LSQ_idx_in[`SEL(`LSQ_IDX,1)], pdest_idx_in[`SEL(`PRF_IDX,1)], prega_value_in[`SEL(64,1)], pregb_value_in[`SEL(64,1)], ALUop_in[`SEL(5,1)], rd_mem_in[`SEL(1,1)], wr_mem_in[`SEL(1,1)], rs_IR_in[`SEL(32,1)], npc_in[`SEL(64,1)], rob_idx_in[`SEL(`ROB_IDX,1)], EX_en_in[`SEL(1,1)]);
+			else if(rd_mem_in[0] | wr_mem_in[0])		$display(" 1 MEM  |   %2d    |  %2d   | 0x%16h | 0x%16h | 0x%2h  | %1d / %1d | 0x%8h | 0x%16h |   %2d    |   %1d", LSQ_idx_in[`SEL(`LSQ_IDX,1)], pdest_idx_in[`SEL(`PRF_IDX,1)], prega_value_in[`SEL(64,1)], pregb_value_in[`SEL(64,1)], ALUop_in[`SEL(5,1)], rd_mem_in[`SEL(1,1)], wr_mem_in[`SEL(1,1)], rs_IR_in[`SEL(32,1)], npc_in[`SEL(64,1)], rob_idx_in[`SEL(`ROB_IDX,1)], EX_en_in[`SEL(1,1)]);
+			else if(ALUop_in[`SEL(5,1)]==5'b01011)	$display(" 1 MULT |   %2d    |  %2d   | 0x%16h | 0x%16h | 0x%2h  | %1d / %1d | 0x%8h | 0x%16h |   %2d    |   %1d", LSQ_idx_in[`SEL(`LSQ_IDX,1)], pdest_idx_in[`SEL(`PRF_IDX,1)], prega_value_in[`SEL(64,1)], pregb_value_in[`SEL(64,1)], ALUop_in[`SEL(5,1)], rd_mem_in[`SEL(1,1)], wr_mem_in[`SEL(1,1)], rs_IR_in[`SEL(32,1)], npc_in[`SEL(64,1)], rob_idx_in[`SEL(`ROB_IDX,1)], EX_en_in[`SEL(1,1)]);
+			else 																		$display(" 1 ALU  |   %2d    |  %2d   | 0x%16h | 0x%16h | 0x%2h  | %1d / %1d | 0x%8h | 0x%16h |   %2d    |   %1d", LSQ_idx_in[`SEL(`LSQ_IDX,1)], pdest_idx_in[`SEL(`PRF_IDX,1)], prega_value_in[`SEL(64,1)], pregb_value_in[`SEL(64,1)], ALUop_in[`SEL(5,1)], rd_mem_in[`SEL(1,1)], wr_mem_in[`SEL(1,1)], rs_IR_in[`SEL(32,1)], npc_in[`SEL(64,1)], rob_idx_in[`SEL(`ROB_IDX,1)], EX_en_in[`SEL(1,1)]);
+			if(EX_en_in[1]==1'b0) 									$display(" 2 NOOP |   %2d    |  %2d   | 0x%16h | 0x%16h | 0x%2h  | %1d / %1d | 0x%8h | 0x%16h |   %2d    |   %1d", LSQ_idx_in[`SEL(`LSQ_IDX,2)], pdest_idx_in[`SEL(`PRF_IDX,2)], prega_value_in[`SEL(64,2)], pregb_value_in[`SEL(64,2)], ALUop_in[`SEL(5,2)], rd_mem_in[`SEL(1,2)], wr_mem_in[`SEL(1,2)], rs_IR_in[`SEL(32,2)], npc_in[`SEL(64,2)], rob_idx_in[`SEL(`ROB_IDX,2)], EX_en_in[`SEL(1,2)]);
+			else if(rd_mem_in[1] | wr_mem_in[1]) 		$display(" 2 MEM  |   %2d    |  %2d   | 0x%16h | 0x%16h | 0x%2h  | %1d / %1d | 0x%8h | 0x%16h |   %2d    |   %1d", LSQ_idx_in[`SEL(`LSQ_IDX,2)], pdest_idx_in[`SEL(`PRF_IDX,2)], prega_value_in[`SEL(64,2)], pregb_value_in[`SEL(64,2)], ALUop_in[`SEL(5,2)], rd_mem_in[`SEL(1,2)], wr_mem_in[`SEL(1,2)], rs_IR_in[`SEL(32,2)], npc_in[`SEL(64,2)], rob_idx_in[`SEL(`ROB_IDX,2)], EX_en_in[`SEL(1,2)]);
+			else if(ALUop_in[`SEL(5,2)]==5'b01011)	$display(" 2 MULT |   %2d    |  %2d   | 0x%16h | 0x%16h | 0x%2h  | %1d / %1d | 0x%8h | 0x%16h |   %2d    |   %1d", LSQ_idx_in[`SEL(`LSQ_IDX,2)], pdest_idx_in[`SEL(`PRF_IDX,2)], prega_value_in[`SEL(64,2)], pregb_value_in[`SEL(64,2)], ALUop_in[`SEL(5,2)], rd_mem_in[`SEL(1,2)], wr_mem_in[`SEL(1,2)], rs_IR_in[`SEL(32,2)], npc_in[`SEL(64,2)], rob_idx_in[`SEL(`ROB_IDX,2)], EX_en_in[`SEL(1,2)]);
+			else 																		$display(" 2 ALU  |   %2d    |  %2d   | 0x%16h | 0x%16h | 0x%2h  | %1d / %1d | 0x%8h | 0x%16h |   %2d    |   %1d", LSQ_idx_in[`SEL(`LSQ_IDX,2)], pdest_idx_in[`SEL(`PRF_IDX,2)], prega_value_in[`SEL(64,2)], pregb_value_in[`SEL(64,2)], ALUop_in[`SEL(5,2)], rd_mem_in[`SEL(1,2)], wr_mem_in[`SEL(1,2)], rs_IR_in[`SEL(32,2)], npc_in[`SEL(64,2)], rob_idx_in[`SEL(`ROB_IDX,2)], EX_en_in[`SEL(1,2)]);
+ 	    $display("========================================================================================================================================\n");
+		end
+	endtask
 
 	task show_input;
 		begin
@@ -135,254 +204,262 @@ module testbench;
 		end
 	endtask
 
+	task make_NOOP;	
+		input integer way;
+		begin
+			if(way == 1) begin
+				LSQ_idx_in[`SEL(`LSQ_IDX,1)] = 0; 
+				pdest_idx_in[`SEL(`PRF_IDX,1)] = 0; 
+				prega_value_in[`SEL(64,1)] = 0;
+				pregb_value_in[`SEL(64,1)] = 0;
+				ALUop_in[`SEL(5,1)] = 0;
+				rd_mem_in[`SEL(1,1)] = 1'b0; 
+				wr_mem_in[`SEL(1,1)] = 1'b0;
+				rs_IR_in[`SEL(32,1)] = 0;
+				npc_in[`SEL(64,1)] = 0;
+				rob_idx_in[`SEL(`ROB_IDX,1)] = 0;
+				EX_en_in[`SEL(1,1)] = 1'b0;
+			end
+			else if(way == 2) begin
+				LSQ_idx_in[`SEL(`LSQ_IDX,2)] = 0; 
+				pdest_idx_in[`SEL(`PRF_IDX,2)] = 0; 
+				prega_value_in[`SEL(64,2)] = 0;
+				pregb_value_in[`SEL(64,2)] = 0;
+				ALUop_in[`SEL(5,2)] = 0;
+				rd_mem_in[`SEL(1,2)] = 1'b0; 
+				wr_mem_in[`SEL(1,2)] = 1'b0;
+				rs_IR_in[`SEL(32,2)] = 0;
+				npc_in[`SEL(64,2)] = 0;
+				rob_idx_in[`SEL(`ROB_IDX,2)] = 0;
+				EX_en_in[`SEL(1,2)] = 1'b0;
+			end
+			else if(way==3) begin
+				LSQ_idx_in = 0;
+				pdest_idx_in = 0;
+				prega_value_in = 0;
+				pregb_value_in = 0;
+				ALUop_in = 0;
+				rd_mem_in = 0;
+				wr_mem_in = 0;
+				rs_IR_in = 0;
+				npc_in = 0;
+				rob_idx_in = 0;
+				EX_en_in = 0;
+			end
+		end
+	endtask
 
+	task make_MEM_inst;	
+		input integer way;
+		begin
+			if(way == 1) begin
+				temp32 = {$random} % 32;
+				LSQ_idx_in[`SEL(`LSQ_IDX,1)] = temp32[`LSQ_IDX-1:0];
+				temp32 = {$random} % 32;
+				pdest_idx_in[`SEL(`PRF_IDX,1)] = temp32[`PRF_IDX-1:0];
+				temp64 = {$random} % 100;
+				prega_value_in[`SEL(64,1)] = temp64;
+				temp64 = {$random} % 100;
+				pregb_value_in[`SEL(64,1)] = temp64;
+				ALUop_in[`SEL(5,1)] = 5'b0;
+				rd_mem_in[`SEL(1,1)] = 1'b1; 
+				wr_mem_in[`SEL(1,1)] = 1'b0;
+				rs_IR_in[31:21] = 11'b001_00000000;
+				rs_IR_in[20:16] = 21'b0;
+				temp32 = {$random} % 100;
+				rs_IR_in[15:0] = temp32[15:0];
+				npc_in[`SEL(64,1)] = NPC;
+				temp32 = {$random} % 32;
+				rob_idx_in[`SEL(`ROB_IDX,1)] = temp32[`ROB_IDX-1:0];
+				EX_en_in[`SEL(1,1)] = 1'b1;
+			end
+			else if(way == 2) begin
+				temp32 = {$random} % 32;
+				LSQ_idx_in[`SEL(`LSQ_IDX,1)] = temp32[`LSQ_IDX-1:0];
+				temp32 = {$random} % 32;
+				pdest_idx_in[`SEL(`PRF_IDX,2)] = temp32[`PRF_IDX-1:0];
+				temp64 = {$random} % 100;
+				prega_value_in[`SEL(64,2)] = temp64;
+				temp64 = {$random} % 100;
+				pregb_value_in[`SEL(64,2)] = temp64;
+				ALUop_in[`SEL(5,2)] = 5'b0;
+				rd_mem_in[`SEL(1,2)] = 1'b0; 
+				wr_mem_in[`SEL(1,2)] = 1'b1;
+				rs_IR_in[63:53] = 11'b001_00000000;
+				rs_IR_in[52:48] = 21'b0;
+				temp32 = {$random} % 100;
+				rs_IR_in[47:32] = temp32[15:0];
+				npc_in[`SEL(64,2)] = NPC + 4;
+				temp32 = {$random} % 32;
+				rob_idx_in[`SEL(`ROB_IDX,2)] = temp32[`ROB_IDX-1:0];
+				EX_en_in[`SEL(1,2)] = 1'b1;
+			end
+		end
+	endtask
 
+	task make_MULT_inst;	
+		input integer way;
+		begin
+			if(way == 1) begin
+				LSQ_idx_in[`SEL(`LSQ_IDX,1)] = 0;
+				temp32 = {$random} % 32;
+				pdest_idx_in[`SEL(`PRF_IDX,1)] = temp32[`PRF_IDX-1:0];
+				temp64 = {$random} % 100;
+				prega_value_in[`SEL(64,1)] = temp64;
+				temp64 = {$random} % 100;
+				pregb_value_in[`SEL(64,1)] = temp64;
+				ALUop_in[`SEL(5,1)] = 5'b01011;
+				rd_mem_in[`SEL(1,1)] = 1'b0; 
+				wr_mem_in[`SEL(1,1)] = 1'b0;
+				rs_IR_in[31:21] = 11'b010_00000000;
+				rs_IR_in[20:0] = 21'b0;
+				npc_in[`SEL(64,1)] = NPC;
+				temp32 = {$random} % 32;
+				rob_idx_in[`SEL(`ROB_IDX,1)] = temp32[`ROB_IDX-1:0];
+				EX_en_in[`SEL(1,1)] = 1'b1;
+			end
+			else if(way == 2) begin
+				LSQ_idx_in[`SEL(`LSQ_IDX,2)] = 0;
+				temp32 = {$random} % 32;
+				pdest_idx_in[`SEL(`PRF_IDX,2)] = temp32[`PRF_IDX-1:0];
+				temp64 = {$random} % 100;
+				prega_value_in[`SEL(64,2)] = temp64;
+				temp64 = {$random} % 100;
+				pregb_value_in[`SEL(64,2)] = temp64;
+				ALUop_in[`SEL(5,2)] = 5'b01011;
+				rd_mem_in[`SEL(1,2)] = 1'b0; 
+				wr_mem_in[`SEL(1,2)] = 1'b0;
+				rs_IR_in[63:53] = 11'b010_00000000;
+				rs_IR_in[52:32] = 21'b0;
+				npc_in[`SEL(64,2)] = NPC + 4;
+				temp32 = {$random} % 32;
+				rob_idx_in[`SEL(`ROB_IDX,2)] = temp32[`ROB_IDX-1:0];
+				EX_en_in[`SEL(1,2)] = 1'b1;
+			end
+		end
+	endtask
 
+	task make_ALU_inst;	
+		input integer way;
+		begin
+			if(way == 1) begin
+				LSQ_idx_in[`SEL(`LSQ_IDX,1)] = 0;
+				temp32 = {$random} % 32;
+				pdest_idx_in[`SEL(`PRF_IDX,1)] = temp32[`PRF_IDX-1:0];
+				temp64 = {$random} % 100;
+				prega_value_in[`SEL(64,1)] = temp64;
+				temp64 = {$random} % 100;
+				pregb_value_in[`SEL(64,1)] = temp64;
+				temp32 = {$random} % 16;
+				ALUop_in[4] = 1'b0;
+				ALUop_in[3:0] = temp32[3:0];
+				while(ALUop_in[3:0]==4'b1011) begin
+					temp32 = {$random} % 16;
+					ALUop_in[3:0] = temp32[3:0];
+				end
+				rd_mem_in[`SEL(1,1)] = 1'b0; 
+				wr_mem_in[`SEL(1,1)] = 1'b0;
+				rs_IR_in[31:21] = 11'b010_00000000;
+				temp32 = {$random} % 100;
+				rs_IR_in[20:13] = temp32[7:0];
+				temp = {$random} % 2;
+				rs_IR_in[12] = temp;
+				rs_IR_in[11:0] = 12'b0;
+				npc_in[`SEL(64,1)] = NPC;
+				temp32 = {$random} % 32;
+				rob_idx_in[`SEL(`ROB_IDX,1)] = temp32[`ROB_IDX-1:0];
+				EX_en_in[`SEL(1,1)] = 1'b1;
+			end
+			else if(way == 2) begin
+				LSQ_idx_in[`SEL(`LSQ_IDX,2)] = 0;
+				temp32 = {$random} % 32;
+				pdest_idx_in[`SEL(`PRF_IDX,2)] = temp32[`PRF_IDX-1:0];
+				temp64 = {$random} % 100;
+				prega_value_in[`SEL(64,2)] = temp64;
+				temp64 = {$random} % 100;
+				pregb_value_in[`SEL(64,2)] = temp64;
+				temp32 = {$random} % 16;
+				ALUop_in[9] = 1'b0;
+				ALUop_in[8:5] = temp32[3:0];
+				while(ALUop_in[8:5]==4'b1011) begin
+					temp32 = {$random} % 16;
+					ALUop_in[8:5] = temp32[3:0];
+				end
+				rd_mem_in[`SEL(1,2)] = 1'b0; 
+				wr_mem_in[`SEL(1,2)] = 1'b0;
+				rs_IR_in[63:53] = 11'b010_00000000;
+				temp32 = {$random} % 100;
+				rs_IR_in[52:45] = temp32[7:0];
+				temp = {$random} % 2;
+				rs_IR_in[44] = temp;
+				rs_IR_in[43:32] = 12'b0;
+				npc_in[`SEL(64,2)] = NPC + 4;
+				temp32 = {$random} % 32;
+				rob_idx_in[`SEL(`ROB_IDX,2)] = temp32[`ROB_IDX-1:0];
+				EX_en_in[`SEL(1,2)] = 1'b1;
+			end
+		end
+	endtask
+
+// Always use make_inst() at negedge clk
+	task make_inst;
+		begin
+			#(`VERILOG_CLOCK_PERIOD/4.0);
+			free={EX_ALU_free, EX_MULT_free};
+			if(free==4'b0000) make_NOOP(3);
+			else begin
+				case (free)
+					4'b1000, 4'b0100: begin
+															make_ALU_inst(1); make_NOOP(2);
+														end
+					4'b0010, 4'b0001: begin
+															make_MULT_inst(1); make_NOOP(2);
+														end
+					4'b1100: 	begin
+											make_ALU_inst(1); make_ALU_inst(2);
+										end
+					4'b0011: 	begin
+											make_MULT_inst(1); make_MULT_inst(2);
+										end
+					default	: begin
+											temp32 = {$random} % 2;
+											if(temp32[0] == 1'b0) make_ALU_inst(1);
+											else make_MULT_inst(1);
+											temp32 = {$random} % 2;
+											if(temp32[0] == 1'b0) make_ALU_inst(2);
+											else make_MULT_inst(2);
+										end
+				endcase
+			end
+			show_inst();
+		end
+	endtask
 
 initial begin
+
+  $display("@@@ Testbench Started Here!! ======================================================================================================\n");
 	clk = 1'b0;
 	reset_all();
 	reset = 1'b1; @(negedge clk); reset = 1'b0;
-	$display("Has been reset at %d\n", full_cycle);
+	$display("@@@ Has been reset at Cycle %4d\n", full_cycle);
 
-	@(posedge clk); show_input(); show_fu_output();
+	@(posedge clk); 
 
-	@(negedge clk); show_cdb_output();
+	@(negedge clk); 
 
+	@(negedge clk); make_inst();
 
-    $finish; 
+	NUM_CYCLES = 10;
+	while(i<NUM_CYCLES) begin
+		@(posedge clk); show_fu_output();
+		@(negedge clk); show_cdb_output(); make_inst();
+		i=i+1;
+	end
+
+	@(posedge clk);
+	@(negedge clk);
+
+  $finish; 
 
 		end
 endmodule
-/*
-  always @(posedge clk) //simulating 
-  begin
-     #2;
-    count = count + din1_en+din2_en - dout1_req - dout2_req;
-    count = (count >= `CB_WIDTH) ?  `CB_WIDTH : (count <= 0) ? 0 : count;  
-		if((count < `CB_WIDTH) && full)
-			begin
-	      $display("@@@ Fail! Time: %4.0f CB is supposed to be full, but isn't! count: %d int_count: %d @@@", $time, count, cb0.iocount);
-				$finish;
-			end
-		else if((count > 0) && cb0.empty)
-			begin
-	      $display("@@@ Fail! Time: %4.0f CB is supposed to be empty, but isn't! count: %d int_count: %d@@@", $time, count, cb0.iocount);
-				$finish;
-			end 
-	end
-*/
-/*
-  task show_io;
-	  begin
-		
-    $display("==OUTPUTS====================================================");
-   	$display("RDY1\tRDY2\tROB1\tROB2\tVAL1\tVAL2\tMISS\tBA");
-		$display("%b\t%b\t%0d\t%0d\t%b\t%b\t%b\t%0d", din1_rdy, din2_rdy, rob_idx_out1, rob_idx_out2, dout1_valid, dout2_valid, branch_miss, ba_out);
-    $display("=============================================================\n");
-
-	  end
-	endtask
-
-
-	task show_contents;
-	  begin
-		$display("==============================================================");
-    $display("ROB Contents");
-		$display("==============================================================");
-
-    $display("Counter : %d",rob0.iocount);
-		$display("Full  / Almost : %0d,%0d",rob0.full, rob0.full_almost);
-		$display("Empty / Almost : %0d,%0d\n",rob0.empty, rob0.empty_almost);
-    $display("Head : %d",rob0.head);
-		$display("Tail : %d\n",rob0.tail);
-    
-		$display("         |  RDY\tBTEX\tBAEX\tNPC\tPDEST\tBTPD\tBAPD");
-		$display("==============================================================");
-    $display("Entry  0 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[0], rob0.data_bt_ex[0], rob0.data_ba_ex[0], rob0.cb_npc.data[0], rob0.cb_pdest.data[0], rob0.cb_bt_pd.data[0], rob0.cb_ba_pd.data[0]);
-    $display("Entry  1 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[1], rob0.data_bt_ex[1], rob0.data_ba_ex[1], rob0.cb_npc.data[1], rob0.cb_pdest.data[1], rob0.cb_bt_pd.data[1], rob0.cb_ba_pd.data[1]);
-    $display("Entry  2 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[2], rob0.data_bt_ex[2], rob0.data_ba_ex[2], rob0.cb_npc.data[2], rob0.cb_pdest.data[2], rob0.cb_bt_pd.data[2], rob0.cb_ba_pd.data[2]);
-    $display("Entry  3 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[3], rob0.data_bt_ex[3], rob0.data_ba_ex[3], rob0.cb_npc.data[3], rob0.cb_pdest.data[3], rob0.cb_bt_pd.data[3], rob0.cb_ba_pd.data[3]);
-    $display("Entry  4 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[4], rob0.data_bt_ex[4], rob0.data_ba_ex[4], rob0.cb_npc.data[4], rob0.cb_pdest.data[4], rob0.cb_bt_pd.data[4], rob0.cb_ba_pd.data[4]);
-    $display("Entry  5 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[5], rob0.data_bt_ex[5], rob0.data_ba_ex[5], rob0.cb_npc.data[5], rob0.cb_pdest.data[5], rob0.cb_bt_pd.data[5], rob0.cb_ba_pd.data[5]);
-    $display("Entry  6 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[6], rob0.data_bt_ex[6], rob0.data_ba_ex[6], rob0.cb_npc.data[6], rob0.cb_pdest.data[6], rob0.cb_bt_pd.data[6], rob0.cb_ba_pd.data[6]);
-    $display("Entry  7 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[7], rob0.data_bt_ex[7], rob0.data_ba_ex[7], rob0.cb_npc.data[7], rob0.cb_pdest.data[7], rob0.cb_bt_pd.data[7], rob0.cb_ba_pd.data[7]);
-	  $display("Entry  8 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[8], rob0.data_bt_ex[8], rob0.data_ba_ex[8], rob0.cb_npc.data[8], rob0.cb_pdest.data[8], rob0.cb_bt_pd.data[8], rob0.cb_ba_pd.data[8]);
-    $display("Entry  9 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[9], rob0.data_bt_ex[9], rob0.data_ba_ex[9], rob0.cb_npc.data[9], rob0.cb_pdest.data[9], rob0.cb_bt_pd.data[9], rob0.cb_ba_pd.data[9]);
-    $display("Entry 10 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[10], rob0.data_bt_ex[10], rob0.data_ba_ex[10], rob0.cb_npc.data[10], rob0.cb_pdest.data[10], rob0.cb_bt_pd.data[10], rob0.cb_ba_pd.data[10]);
-    $display("Entry 11 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[11], rob0.data_bt_ex[11], rob0.data_ba_ex[11], rob0.cb_npc.data[11], rob0.cb_pdest.data[11], rob0.cb_bt_pd.data[11], rob0.cb_ba_pd.data[11]);
-    $display("Entry 12 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[12], rob0.data_bt_ex[12], rob0.data_ba_ex[12], rob0.cb_npc.data[12], rob0.cb_pdest.data[12], rob0.cb_bt_pd.data[12], rob0.cb_ba_pd.data[12]);
-    $display("Entry 13 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[13], rob0.data_bt_ex[13], rob0.data_ba_ex[13], rob0.cb_npc.data[13], rob0.cb_pdest.data[13], rob0.cb_bt_pd.data[13], rob0.cb_ba_pd.data[13]);
-    $display("Entry 14 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[14], rob0.data_bt_ex[14], rob0.data_ba_ex[14], rob0.cb_npc.data[14], rob0.cb_pdest.data[14], rob0.cb_bt_pd.data[14], rob0.cb_ba_pd.data[14]);
-    $display("Entry 15 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[15], rob0.data_bt_ex[15], rob0.data_ba_ex[15], rob0.cb_npc.data[15], rob0.cb_pdest.data[15], rob0.cb_bt_pd.data[15], rob0.cb_ba_pd.data[15]);
-
-		$display("==============================================================\n");
-	  end
-	endtask
-
-	task reset_all;
-	  begin
-			count = 0;
-			NPC = 0;
-			reset = 0; din1_req = 0; din2_req = 0; dup1_req = 0; dup2_req = 0;
-	    ir_in1 = 0; ir_in2 = 0;
-	    npc_in1 = 0; npc_in2 = 0;
-	    pdest_in1 = 0; pdest_in2 = 0;
-	    bt_pd_in1 = 0; bt_pd_in2 = 0;
-	    ba_pd_in1 = 0; ba_pd_in2 = 0;
-	    bt_ex_in1 = 0; bt_ex_in2 = 0;
-	    ba_ex_in1 = 0; ba_ex_in2 = 0;
-	    rob_idx_in1 = 0; rob_idx_in2 = 0;
-  	end
-  endtask
-
-
-
-  // Task to allocate an instruction 
-  task new_inst;
-	input [1:0] num_inst;
-  input [`PRF_IDX-1:0] dest_idx1, dest_idx2;
-	input bt_pd1, bt_pd2, isbranch1, isbranch2;
-	input [63:0] ba_pd1, ba_pd2; 
-  begin
-
-    if (num_inst >= 1) begin
-			din1_req = 1;
-			din2_req = 0;
-			
-			NPC = NPC + 1;
-			npc_in1 = NPC;  // arbitrary
-			ir_in1 = NPC/2; // arbitrary
-			pdest_in1 = dest_idx1;
-			bt_pd_in1 = bt_pd1;
-			ba_pd_in1 = ba_pd1; 
-			isbranch_in1 = isbranch1;
-			$display("Allocating Inst @%4.0fns: PRF=%0d, ISBR=%b, BT:%b, BA:%0d",	$time, dest_idx1, isbranch1, bt_pd1, ba_pd1);
-
-			if (num_inst == 2) begin
-				din2_req = 1;
-				
-				NPC = NPC + 1;
-				npc_in2 = NPC;  // arbitrary
-				ir_in2 = NPC/2; // arbitrary
-				pdest_in2 = dest_idx2;
-				bt_pd_in2 = bt_pd2;
-				ba_pd_in2 = ba_pd2; 
-				isbranch_in2 = isbranch2;
-				$display("Allocating Inst @%4.0fns: PRF=%0d, ISBR=%b, BT:%b, BA:%0d",	$time, dest_idx2, isbranch2, bt_pd2, ba_pd2);
-			end
-
-		end else begin
-			din1_req = 0;
-			din2_req = 0;
-		end
-		
-  end
-  endtask
-
-  // Task to update an instruction 
-  task up_inst;
-	input [1:0] num_inst;
-	input [`ROB_IDX-1:0] rob1, rob2;
-	input bt_ex1, bt_ex2;
-	input [63:0] ba_ex1, ba_ex2; 
-  begin
-
-		rob_idx_in1 = rob1;
-		rob_idx_in2 = rob2;
-
-    if (num_inst >= 1) begin
-			dup1_req = 1;
-			dup2_req = 0;
-			
-			bt_ex_in1 = bt_ex1;
-			ba_ex_in1 = ba_ex1;
-			$display("Updating ROB #%0d @%4.0fns: BT=%b, BA=%0d",	rob1, $time, bt_ex1, ba_ex1);
-
-			if (num_inst == 2) begin
-				dup2_req = 1;
-				
-				bt_ex_in1 = bt_ex1;
-				ba_ex_in1 = ba_ex1;
-				$display("Updating ROB #%0d @%4.0fns: BT=%b, BA=%0d",	rob2, $time, bt_ex2, ba_ex2);
-			end
-
-		end else begin
-			dup1_req = 0;
-			dup2_req = 0;
-		end
-		
-  end
-  endtask
-*/
-/*	initial
-	  begin
-    clk = 1'b0;
-    // Reset ROB
-    reset = 1'b1;@(negedge clk); reset = 1'b0; 
-
-    // Initialize input signals
-    reset_all();
-  
-    @(negedge clk);
-		
-		// #############################
-		// USAGE:
-		// new_inst(num_inst, dest_idx1, dest_idx2, bt_pd1, bt_pd2, isbranch1, isbranch2, ba_pd1, ba_pd2) 
-		// up_inst(num_inst, rob1, rob2, bt_ex1, bt_ex2, ba_ex1, ba_ex2);
-		// #############################
-
-    $display("=============================================================");
-    $display("@@@ Test case #1: Insert & Remove one at a time");
-    $display("=============================================================\n");
-    
-    $display("============[        INSERT       ]==========================\n");
-		// insert one at a time
-		new_inst(2,2,3,0,0,0,0,0,0);
-    @(negedge clk);show_contents();show_io();
-		new_inst(2,2,3,1,0,0,0,0,0);
-    @(negedge clk);show_contents();show_io();
-		new_inst(1,5,3,0,0,0,0,0,0);
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-		new_inst(0,5,3,0,0,0,0,0,0);
-    @(negedge clk);show_contents();show_io();
-
-    $display("============[        REMOVE       ]==========================\n");
-		up_inst(2,0,1,0,0,0,0);
-    @(negedge clk);show_contents();show_io();
-		up_inst(1,4,0,0,0,0,0);
-    @(negedge clk);show_contents();show_io();
-		up_inst(0,4,0,0,0,0,0);
-
-
-		// Test case #2: Pull items
-    $display("=============================================================");
-    $display("@@@ Test case #2: Insert and remove two at a time");
-    $display("=============================================================\n");
-
-
-
-		// Test case #3: Insert & pull items at the same time 
-    $display("=============================================================");
-    $display("@@@ Test case #3: Branch Misprediction");
-    $display("=============================================================\n");
-    // address mispredict
-
-		// direction mispredict
-
-
-
-    $display("All Testcase Passed!\n"); 
-*/
