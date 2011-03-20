@@ -57,7 +57,6 @@ module rat (clk, reset, flush,
 	pe #(.OUT_WIDTH(`RS_IDX)) free_encode0(.gnt(fl_sel0), .enc(free_prf[`SEL(`PRF_IDX,1)])); 
 	pe #(.OUT_WIDTH(`RS_IDX)) free_encode1(.gnt(fl_sel1), .enc(free_prf[`SEL(`PRF_IDX,2)])); 
 
-
 	always @(posedge clk) begin
 		
 		if (reset) begin
@@ -72,19 +71,20 @@ module rat (clk, reset, flush,
 				fl[free_prf[`SEL(`PRF_IDX,1)]] <= `SD 1'b0; // new prf allocated
 			if (issue[1])
 				fl[free_prf[`SEL(`PRF_IDX,2)]] <= `SD 1'b0; // new prf allocated
+
 			if (commit[0]) begin
 				rfl[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b0; // new prf retired
 				// need to free up the overwritten prf, if it weren't free already
-				rfl[retire_prev_prf[`SEL(`PRF_IDX,1)]];
+				rfl[retire_prev_prf[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
 				// in the regular free list as well
-				fl[retire_prev_prf[`SEL(`PRF_IDX,2)]];
+				fl[retire_prev_prf[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
 			end
 			if (commit[1]) begin
 				rfl[retire_pdest_idx_in[`SEL(`PRF_IDX,2)]] <= `SD 1'b0; // new prf retired
 				// need to free up the overwritten prf, if it weren't free already
-				rfl[retire_prev_prf[`SEL(`PRF_IDX,2)]];
+				rfl[retire_prev_prf[`SEL(`PRF_IDX,2)]] <= `SD 1'b1;
 				// in the regular free list as well
-				fl[retire_prev_prf[`SEL(`PRF_IDX,2)]];
+				fl[retire_prev_prf[`SEL(`PRF_IDX,2)]] <= `SD 1'b1;
 			end
 
 		end
