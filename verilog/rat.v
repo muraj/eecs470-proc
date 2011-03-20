@@ -7,13 +7,12 @@ module rat (clk, reset, flush,
 						// enable signals for rat and rrat
 						issue, commit
 				 	 );
-						
+	//synopsys template		
   parameter IDX_WIDTH = 5;
   parameter REG_SZ  = 1<<IDX_WIDTH;
 						
   input   clk, reset, flush;
   input   [`SCALAR*IDX_WIDTH-1:0] rega_idx_in, regb_idx_in, dest_idx_in, retire_dest_idx_in;
-  input   [`SCALAR*`PRF_IDX-1:0] wr_data;
   input   [`SCALAR-1:0] issue, commit;
   input   [`SCALAR*`PRF_IDX-1:0] retire_pdest_idx_in;
 
@@ -21,6 +20,7 @@ module rat (clk, reset, flush,
 
   wire    [REG_SZ*`PRF_IDX-1:0] rrat_data;   			// for flush
 	wire    [`SCALAR*`PRF_IDX-1:0] retire_prev_prf;	// for freeing up PRF
+	wire    [`SCALAR*`PRF_IDX-1:0] free_prf;	// for freeing up PRF
 
 	regfile #(.IDX_WIDTH(5), .DATA_WIDTH(`PRF_IDX))
         file_rat (.wr_clk(clk), .reset(reset), .copy(flush),
@@ -41,13 +41,13 @@ module rat (clk, reset, flush,
 								  ); // write port
 
 	reg [`PRF_SZ-1:0] fl;
-	reg [`PRF_SZ-1:0] fl_rev;
+	wire [`PRF_SZ-1:0] fl_rev;
 	reg [`PRF_SZ-1:0] rfl;
 
 	generate
 		genvar i;
 		for(i=0; i<`PRF_SZ;i=i+1) begin: REV_FL
-			fl_rev[i] = fl_[`PRF_SZ-1];
+			assign fl_rev[i] = fl[`PRF_SZ-1];
 		end
 	endgenerate
 
@@ -60,12 +60,12 @@ module rat (clk, reset, flush,
 	always @(posedge clk) begin
 		
 		if (reset) begin
-			fl  <= `SD {`PRF_SZ{1'b1}}
-			rfl <= `SD {`PRF_SZ{1'b1}}
+			fl  <= `SD {`PRF_SZ{1'b1}};
+			rfl <= `SD {`PRF_SZ{1'b1}};
 		end else if (flush) begin
 			fl <= `SD rfl;
 
-		else
+		end else begin
 
 			if (issue[0])
 				fl[free_prf[`SEL(`PRF_IDX,1)]] <= `SD 1'b0; // new prf allocated
@@ -90,21 +90,5 @@ module rat (clk, reset, flush,
 		end
 
 	end
-
-
-
-
-		end
-	end
-
-
-	regfile #(.IDX_WIDTH(`PRF_IDX), .DATA_WIDTH(1))
-       			fl (.wr_clk(clk), .reset(reset), .copy(flush),
-				 				.rda_idx(0), .rda_out(), // reg A
-                .rdb_idx(0), .rdb_out(), // reg B
-         	      .wr_idx(retire_dest_idx_in), .wr_data(free_idx), .wr_en(), 
-        	      .reg_vals_in(rfree_list_data),
-        	      .reg_vals_out(free_list_data)
-							  ); // write port
 
 endmodule

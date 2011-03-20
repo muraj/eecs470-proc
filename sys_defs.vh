@@ -303,4 +303,5 @@
 `define IF_ID_SZ (1<<`IF_ID_IDX)
 `define LSQ_IDX (4)
 `define LSQ_SZ (1<<`LSQ_IDX)
-
+`define RAT_IDX (5)
+`define RAT_SZ (1<<`RAT_IDX)
