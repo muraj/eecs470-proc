@@ -42,19 +42,13 @@ module oo_pipeline (// Inputs
                  if_id_valid_inst,
                  id_dp_NPC,
                  id_dp_IR,
-                 id_dp_valid_inst,
-                 ex_mem_NPC,
-                 ex_mem_IR,
-                 ex_mem_valid_inst,
-                 mem_wb_NPC,
-                 mem_wb_IR,
-                 mem_wb_valid_inst
+                 id_dp_valid_inst
                 );
 
   input         clock;             // System clock
   input         reset;             // System reset
 
-	input  [3:0]  mem2proc_response; // Tag from memory about current request
+  input  [3:0]  mem2proc_response; // Tag from memory about current request
   input  [63:0] mem2proc_data;     // Data coming back from memory
   input  [3:0]  mem2proc_tag;      // Tag from memory about current reply
 
@@ -146,17 +140,19 @@ module oo_pipeline (// Inputs
 
 
 	// From the original version
-  assign pipeline_completed_insts = {3'b0, mem_wb_valid_inst};
+  assign pipeline_completed_insts = {3'b0, id_dp_valid_inst};
 	// FIXME
   assign pipeline_error_status = 
     id_dp_illegal ? `HALTED_ON_ILLEGAL
                    : id_dp_halt ? `HALTED_ON_HALT
                                  : `NO_ERROR;
 
-  assign pipeline_commit_wr_idx = wb_reg_wr_idx_out;
-  assign pipeline_commit_wr_data = wb_reg_wr_data_out;
-  assign pipeline_commit_wr_en = wb_reg_wr_en_out;
-  assign pipeline_commit_NPC = mem_wb_NPC;
+  assign pipeline_commit_wr_idx = 0;
+  assign pipeline_commit_wr_data = 0;
+  assign pipeline_commit_wr_en = 0;
+  assign pipeline_commit_NPC = id_dp_NPC;
+
+  assign proc2Dmem_command = `BUS_NONE;     //FIXME
 
   assign proc2mem_command =
            (proc2Dmem_command==`BUS_NONE)?proc2Imem_command:proc2Dmem_command;
@@ -347,10 +343,10 @@ module oo_pipeline (// Inputs
         id_dp_valid_inst    <= `SD id_valid_inst_out;
       end else if (stall_id[1]) begin
 			// need to move ir2 to ir1
-        id_dp_NPC           [`SEL(64,1)] <= `SD id_dp_NPC					   [`SEL(64:2)];
+        id_dp_NPC           [`SEL(64,1)] <= `SD id_dp_NPC					   [`SEL(64,2)];
         id_dp_IR            [`SEL(32,1)] <= `SD id_dp_IR					   [`SEL(32,2)];
-        id_dp_rega_idx      [`SEL(5,1)]  <= `SD id_dp_rega				   [`SEL(5,2)];
-        id_dp_regb_idx      [`SEL(5,1)]  <= `SD id_dp_regb           [`SEL(5,2)];
+        id_dp_rega_idx      [`SEL(5,1)]  <= `SD id_dp_rega_idx				   [`SEL(5,2)];
+        id_dp_regb_idx      [`SEL(5,1)]  <= `SD id_dp_regb_idx           [`SEL(5,2)];
         id_dp_dest_reg_idx  [`SEL(5,1)]  <= `SD id_dp_dest_reg_idx   [`SEL(5,2)];
         id_dp_alu_func      [`SEL(5,1)]  <= `SD id_dp_alu_func		   [`SEL(5,2)];
         id_dp_rd_mem        [`SEL(1,1)]  <= `SD id_dp_rd_mem			   [`SEL(1,2)];
@@ -404,7 +400,7 @@ module oo_pipeline (// Inputs
   //                  EX-Stage                    //
   //                                              //
   //////////////////////////////////////////////////
-
+/*
 ex_stage ex_stage0(.clk(clk), .reset(reset),
 								// Inputs
 								.LSQ_idx(), .pdest_idx(), .prega_value(), .pregb_value(),
@@ -423,4 +419,7 @@ ex_stage ex_stage0(.clk(clk), .reset(reset),
 								.EX_LSQ_idx(), .EX_MEM_ADDR(), .EX_MEM_reg_value()
                );
 
+*/
+
 endmodule  // module verisimple
+

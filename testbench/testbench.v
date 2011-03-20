@@ -34,7 +34,7 @@ module testbench;
   wire [63:0] pipeline_commit_NPC;
 
 
-  wire [63:0]           if_NPC_out;
+  wire [`SCALAR*64-1:0] if_NPC_out;
   wire [`SCALAR*32-1:0] if_IR_out;
   wire [`SCALAR-1:0]    if_valid_inst_out;
   wire [`SCALAR*64-1:0] if_id_NPC;
@@ -168,6 +168,10 @@ module testbench;
     reset = 1'b0;
     $display("@@  %t  Deasserting System reset......\n@@\n@@", $realtime);
 
+//   $monitor("@@ cycle: %d  if_NPC_out: %h  if_IR_out: %h  if_id_NPC: %h  id_dp_NPC: %h  id_dp_IR: %h  imem_valid: %b  m2p_data: %h",
+//             clock_count, if_NPC_out, if_IR_out, if_id_NPC, id_dp_NPC, id_dp_IR, pipeline_0.if_stage_0.Imem_valid, mem2proc_data);
+    $monitor("@@ cycle: %0d  if_NPC_out: %h  if_IR_out: %h  if_valid: %b",
+            clock_count, if_NPC_out, if_IR_out, pipeline_0.if_stage_0.if_valid_inst_out);
   end
 
 
@@ -184,6 +188,10 @@ module testbench;
     begin
       clock_count <= `SD (clock_count + 1);
       instr_count <= `SD (instr_count + pipeline_completed_insts);
+      if(clock_count > 20) begin
+          $display("Debug quit");
+          $finish;
+      end
     end
   end  
 

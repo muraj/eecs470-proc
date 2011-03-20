@@ -296,14 +296,14 @@ module id_stage(
 
     // instantiate the instruction decoder
   decoder decoder_0 (// Input
-                     .inst(if_id_IR[`SEL(64,1)]),
+                     .inst(if_id_IR[`SEL(32,1)]),
                      .valid_inst_in(if_id_valid_inst[`SEL(1,1)]),
 
                      // Outputs
                      .opa_select(id_opa_select_out[`SEL(2,1)]),
                      .opb_select(id_opb_select_out[`SEL(2,1)]),
                      .alu_func(id_alu_func_out[`SEL(5,1)]),
-                     .dest_reg(dest_reg_select[`SEL(64,1)]),
+                     .dest_reg(dest_reg_select[`SEL(2,1)]),
                      .rd_mem(id_rd_mem_out[`SEL(1,1)]),
                      .wr_mem(id_wr_mem_out[`SEL(1,1)]),
                      .ldl_mem(id_ldl_mem_out[`SEL(1,1)]),
@@ -317,14 +317,14 @@ module id_stage(
                     );
 
   decoder decoder_1 (// Input
-                     .inst(if_id_IR[`SEL(64,2)]),
+                     .inst(if_id_IR[`SEL(32,2)]),
                      .valid_inst_in(if_id_valid_inst[`SEL(1,2)]),
 
                      // Outputs
                      .opa_select(id_opa_select_out[`SEL(2,2)]),
                      .opb_select(id_opb_select_out[`SEL(2,2)]),
                      .alu_func(id_alu_func_out[`SEL(5,2)]),
-                     .dest_reg(dest_reg_select[`SEL(64,2)]),
+                     .dest_reg(dest_reg_select[`SEL(2,2)]),
                      .rd_mem(id_rd_mem_out[`SEL(1,2)]),
                      .wr_mem(id_wr_mem_out[`SEL(1,2)]),
                      .ldl_mem(id_ldl_mem_out[`SEL(1,2)]),

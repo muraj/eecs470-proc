@@ -31,7 +31,7 @@ module if_stage(// Inputs
 
   input         clock;              // system clock
   input         reset;              // system reset
-	input					stall;
+  input					stall;
   input         rob_mispredict; 		// branch mispredict signal
   input  [63:0] rob_target_pc; 		  // target pc: use if rob_mispredict is TRUE
   input         id_bp_taken; 				// branch prediction result
@@ -68,7 +68,7 @@ module if_stage(// Inputs
   assign next_PC = (rob_mispredict)? rob_target_pc : (id_bp_taken)? id_bp_pc : PC_plus_8;
 
     // The take-branch signal must override stalling (otherwise it may be lost)
-  assign PC_enable = !stall || rob_mispredict || id_bp_taken;
+  assign PC_enable = Imem_valid & !stall;  //!stall || rob_mispredict || id_bp_taken;
 
     // Pass PC+4 and PC+8 down pipeline w/instruction
   assign if_NPC_out[`SEL(64,1)] = PC_plus_4;

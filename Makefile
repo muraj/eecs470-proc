@@ -21,7 +21,7 @@ INTFLAGS = -I +memcbk
 VISFLAGS = -lncurses
 
 all:    simv
-	./simv | tee program.out
+	./simv #| tee program.out
 
 ##### 
 # Modify starting here
@@ -32,7 +32,6 @@ TESTBENCH = 	sys_defs.vh	    \
 		testbench/mem.v		    \
 		testbench/pipe_print.c
 SIMFILES =	verilog/oo_pipeline.v	\
-		verilog/regfile.v	\
 		verilog/icache.v	\
 		verilog/if_stage.v	\
 		verilog/id_stage.v	\
