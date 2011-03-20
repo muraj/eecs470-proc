@@ -61,7 +61,7 @@ module testbench;
   wire [`ROB_IDX:0] rs2_rob_idx[`RS_SZ-1:0];
   wire [`RS_SZ-1:0] rs2_rdy;
   wire [`RS_SZ-1:0] rs2_free;
-`endif
+`endif  //SUPERSCALAR
 
 generate
 genvar rs_iter;
@@ -71,7 +71,7 @@ genvar rs_iter;
     assign rs1_rob_idx[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.rob_idx_out;
     assign rs1_rdy[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.rdy;
     assign rs1_free[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.entry_free;
-    assign rs2_IR[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rs_IR;
+    assign rs2_IR[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rs_IR_out;
     assign rs2_npc[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.npc_out;
     assign rs2_rob_idx[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rob_idx_out;
     assign rs2_rdy[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rdy;
@@ -89,7 +89,7 @@ end
 always @(posedge clock) begin
  if(~reset) begin
   $fdisplay(rs_fileno, "|=============================== Cycle: %10d ===============================|", clock_count);
-  $fdisplay(rs_fileno, "rs1_sel: %b npc: %h IR: %h", pipeline_0.rs0.rs1_sel, pipeline_0.rs0.npc, pipeline_0.rs0.rs_IR);
+  $fdisplay(rs_fileno, "inst_valid: %b rs1_sel: %b npc: %h IR: %h", pipeline_0.rs0.inst_valid, pipeline_0.rs0.rs1_sel, pipeline_0.rs0.npc, pipeline_0.rs0.rs_IR);
   $fdisplay(rs_fileno, "|                      RS0                  |                   RS1               |");
   $fdisplay(rs_fileno, "| IDX |   IR   |       NPC      | ROB | R/F |   IR   |       NPC      | ROB | R/F |");
   $fdisplay(rs_fileno, "|=================================================================================|");
@@ -115,7 +115,7 @@ always @(posedge clock) begin
   `DISPLAY_RS(15)
  end
 end
-`endif
+`endif  //SYNTH
 
 
   // Strings to hold instruction opcode
@@ -223,7 +223,7 @@ end
       $vcdplusdeltacycleon;
       $vcdpluson();
       $vcdplusmemon(memory.unified_memory);
-    `endif
+    `endif  //DUMP
       
     clock = 1'b0;
     reset = 1'b0;
@@ -303,7 +303,7 @@ end
           $fdisplay(wb_fileno, "# SCALAR 2, IR=%s cycle=%0d\nPC=%x, ---",
                     co_instr_str[1], clock_count,
                     pipeline_commit_NPC[`SEL(64, 2)]-4);
-       `endif
+       `endif //SUPERSCALAR
 
       end
       // deal with any halting conditions
@@ -346,7 +346,7 @@ end
     id_instr_str[1]  = get_instr_string(if_id_IR[`SEL(32, 2)], if_id_valid_inst[1]);
     dp_instr_str[1]  = get_instr_string(id_dp_IR[`SEL(32, 2)], id_dp_valid_inst[1]);
     co_instr_str[1]  = get_instr_string(pipeline_commit_IR[`SEL(32, 2)], pipeline_commit_wr_en[1]);
-  `endif
+  `endif  //SUPERSCALAR
   end
 
   function [8*7:0] get_instr_string;
