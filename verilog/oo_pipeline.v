@@ -126,23 +126,25 @@ module oo_pipeline (// Inputs
   wire  [`SCALAR*`PRF_IDX-1:0] ex_prega_idx;
   wire  [`SCALAR*`PRF_IDX-1:0] ex_pregb_idx;
   wire  [`SCALAR*`PRF_IDX-1:0] ex_pdest_idx;
-  wire  [`SCALAR*5-1:0] ex_alu_func;
-  wire  [`SCALAR*32-1:0] ex_IR;
-  wire  [`SCALAR*64-1:0] ex_npc;
+  wire  [`SCALAR*64-1:0]       ex_prega_val;
+  wire  [`SCALAR*64-1:0]       ex_pregb_val;
+  wire  [`SCALAR*5-1:0]        ex_alu_func;
+  wire  [`SCALAR*32-1:0]       ex_IR;
+  wire  [`SCALAR*64-1:0]       ex_npc;
   wire  [`SCALAR*`ROB_IDX-1:0] ex_rob_idx;
-  wire  [`SCALAR-1:0] ex_wr_mem;
-  wire  [`SCALAR-1:0] ex_rd_mem;
-  wire  [`SCALAR-1:0] ex_valid;
+  wire  [`SCALAR-1:0]          ex_wr_mem;
+  wire  [`SCALAR-1:0]          ex_rd_mem;
+  wire  [`SCALAR-1:0]          ex_valid;
 
   // RAT wires
-  wire  [`SCALAR*`PRF_IDX-1:0] rat_prega_idx;
-  wire  [`SCALAR*`PRF_IDX-1:0] rat_pregb_idx;
-  wire  [`SCALAR*`PRF_IDX-1:0] rat_pdest_idx;
+  wire  [`SCALAR*`PRF_IDX-1:0] rat_prega_idx = 0;
+  wire  [`SCALAR*`PRF_IDX-1:0] rat_pregb_idx = 0;
+  wire  [`SCALAR*`PRF_IDX-1:0] rat_pdest_idx = 0;
 
   // PRF
   wire  [`SCALAR-1:0]  prf_valid_prega;
   wire  [`SCALAR-1:0]  prf_valid_pregb;
-  reg   [`PRF_IDX-1:0] prf_valid;
+  reg   [`PRF_SZ-1:0] prf_valid;
 
   // Reservation Station wires
   wire  [`SCALAR-1:0]  rs_stall;
@@ -178,22 +180,17 @@ module oo_pipeline (// Inputs
   wire [64*`SCALAR-1:0]       rob_commit_NPC;
   wire [32*`SCALAR-1:0]       rob_commit_IR;
 
-  // For RAT
-  wire [`SCALAR*`PRF_IDX-1:0] rat_pdest1, rat_pdest2; 
-
-
-
   // From the original version
-  assign pipeline_completed_insts = {3'b0, id_dp_valid_inst};
+  assign pipeline_completed_insts = rob_commit_wr_en[0] + rob_commit_wr_en[1];
   // FIXME
   assign pipeline_error_status = 
     id_dp_illegal ? `HALTED_ON_ILLEGAL
                    : (id_dp_halt ? `HALTED_ON_HALT
                                  : `NO_ERROR);
 
-  assign pipeline_commit_wr_idx = 0;
-  assign pipeline_commit_wr_data = 0;
-  assign pipeline_commit_wr_en = 0;
+  assign pipeline_commit_wr_idx = rob_commit_wr_idx;
+  assign pipeline_commit_wr_data = rob_commit_wr_data;
+  assign pipeline_commit_wr_en = rob_commit_wr_en;
   assign pipeline_commit_NPC = rob_commit_npc_out;
 
   assign proc2Dmem_command = `BUS_NONE;     //FIXME
@@ -416,20 +413,20 @@ module oo_pipeline (// Inputs
   //                                              //
   //////////////////////////////////////////////////
 
-  rob rob0 (.clk(clk), .reset(reset),
+  rob rob0 (.clk(clock), .reset(reset),
 						.full(rob_full), .full_almost(rob_full_almost),
                         .dout1_valid(rob_commit_wr_en[0]), .dout2_valid(rob_commit_wr_en[1]),//FIXME: used at retire 
 						.din1_req(id_dp_valid_inst[0]), .din2_req(id_dp_valid_inst[1]),
-						.dup1_req(0), .dup2_req(0),
+						.dup1_req(1'b0), .dup2_req(1'b0),
 						.ir_in1(id_dp_IR[`SEL(32,1)]), .ir_in2(id_dp_IR[`SEL(32,2)]), 
                         .npc_in1(id_dp_NPC[`SEL(64,1)]), .npc_in2(id_dp_NPC[`SEL(64,2)]), 
-                        .pdest_in1(rat_pdest[`SEL(`PRF_IDX,1)]), .pdest_in2(rat_pdest[`SEL(`PRF_IDX,2)]), //FIXME
+                        .pdest_in1(rat_pdest_idx[`SEL(`PRF_IDX,1)]), .pdest_in2(rat_pdest_idx[`SEL(`PRF_IDX,2)]), //FIXME
                         .adest_in1(id_dp_dest_reg_idx[`SEL(5,1)]), .adest_in2(id_dp_dest_reg_idx[`SEL(5,2)]), //FIXME
-                        .ba_pd_in1(0), .ba_pd_in2(0), //FIXME 
-                        .bt_pd_in1(0), .bt_pd_in2(0), //FIXME
+                        .ba_pd_in1(64'b0), .ba_pd_in2(64'b0), //FIXME 
+                        .bt_pd_in1(1'b0), .bt_pd_in2(1'b0), //FIXME
                         .isbranch_in1(id_dp_isbranch[0]), .isbranch_in2(id_dp_isbranch[1]),
-						.ba_ex_in1(0), .ba_ex_in2(0), .bt_ex_in1(0), .bt_ex_in2(0),//FIXME
-						.rob_idx_in1(0), .rob_idx_in2(0),//FIXME
+						.ba_ex_in1(64'b0), .ba_ex_in2(64'b0), .bt_ex_in1(1'b0), .bt_ex_in2(1'b0),//FIXME
+						.rob_idx_in1({`ROB_IDX{1'b0}}), .rob_idx_in2({`ROB_IDX{1'b0}}),//FIXME
 						.rob_idx_out1(rob_idx_out[`SEL(`ROB_IDX,1)]), .rob_idx_out2(rob_idx_out[`SEL(`ROB_IDX,2)]),
 						.ir_out1(rob_commit_IR[`SEL(32,1)]), .ir_out2(rob_commit_IR[`SEL(32,1)]), 
                         .npc_out1(rob_commit_npc_out[`SEL(64,1)]), .npc_out2(rob_commit_npc_out[`SEL(64,2)]),
@@ -441,7 +438,7 @@ module oo_pipeline (// Inputs
     generate
     genvar prf_idx;
     for(prf_idx=0;prf_idx<`PRF_SZ;prf_idx=prf_idx+1) begin : PRF_VALID_RST
-        always @(posedge clk) begin
+        always @(posedge clock) begin
             if(reset) begin
                 prf_valid[prf_idx] <= `SD (prf_idx == `ZERO_REG ? 1 : 0);   // ZERO_REG is always valid
             end
@@ -454,7 +451,7 @@ module oo_pipeline (// Inputs
     assign prf_valid_prega[1] = prf_valid[rat_prega_idx[`SEL(`PRF_IDX,2)]];
     assign prf_valid_pregb[1] = prf_valid[rat_pregb_idx[`SEL(`PRF_IDX,2)]];
 `endif
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if(cdb_valid[0]) begin
             prf_valid[cdb_tag[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
         end
@@ -475,16 +472,16 @@ module oo_pipeline (// Inputs
   PRF(.rda_idx(ex_prega_idx), .rda_out(ex_prega_val),
               .rdb_idx(ex_prega_idx), .rdb_out(ex_pregb_val),
               .reg_vals_out(),
-              .wr_idx(cdb_reg_idx), .wr_data(cdb_data),
-              .wr_en(cdb_valid), .wr_clk(clk), .reset(reset),
-              .copy(0), .reg_vals_in(0)
+              .wr_idx(cdb_tag), .wr_data(cdb_data),
+              .wr_en(cdb_valid), .wr_clk(clock), .reset(reset),
+              .copy(1'b0), .reg_vals_in({`PRF_SZ*64{1'b0}})
               );
 
-  SUPER_RS rs0 (.clk(clk), .reset(reset),
+  SUPER_RS rs0 (.clk(clock), .reset(reset),
                 //INPUTS
-                .inst_valid(id_dp_valid_inst), .prega_idx(rat_prega_idx), .pregb_idx(rat_pregb_idx), .pdest_idx(rat_pdest_idx), .prega_valid(), .pregb_valid(), //RAT
+                .inst_valid(id_dp_valid_inst), .prega_idx(rat_prega_idx), .pregb_idx(rat_pregb_idx), .pdest_idx(rat_pdest_idx), .prega_valid(prf_valid_prega), .pregb_valid(prf_valid_pregb), //RAT
                 .ALUop(id_dp_alu_func), .rd_mem(id_dp_rd_mem), .wr_mem(id_dp_wr_mem), .rs_IR(id_dp_IR), . npc(id_dp_NPC), .cond_branch(id_dp_cond_branch), .uncond_branch(id_dp_uncond_branch),     //Issue Stage
-                .multfu_free(0), .exfu_free(0), .memfu_free(0), .cdb_valid(cdb_valid), .cdb_tag(cdb_tag), .entry_flush(0),   //Pipeline communication
+                .multfu_free(2'b0), .exfu_free(2'b0), .memfu_free(2'b0), .cdb_valid(cdb_valid), .cdb_tag(cdb_tag), .entry_flush({`RS_SZ{0}}),   //Pipeline communication
                 .rob_idx(), //ROB
 
                 //OUTPUT
@@ -500,7 +497,7 @@ module oo_pipeline (// Inputs
   //                                              //
   //////////////////////////////////////////////////
 /*
-ex_stage ex_stage0(.clk(clk), .reset(reset),
+ex_stage ex_stage0(.clk(clock), .reset(reset),
 								// Inputs
 								.LSQ_idx(), .pdest_idx(), .prega_value(), .pregb_value(),
 								.ALUop(), .rd_mem(), .wr_mem(),

@@ -118,6 +118,4 @@ module regfile(rda_idx, rda_out,                // read port A
     end
   end
 
-  initial
-    $monitor("clk %b, wr_data %h reg_vals_in %h", wr_clk, wr_data, reg_vals_in);
 endmodule // regfile

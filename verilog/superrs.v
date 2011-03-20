@@ -92,5 +92,4 @@ module SUPER_RS(clk, reset,
                     wr_mem_out[1], rs_IR_out[`SEL(32,2)], npc_out[`SEL(64,2)], rob_idx_out[`SEL(`ROB_IDX,2)],
                     rs_idx_out[`SEL(`RS_IDX,2)]);
 `endif
-
 endmodule

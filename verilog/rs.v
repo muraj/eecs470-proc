@@ -238,7 +238,7 @@ module rs_entry(clk, reset,
       pdest_idx_out <= `SD `ZERO_PRF; // FIXME
       prega_idx_out <= `SD `ZERO_PRF; // FIXME
       pregb_idx_out <= `SD `ZERO_PRF; // FIXME
-      ALUop_out <= `SD 5'h1f;
+      ALUop_out <= `SD 5'h1f;         // FIXME
       rd_mem_out <= `SD 1'b0;
       wr_mem_out <= `SD 1'b0;
       rs_IR_out <= `SD `NOOP_INST;

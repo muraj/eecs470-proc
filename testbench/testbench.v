@@ -26,12 +26,12 @@ module testbench;
   wire [63:0] mem2proc_data;
   wire [3:0]  mem2proc_tag;
 
-  wire [3:0]  pipeline_completed_insts;
-  wire [3:0]  pipeline_error_status;
-  wire [4:0]  pipeline_commit_wr_idx;
-  wire [63:0] pipeline_commit_wr_data;
-  wire        pipeline_commit_wr_en;
-  wire [63:0] pipeline_commit_NPC;
+  wire [3:0]            pipeline_completed_insts;
+  wire [3:0]            pipeline_error_status;
+  wire [`SCALAR*4-1:0]  pipeline_commit_wr_idx;
+  wire [`SCALAR*64-1:0] pipeline_commit_wr_data;
+  wire [`SCALAR-1:0]    pipeline_commit_wr_en;
+  wire [`SCALAR*64-1:0] pipeline_commit_NPC;
 
 
   wire [`SCALAR*64-1:0] if_NPC_out;
@@ -170,8 +170,8 @@ module testbench;
 
 //   $monitor("@@ cycle: %d  if_NPC_out: %h  if_IR_out: %h  if_id_NPC: %h  id_dp_NPC: %h  id_dp_IR: %h  imem_valid: %b  m2p_data: %h",
 //             clock_count, if_NPC_out, if_IR_out, if_id_NPC, id_dp_NPC, id_dp_IR, pipeline_0.if_stage_0.Imem_valid, mem2proc_data);
-    $monitor("@@ cycle: %0d  if_NPC_out: %h  if_IR_out: %h  if_valid: %b",
-            clock_count, if_NPC_out, if_IR_out, pipeline_0.if_stage_0.if_valid_inst_out);
+    $monitor("@@ cycle: %0d  if_NPC_out: %h  if_IR_out: %h  if_valid: %b rs_stall: %b",
+            clock_count, if_NPC_out, if_IR_out, pipeline_0.if_stage_0.if_valid_inst_out, pipeline_0.rs0.rs_stall);
   end
 
 
