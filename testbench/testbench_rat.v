@@ -5,9 +5,9 @@ module testbench;
 	integer idx;  //TEST VARS
   reg   clk, reset, flush;
   reg   [`SCALAR*`RAT_IDX-1:0] rega_idx_in, regb_idx_in, dest_idx_in, retire_dest_idx_in;
-  reg		[`SCALAR-1:0] issue, commit;
-  wire  [`RAT_SZ*`PRF_IDX-1:0] rrat_data;   // 32, 64-bit Registers
-	wire	[`SCALAR*`PRF_IDX-1:0] prega_idx_out, pregb_idx_out, pdest_idx_out, retire_pdest_idx_in;
+	reg  	[`SCALAR*`PRF_IDX-1:0] retire_pdest_idx_in;
+  reg		[`SCALAR-1:0] issue, retire;
+	wire	[`SCALAR*`PRF_IDX-1:0] prega_idx_out, pregb_idx_out, pdest_idx_out;
 
 rat  #(.IDX_WIDTH(`RAT_IDX)) rat0 (clk, reset, flush,
 						// ARF inputs
@@ -15,16 +15,100 @@ rat  #(.IDX_WIDTH(`RAT_IDX)) rat0 (clk, reset, flush,
 						// PRF i/o
 						prega_idx_out, pregb_idx_out, pdest_idx_out, retire_pdest_idx_in,
 						// enable signals for rat and rrat
-						issue, commit
+						issue, retire
 				 	 );
-										
-  task show_io;
+/*					
+  task new_inst;
+	input [1:0] num_inst;
+  input [4:0] rega1, regb1, regc1, rega2, regb2, regc2;
+	begin
+		
+		if (num_inst > 0) begin
+			issue[0] = 1'b1;
+			issue[1] = 1'b0;
+			rega_idx_in[`SEL(5,1)] = rega1;
+			regb_idx_in[`SEL(5,1)] = regb1;
+			dest_idx_in[`SEL(5,1)] = regc1;
+			
+
+			if (num_inst == 2) begin
+				issue[1] = 1'b1;
+				rega_idx_in[`SEL(5,2)] = rega2;
+				regb_idx_in[`SEL(5,2)] = regb2;
+				dest_idx_in[`SEL(5,2)] = regc2;
+			end
+		end else begin
+			issue[0] = 1'b0;
+			issue[1] = 1'b0;
+		end
+
+	end
+	endtask
+*/
+
+  task new_inst;
+	input [1:0] num_inst;
+  input [4:0] regc1,regc2;
+	begin
+		
+		if (num_inst > 0) begin
+			issue[0] = 1'b1;
+			issue[1] = 1'b0;
+			rega_idx_in[`SEL(5,1)] = 3;
+			regb_idx_in[`SEL(5,1)] = 4;
+			dest_idx_in[`SEL(5,1)] = regc1;
+			
+
+			if (num_inst == 2) begin
+				issue[1] = 1'b1;
+				rega_idx_in[`SEL(5,2)] = 2;
+				regb_idx_in[`SEL(5,2)] = 7;
+				dest_idx_in[`SEL(5,2)] = regc2;
+			end
+		end else begin
+			issue[0] = 1'b0;
+			issue[1] = 1'b0;
+		end
+
+	end
+	endtask
+  task retire_inst;
+	input [1:0] num_inst;
+  input [4:0] dest1;
+  input [`PRF_IDX:0] pdest1;
+  input [4:0] dest2;
+  input [`PRF_IDX:0] pdest2;
+	begin
+		
+		if (num_inst > 0) begin
+			retire[0] = 1'b1;
+			retire[1] = 1'b0;
+			retire_dest_idx_in[`SEL(5,1)] = dest1;
+			retire_pdest_idx_in[`SEL(5,1)] = pdest1;
+			
+			if (num_inst == 2) begin
+				retire[1] = 1'b0;
+				retire_dest_idx_in[`SEL(5,2)] = dest2;
+				retire_pdest_idx_in[`SEL(5,2)] = pdest2;
+			end
+
+		end else begin
+			retire[0] = 1'b0;
+			retire[1] = 1'b0;
+		end
+
+	end
+	endtask
+  
+	
+	task show_io;
 	  begin
 		
-    $display("=====================OUTPUTS===================================");
-   	$display("PRF_out1\tPRF_out2\tPRF_out_dest\tPRF_out_retire");
-		$display("%b\t%b\t%b\t%b\t", prega_idx_out, pregb_idx_out, pdest_idx_out, retire_pdest_idx_in);
-    $display("=============================================================\n");
+    $display("=====OUTPUTS=============================");
+   	$display("       PRF1 PRF2 PDEST");
+		$display("Way0: %2d   %2d   %2d", prega_idx_out[`SEL(`PRF_IDX,1)], pregb_idx_out[`SEL(`PRF_IDX,1)], pdest_idx_out[`SEL(`PRF_IDX,1)]);
+		$display("Way1: %2d   %2d   %2d", prega_idx_out[`SEL(`PRF_IDX,2)], pregb_idx_out[`SEL(`PRF_IDX,2)], pdest_idx_out[`SEL(`PRF_IDX,2)]);
+    $display("=========================================\n");
 
 	  end
 	endtask
@@ -33,11 +117,11 @@ rat  #(.IDX_WIDTH(`RAT_IDX)) rat0 (clk, reset, flush,
 	task show_RAT;
 	  begin
 		 `define DISPLAY_ENTRY_RAT(i) \
-    $display("%02d | %h", i, rat0.file_rat.registers[i]);
+    $display(" %2d  |  %2d  |  %2d", i, rat0.file_rat.registers[i], rat0.file_rrat.registers[i]);
 
-    $display("=================");
-    $display("  IDX  |   PRF   ");
-    $display("=================");
+    $display("==================");
+    $display(" IDX | RAT | RRAT   ");
+    $display("==================");
     `DISPLAY_ENTRY_RAT(15)
     `DISPLAY_ENTRY_RAT(14) 
     `DISPLAY_ENTRY_RAT(13) 
@@ -54,54 +138,41 @@ rat  #(.IDX_WIDTH(`RAT_IDX)) rat0 (clk, reset, flush,
     `DISPLAY_ENTRY_RAT(02)
     `DISPLAY_ENTRY_RAT(01)
     `DISPLAY_ENTRY_RAT(00)
-    $display("=================\n"); 
-
-    
-	  end
-	endtask
-
-	task show_RRAT;
-	  begin
-		 `define DISPLAY_ENTRY_RRAT(i) \
-    $display("%02d | %h", i, rat0.file_rrat.registers[i]);
-
-    $display("=================");
-    $display("  IDX  |   PRF   ");
-    $display("=================");
-    `DISPLAY_ENTRY_RRAT(15)
-    `DISPLAY_ENTRY_RRAT(14) 
-    `DISPLAY_ENTRY_RRAT(13) 
-    `DISPLAY_ENTRY_RRAT(12) 
-    `DISPLAY_ENTRY_RRAT(11) 
-    `DISPLAY_ENTRY_RRAT(10) 
-    `DISPLAY_ENTRY_RRAT(09)
-    `DISPLAY_ENTRY_RRAT(08)
-    `DISPLAY_ENTRY_RRAT(07)
-    `DISPLAY_ENTRY_RRAT(06)
-    `DISPLAY_ENTRY_RRAT(05)
-    `DISPLAY_ENTRY_RRAT(04)
-    `DISPLAY_ENTRY_RRAT(03)
-    `DISPLAY_ENTRY_RRAT(02)
-    `DISPLAY_ENTRY_RRAT(01)
-    `DISPLAY_ENTRY_RRAT(00)
-    $display("=================\n"); 
-
+    $display("==================\n"); 
     
 	  end
 	endtask
 
 
+task reset_all;
+begin
+  clk=0; reset=0; flush=0;
+  rega_idx_in=0; regb_idx_in=0; dest_idx_in=0; retire_dest_idx_in=0;
+  issue=0; retire=0;
+	retire_pdest_idx_in=0;
+end
+endtask
+	
 always
   begin
     #(`VERILOG_CLOCK_PERIOD/2.0);
     clk = ~clk;
   end
 
-initial
-  begin
+initial begin
 
+	reset_all();
+	reset = 1'b1; @(negedge clk); reset = 1'b0;
+	
+	show_RAT();@(negedge clk); 
 
+	new_inst(2,4,5);show_io();@(negedge clk);show_RAT();
+	new_inst(2,12,2);show_io();@(negedge clk);show_RAT();
+	new_inst(1,9,2);show_io();@(negedge clk);show_RAT();
+	new_inst(2,7,8);show_io();@(negedge clk);show_RAT();
+	new_inst(0,9,2);show_io();@(negedge clk);show_RAT();
 
-	end
+	$finish;
+end
 
 endmodule

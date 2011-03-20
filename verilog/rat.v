@@ -18,50 +18,64 @@ module rat (clk, reset, flush,
 
   output  [`SCALAR*`PRF_IDX-1:0] prega_idx_out, pregb_idx_out, pdest_idx_out;
 
+	// Free list storage
+	reg [`PRF_SZ-1:0] fl;
+	reg [`PRF_SZ-1:0] rfl;
+
+	// Internal wires
+	wire [`PRF_SZ-1:0] fl_rev;
+	wire [`PRF_SZ-1:0] fl_sel0;
+	wire [`PRF_SZ-1:0] fl_sel1;
+	wire [`PRF_SZ-1:0] fl_sel1_rev;
+
   wire    [REG_SZ*`PRF_IDX-1:0] rrat_data;   			// for flush
+  wire    [REG_SZ*`PRF_IDX-1:0] rat_data;   			// for flush
 	wire    [`SCALAR*`PRF_IDX-1:0] retire_prev_prf;	// for freeing up PRF
-	wire    [`SCALAR*`PRF_IDX-1:0] free_prf;	// for freeing up PRF
+	wire    [`SCALAR*`PRF_IDX-1:0] free_prf;	// output of priority encoder
+
+	assign pdest_idx_out = free_prf;
+
 
 	regfile #(.IDX_WIDTH(5), .DATA_WIDTH(`PRF_IDX))
         file_rat (.wr_clk(clk), .reset(reset), .copy(flush),
 				 					.rda_idx(rega_idx_in), .rda_out(prega_idx_out), // reg A
                   .rdb_idx(regb_idx_in), .rdb_out(pregb_idx_out), // reg B
-         	  	    .wr_idx(dest_idx_in), .wr_data(free_idx), .wr_en(issue), 
+         	  	    .wr_idx(dest_idx_in), .wr_data(free_prf), .wr_en(issue), 
         	        .reg_vals_in(rrat_data),
-        	        .reg_vals_out() //not needed
+        	        .reg_vals_out(rat_data) //not needed
 								  ); // write port
   
 	regfile #(.IDX_WIDTH(5), .DATA_WIDTH(`PRF_IDX))
-       file_rrat (.wr_clk(clk), .reset(reset), .copy(0),
+       file_rrat (.wr_clk(clk), .reset(reset), .copy(1'b0),
 				 					.rda_idx(retire_dest_idx_in), .rda_out(retire_prev_prf), // not needed
-                  .rdb_idx(0), .rdb_out(), // not needed
-         	  	    .wr_idx(retire_dest_idx_in), .wr_data(pdest_idx_in), .wr_en(commit), 
+                  .rdb_idx(10'b0), .rdb_out(), // not needed
+         	  	    .wr_idx(retire_dest_idx_in), .wr_data(retire_pdest_idx_in), .wr_en(commit), 
         	        .reg_vals_in(rrat_data),
         	        .reg_vals_out(rrat_data)
 								  ); // write port
 
-	reg [`PRF_SZ-1:0] fl;
-	wire [`PRF_SZ-1:0] fl_rev;
-	reg [`PRF_SZ-1:0] rfl;
-
+	
+	// Revert free list to select for superscalar
 	generate
 		genvar i;
 		for(i=0; i<`PRF_SZ;i=i+1) begin: REV_FL
-			assign fl_rev[i] = fl[`PRF_SZ-1];
+			assign fl_rev[i] = fl[`PRF_SZ-1-i];
+			assign fl_sel1_rev[i] = fl_sel1[`PRF_SZ-1-i];
 		end
 	endgenerate
 
   ps #(.NUM_BITS(`PRF_SZ)) free_sel0(.req(fl), .en(!reset), .gnt(fl_sel0), .req_up()); 
   ps #(.NUM_BITS(`PRF_SZ)) free_sel1(.req(fl_rev), .en(!reset), .gnt(fl_sel1), .req_up()); 
 
-	pe #(.OUT_WIDTH(`RS_IDX)) free_encode0(.gnt(fl_sel0), .enc(free_prf[`SEL(`PRF_IDX,1)])); 
-	pe #(.OUT_WIDTH(`RS_IDX)) free_encode1(.gnt(fl_sel1), .enc(free_prf[`SEL(`PRF_IDX,2)])); 
+	pe #(.OUT_WIDTH(`PRF_IDX)) free_encode0(.gnt(fl_sel0), .enc(free_prf[`SEL(`PRF_IDX,1)])); 
+	pe #(.OUT_WIDTH(`PRF_IDX)) free_encode1(.gnt(fl_sel1_rev), .enc(free_prf[`SEL(`PRF_IDX,2)])); 
 
 	always @(posedge clk) begin
 		
 		if (reset) begin
-			fl  <= `SD {`PRF_SZ{1'b1}};
-			rfl <= `SD {`PRF_SZ{1'b1}};
+			// free list for zero register should always be 0
+			fl  <= `SD {1'b0,{`PRF_SZ-1{1'b1}}};
+			rfl <= `SD {1'b0,{`PRF_SZ-1{1'b1}}};
 		end else if (flush) begin
 			fl <= `SD rfl;
 
