@@ -13,7 +13,7 @@ module cb (clk, reset,
 	//synopsys template
 	parameter CB_IDX = 4;
 	parameter CB_WIDTH = 8;
-	parameter CB_LENGTH = 8;
+	parameter CB_LENGTH = 1 << CB_IDX;
 
   input clk, reset, move_tail, din1_en, din2_en, dout1_req, dout2_req;
 	input [CB_IDX-1:0] tail_new;

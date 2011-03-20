@@ -47,14 +47,13 @@ module testbench;
 
 //DEBUG SIGNALS
 `ifndef SYNTH
-  integer rs_fileno;
-  integer rs_idx;
+//*** RS DEBUG ***//
+  integer rs_fileno, rs_idx;
   wire [31:0] rs1_IR[`RS_SZ-1:0];
   wire [63:0] rs1_npc[`RS_SZ-1:0];
   wire [`ROB_IDX:0] rs1_rob_idx[`RS_SZ-1:0];
   wire [`RS_SZ-1:0] rs1_rdy;
   wire [`RS_SZ-1:0] rs1_free;
-
 `ifdef SUPERSCALAR
   wire [31:0] rs2_IR[`RS_SZ-1:0];
   wire [63:0] rs2_npc[`RS_SZ-1:0];
@@ -97,24 +96,67 @@ always @(posedge clock) begin
       $fdisplay(rs_fileno, "|%4d |%7h|%16h|  %2d | %b/%b |%7h|%16h|  %2d | %b/%b |", i, \
                 rs1_IR[i], rs1_npc[i], rs1_rob_idx[i], rs1_rdy[i], rs1_free[i], \
                 rs2_IR[i], rs2_npc[i], rs2_rob_idx[i], rs2_rdy[i], rs2_free[i]);
-  `DISPLAY_RS(0)
-  `DISPLAY_RS(1)
-  `DISPLAY_RS(2)
-  `DISPLAY_RS(3)
-  `DISPLAY_RS(4)
-  `DISPLAY_RS(5)
-  `DISPLAY_RS(6)
-  `DISPLAY_RS(7)
-  `DISPLAY_RS(8)
-  `DISPLAY_RS(9)
-  `DISPLAY_RS(10)
-  `DISPLAY_RS(11)
-  `DISPLAY_RS(12)
-  `DISPLAY_RS(13)
-  `DISPLAY_RS(14)
+  `DISPLAY_RS(0) `DISPLAY_RS(1) `DISPLAY_RS(2)
+  `DISPLAY_RS(3) `DISPLAY_RS(4) `DISPLAY_RS(5)
+  `DISPLAY_RS(6) `DISPLAY_RS(7) `DISPLAY_RS(8)
+  `DISPLAY_RS(9) `DISPLAY_RS(10) `DISPLAY_RS(11)
+  `DISPLAY_RS(12) `DISPLAY_RS(13) `DISPLAY_RS(14)
   `DISPLAY_RS(15)
  end
 end
+
+//*** ROB DEBUG ***//
+ integer rob_fileno, rob_idx;
+ wire [31:0] rob_ir[`ROB_SZ-1:0];
+ wire [63:0] rob_npc[`ROB_SZ-1:0];
+ wire [`PRF_IDX-1:0] rob_pdest[`ROB_SZ-1:0];
+ wire [4:0] rob_adest[`ROB_SZ-1:0];
+ wire [63:0] cb_ba_pd[`ROB_SZ-1:0];
+ wire [`ROB_SZ-1:0] cb_bt_pd;
+ wire [`ROB_SZ-1:0] cb_isbranch;
+ wire [`ROB_IDX-1:0] head = pipeline_0.rob0.head;
+ wire [`ROB_IDX-1:0] tail = pipeline_0.rob0.tail; 
+ initial begin                
+  rob_fileno = $fopen("reorderbuf.out");
+  rob_idx=0;                  
+ end                          
+always @(posedge clock) begin 
+ if(~reset) begin
+  $fdisplay(rob_fileno, "\n|=============================== Cycle: %10d ================================|", clock_count);
+  $fdisplay(rob_fileno, "| H/T | IDX |    IR    |        NPC       | PDR | ADR | BRA/TKN |  Branch Address  |");
+  $fdisplay(rob_fileno, "|==================================================================================|");
+  `define DISPLAY_ROB(i) \
+    $fdisplay(rob_fileno, "| %1s %1s | %3d | %h | %h | %3d | %3d |  %b / %b  | %h |",  \
+              i === head ? "H" : " ",                         \
+              i === tail ? "T" : " ", i,                      \
+              rob_ir[i], rob_npc[i], rob_pdest[i], rob_adest[i],                    \
+              cb_isbranch[i], cb_bt_pd[i], cb_ba_pd[i]);
+  `DISPLAY_ROB(0)
+  `DISPLAY_ROB(1)
+  `DISPLAY_ROB(2)
+  `DISPLAY_ROB(3)
+  `DISPLAY_ROB(4)
+  `DISPLAY_ROB(5)
+  `DISPLAY_ROB(6)
+  `DISPLAY_ROB(7)
+ end
+end
+always @(pipeline_error_status) begin
+  if(pipeline_error_status != `NO_ERROR)
+    $fclose(rob_fileno);
+end
+generate
+genvar rob_iter;
+  for(rob_iter=0;rob_iter<`ROB_SZ;rob_iter=rob_iter+1) begin : ROB_DEBUG
+  assign rob_ir[rob_iter] = pipeline_0.rob0.cb_ir.data[rob_iter];
+  assign rob_npc    [rob_iter] = pipeline_0.rob0.cb_npc.data[rob_iter];
+  assign rob_pdest  [rob_iter] = pipeline_0.rob0.cb_pdest.data[rob_iter];
+  assign rob_adest  [rob_iter] = pipeline_0.rob0.cb_adest.data[rob_iter];
+  assign cb_ba_pd   [rob_iter] = pipeline_0.rob0.cb_ba_pd.data[rob_iter];
+  assign cb_bt_pd   [rob_iter] = pipeline_0.rob0.cb_bt_pd.data[rob_iter];
+  assign cb_isbranch[rob_iter] = pipeline_0.rob0.cb_isbranch.data[rob_iter];
+  end
+endgenerate
 `endif  //SYNTH
 
 
