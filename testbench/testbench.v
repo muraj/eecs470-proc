@@ -93,9 +93,9 @@ always @(posedge clock) begin
   $fdisplay(rs_fileno, "| IDX |   IR   |       NPC      | ROB | R/F |   IR   |       NPC      | ROB | R/F |");
   $fdisplay(rs_fileno, "|=================================================================================|");
   `define DISPLAY_RS(i) \
-      $fdisplay(rs_fileno, "|%4d |%7h|%16h|  %2d | %b/%b |%7h|%16h|  %2d | %b/%b |", i, \
-                rs1_IR[i], rs1_npc[i], rs1_rob_idx[i], rs1_rdy[i], rs1_free[i], \
-                rs2_IR[i], rs2_npc[i], rs2_rob_idx[i], rs2_rdy[i], rs2_free[i]);
+      $fdisplay(rs_fileno, "|%4d |%7s|%16h|  %2d | %b/%b |%7s|%16h|  %2d | %b/%b |", i, \
+                get_instr_string(rs1_IR[i], !rs1_free[i]), rs1_npc[i], rs1_rob_idx[i], rs1_rdy[i], rs1_free[i], \
+                get_instr_string(rs2_IR[i], !rs2_free[i]), rs2_npc[i], rs2_rob_idx[i], rs2_rdy[i], rs2_free[i]);
   `DISPLAY_RS(0) `DISPLAY_RS(1) `DISPLAY_RS(2)
   `DISPLAY_RS(3) `DISPLAY_RS(4) `DISPLAY_RS(5)
   `DISPLAY_RS(6) `DISPLAY_RS(7) `DISPLAY_RS(8)
@@ -126,10 +126,10 @@ always @(posedge clock) begin
   $fdisplay(rob_fileno, "| H/T | IDX |    IR    |        NPC       | PDR | ADR | BRA/TKN |  Branch Address  |");
   $fdisplay(rob_fileno, "|==================================================================================|");
   `define DISPLAY_ROB(i) \
-    $fdisplay(rob_fileno, "| %1s %1s | %3d | %h | %h | %3d | %3d |  %b / %b  | %h |",  \
+    $fdisplay(rob_fileno, "| %1s %1s | %3d | %7s | %h | %3d | %3d |  %b / %b  | %h |",  \
               i === head ? "H" : " ",                         \
               i === tail ? "T" : " ", i,                      \
-              rob_ir[i], rob_npc[i], rob_pdest[i], rob_adest[i],                    \
+              get_instr_string(rob_ir[i], 1'b1), rob_npc[i], rob_pdest[i], rob_adest[i],                    \
               cb_isbranch[i], cb_bt_pd[i], cb_ba_pd[i]);
   `DISPLAY_ROB(0)
   `DISPLAY_ROB(1)
