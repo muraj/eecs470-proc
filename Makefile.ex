@@ -20,6 +20,7 @@ INTFLAGS = -I +memcbk
 all:    simv
 	./simv | tee program.out
 
+
 ##### 
 # Modify starting here
 #####
@@ -33,6 +34,9 @@ SIMFILES =	verilog/ex_stage.v
 #####
 # Should be no need to modify after here
 #####
+check:
+	perl check_ex
+
 simv:	$(SIMFILES) $(TESTBENCH)
 	$(VCS) $(TESTBENCH) $(SIMFILES)	-o simv
 

@@ -1,0 +1,76 @@
+#!/usr/bin/perl 
+###############################################################################
+# Usage: perl check_ex
+# Author: Yejoong Kim
+###############################################################################
+
+$inst_file = "./inst.txt";
+$cdb_file = "./cdb.txt";
+$outfile = "./ex_result.txt";
+
+open(INST, "$inst_file") || die "@@@ ERROR: cannot open the file $inst_file\n";
+open(CDB, "$cdb_file") || die "@@@ ERROR: cannot open the file $cdb_file\n";
+open(OUT, ">$outfile") || die "@@@ ERROR: cannot create the file $outfile\n";
+
+$i = 0;
+while($inst_line = <INST>)
+{
+	if($inst_line =~ /^@/)
+	{
+		@inst_line = split(/\s+/, $inst_line);
+		$inst_chk[$i] = 0;
+		$inst_ID[$i] = $inst_line[5];
+		$inst_rob[$i] = $inst_line[7];
+		$inst_pdest[$i] = $inst_line[9];
+		$inst_cdb[$i] = 0;
+		$i++;
+	}
+}
+$num_inst = $i;
+
+$i = 0;
+while($cdb_line = <CDB>)
+{
+	if($cdb_line =~ /^@/)
+	{
+		@cdb_line = split(/\s+/, $cdb_line);
+		$cdb_chk[$i] = 0;
+		$cdb_ID[$i] = $cdb_line[5];
+		$cdb_rob[$i] = $cdb_line[7];
+		$cdb_pdest[$i] = $cdb_line[9];
+		$i++;
+	}
+}
+$num_cdb = $i;
+
+
+if($num_inst != $num_cdb) {printf "@@@ WARNING: The number of instructions and the number of CDB broadcastings are NOT same!!\n";}
+
+for($i=0; $i<$num_inst; $i++)
+{
+	for($j=0; $j<$num_cdb; $j++)
+	{
+		if(($inst_rob[$i] == $cdb_rob[$j]) && ($inst_pdest[$i] == $cdb_pdest[$j]) && ($cdb_chk[$j] == 0))	
+		{
+			$inst_chk[$i] = 1; $cdb_chk[$j] = 1; $inst_cdb[$i]=$j+1;
+			last;
+		}
+	}
+}
+
+for($i=0; $i<$num_inst; $i++)
+{
+	if($inst_chk[$i]!=1) 
+	{
+		printf "@@@ FAIL: At least one of the instructions issued is not broadcasted through CDBs ( inst_ID: %d)\n", $inst_ID[$i];
+		die;
+	}
+
+	printf OUT "@@@ MATCHED - inst_ID: %6d,		CDB_ID: %6d\n", $inst_ID[$i], $inst_cdb[$i];
+}
+
+printf "@@@ PASSED: All Things are Matched!! (Number of Instructions: $num_inst)\n";
+
+close(INST);
+close(CDB);
+close(OUT);
