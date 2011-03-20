@@ -19,8 +19,8 @@ module regfile(rda_idx, rda_out,                // read port A
   parameter IDX_WIDTH = `PRF_IDX;
   parameter DATA_WIDTH  = 64;
   parameter ZERO_REG_VAL = 0;
-  parameter REG_SZ  = 1<<IDX_WIDTH;
   parameter RESET_TO = 0;
+  parameter REG_SZ  = 1<<IDX_WIDTH;
 
   input   [`SCALAR*IDX_WIDTH-1:0] rda_idx, rdb_idx, wr_idx;
   input   [`SCALAR*DATA_WIDTH-1:0] wr_data;

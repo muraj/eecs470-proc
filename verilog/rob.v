@@ -31,7 +31,6 @@ module rob (clk, reset,
 	input [63:0] ba_ex_in1, ba_ex_in2;
 	input [`ROB_IDX-1:0] rob_idx_in1, rob_idx_in2;
 	
-	output din1_rdy, din2_rdy;
 	output reg dout1_valid, dout2_valid;
 	output [`ROB_IDX-1:0] rob_idx_out1, rob_idx_out2;
 	output [`PRF_IDX-1:0] pdest_out1, pdest_out2;

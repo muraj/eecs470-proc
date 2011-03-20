@@ -35,7 +35,14 @@ SIMFILES =	verilog/oo_pipeline.v	\
 		verilog/icache.v	\
 		verilog/if_stage.v	\
 		verilog/id_stage.v	\
-		verilog/cachemem.v 
+		verilog/cachemem.v  \
+		verilog/rob.v			  \
+		verilog/cb.v				\
+		verilog/superrs.v   \
+		verilog/rs.v				\
+		verilog/ps.v				\
+		verilog/pe.v				\
+		verilog/regfile.v
 SYNFILES = synth/oo_pipeline.vg
 
 # For visual debugger
