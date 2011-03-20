@@ -1,12 +1,12 @@
 module rob (clk, reset, 
 						// ready/valid indicators for data in/out
-						din1_rdy, din2_rdy, dout1_valid, dout2_valid,  
+						full, full_almost, dout1_valid, dout2_valid,  
 						// allocate requests
 						din1_req, din2_req,
 						// update requests
 						dup1_req, dup2_req,
 						// incoming values
-						ir_in1, ir_in2, npc_in1, npc_in2, pdest_in1, pdest_in2, ba_pd_in1, ba_pd_in2, bt_pd_in1, bt_pd_in2, isbranch_in1, isbranch_in2,
+						ir_in1, ir_in2, npc_in1, npc_in2, pdest_in1, pdest_in2, adest_in1, adest_in2, ba_pd_in1, ba_pd_in2, bt_pd_in1, bt_pd_in2, isbranch_in1, isbranch_in2,
 						// values that gets updated
 						ba_ex_in1, ba_ex_in2, bt_ex_in1, bt_ex_in2, 
 						// rob indices for updates
@@ -14,7 +14,7 @@ module rob (clk, reset,
 						// allocated rob indices
 						rob_idx_out1, rob_idx_out2,
 						// output values at retirement
-						ir_out1, ir_out2, npc_out1, npc_out2, pdest_out1, pdest_out2,
+						ir_out1, ir_out2, npc_out1, npc_out2, pdest_out1, pdest_out2, adest_out1, adest_out2,
 						// branch miss signal
 						branch_miss, ba_out
 						);
@@ -23,6 +23,7 @@ module rob (clk, reset,
 	input [31:0] ir_in1, ir_in2;
 	input [63:0] npc_in1, npc_in2;
 	input [`PRF_IDX-1:0] pdest_in1, pdest_in2;
+	input [4:0] adest_in1, adest_in2;
 	input bt_pd_in1, bt_pd_in2;
 	input [63:0] ba_pd_in1, ba_pd_in2;
 	input bt_ex_in1, bt_ex_in2;
@@ -34,10 +35,12 @@ module rob (clk, reset,
 	output reg dout1_valid, dout2_valid;
 	output [`ROB_IDX-1:0] rob_idx_out1, rob_idx_out2;
 	output [`PRF_IDX-1:0] pdest_out1, pdest_out2;
+	output [4:0] adest_out1, adest_out2;
 	output [31:0] ir_out1, ir_out2;
 	output [63:0] npc_out1, npc_out2;
 	output reg branch_miss;
 	output reg [63:0] ba_out;
+	output reg full, full_almost;
 
 	reg [63-1:0] 			data_ba_ex [`ROB_SZ-1:0];
 	reg [`ROB_SZ-1:0] data_bt_ex;
@@ -55,7 +58,6 @@ module rob (clk, reset,
 	wire [`ROB_IDX:0] next_iocount;
 	reg [1:0] incount, outcount;
 	reg empty, empty_almost;
-	reg full, full_almost;
 
 	wire [`ROB_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2, cur_size;
 	wire next_full, next_full_almost, next_empty, next_empty_almost;
@@ -67,8 +69,8 @@ module rob (clk, reset,
 	wire isbranch_out1, isbranch_out2;
 
   // Data input indicators for outside world
-	assign din1_rdy = !full;
-	assign din2_rdy = !full && !full_almost;
+//	assign din1_rdy = !full;
+//	assign din2_rdy = !full && !full_almost;
 
 	assign rob_idx_out1 = tail;
 	assign rob_idx_out2 = tail_p1;
@@ -228,6 +230,9 @@ module rob (clk, reset,
 
 	// Circular buffer for PDEST_IDX
 	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(`PRF_IDX), .CB_LENGTH(`ROB_SZ)) cb_pdest (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(pdest_in1), .din2(pdest_in2), .dout1(pdest_out1), .dout2(pdest_out2), .full(), .full_almost(), .head(), .tail());
+
+	// Circular buffer for PDEST_IDX
+	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(5), .CB_LENGTH(`ROB_SZ)) cb_adest (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(adest_in1), .din2(adest_in2), .dout1(adest_out1), .dout2(adest_out2), .full(), .full_almost(), .head(), .tail());
 
 	// Circular buffer for Predicted Branch Address
 	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(64), .CB_LENGTH(`ROB_SZ)) cb_ba_pd (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(ba_pd_in1), .din2(ba_pd_in2), .dout1(ba_pd_out1), .dout2(ba_pd_out2), .full(), .full_almost(), .head(), .tail());

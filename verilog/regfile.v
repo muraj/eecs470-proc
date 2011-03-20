@@ -20,6 +20,7 @@ module regfile(rda_idx, rda_out,                // read port A
   parameter DATA_WIDTH  = 64;
   parameter ZERO_REG_VAL = 0;
   parameter REG_SZ  = 1<<IDX_WIDTH;
+  parameter RESET_TO = 0;
 
   input   [`SCALAR*IDX_WIDTH-1:0] rda_idx, rdb_idx, wr_idx;
   input   [`SCALAR*DATA_WIDTH-1:0] wr_data;
@@ -42,22 +43,22 @@ module regfile(rda_idx, rda_out,                // read port A
   always @* begin
     if (rda_idx[`SEL(IDX_WIDTH,1)] == `ZERO_REG)
       rda_out[`SEL(DATA_WIDTH,1)] = ZERO_REG_VAL;
-    else if (wr_en[0] && (wr_idx[`SEL(IDX_WIDTH,1)] == rda_idx[`SEL(IDX_WIDTH, 1)]))
+/*    else if (wr_en[0] && (wr_idx[`SEL(IDX_WIDTH,1)] == rda_idx[`SEL(IDX_WIDTH, 1)]))
       rda_out[`SEL(DATA_WIDTH,1)] = wr_data[`SEL(DATA_WIDTH,1)];  // internal forwarding
   `ifdef SUPERSCALAR
     else if (wr_en[1] && (wr_idx[`SEL(IDX_WIDTH,2)] == rda_idx[`SEL(IDX_WIDTH, 1)]))
       rda_out[`SEL(DATA_WIDTH,1)] = wr_data[`SEL(DATA_WIDTH,2)];  // internal forwarding
   `endif
-    else
+  */  else
       rda_out[`SEL(DATA_WIDTH,1)] = rda_reg[`SEL(DATA_WIDTH,1)];
   `ifdef SUPERSCALAR
     if (rda_idx[`SEL(IDX_WIDTH,2)] == `ZERO_REG)
       rda_out[`SEL(DATA_WIDTH,2)] = ZERO_REG_VAL;
-    else if (wr_en[0] && (wr_idx[`SEL(IDX_WIDTH,1)] == rda_idx[`SEL(IDX_WIDTH, 2)]))
+/*    else if (wr_en[0] && (wr_idx[`SEL(IDX_WIDTH,1)] == rda_idx[`SEL(IDX_WIDTH, 2)]))
       rda_out[`SEL(DATA_WIDTH,2)] = wr_data[`SEL(DATA_WIDTH,1)];  // internal forwarding
     else if ( wr_en[1] && (wr_idx[`SEL(IDX_WIDTH,2)] == rda_idx[`SEL(IDX_WIDTH, 2)]))
       rda_out[`SEL(DATA_WIDTH,2)] = wr_data[`SEL(64,2)];  // internal forwarding
-    else
+*/    else
       rda_out[`SEL(DATA_WIDTH,2)] = rda_reg[`SEL(DATA_WIDTH,2)];
   `endif
   end
@@ -68,22 +69,22 @@ module regfile(rda_idx, rda_out,                // read port A
   always @* begin
     if (rdb_idx[`SEL(IDX_WIDTH,1)] == `ZERO_REG)
       rdb_out[`SEL(DATA_WIDTH,1)] = ZERO_REG_VAL;
-    else if (wr_en[0] && (wr_idx[`SEL(IDX_WIDTH,1)] == rdb_idx[`SEL(IDX_WIDTH, 1)]))
+/*    else if (wr_en[0] && (wr_idx[`SEL(IDX_WIDTH,1)] == rdb_idx[`SEL(IDX_WIDTH, 1)]))
       rdb_out[`SEL(DATA_WIDTH,1)] = wr_data[`SEL(DATA_WIDTH,1)];  // internal forwarding
   `ifdef SUPERSCALAR
     else if (wr_en[1] && (wr_idx[`SEL(IDX_WIDTH,2)] == rdb_idx[`SEL(IDX_WIDTH, 1)]))
       rdb_out[`SEL(DATA_WIDTH,1)] = wr_data[`SEL(DATA_WIDTH,2)];  // internal forwarding
   `endif
-    else
+*/    else
       rdb_out[`SEL(DATA_WIDTH,1)] = rdb_reg[`SEL(DATA_WIDTH,1)];
   `ifdef SUPERSCALAR
     if (rdb_idx[`SEL(IDX_WIDTH,2)] == `ZERO_REG)
       rdb_out[`SEL(DATA_WIDTH,2)] = ZERO_REG_VAL;
-    else if (wr_en[0] && (wr_idx[`SEL(IDX_WIDTH,1)] == rdb_idx[`SEL(IDX_WIDTH, 2)]))
+/*    else if (wr_en[0] && (wr_idx[`SEL(IDX_WIDTH,1)] == rdb_idx[`SEL(IDX_WIDTH, 2)]))
       rdb_out[`SEL(DATA_WIDTH,2)] = wr_data[`SEL(DATA_WIDTH,1)];  // internal forwarding
     else if ( wr_en[1] && (wr_idx[`SEL(IDX_WIDTH,2)] == rdb_idx[`SEL(IDX_WIDTH, 2)]))
       rdb_out[`SEL(DATA_WIDTH,2)] = wr_data[`SEL(64,2)];  // internal forwarding
-    else
+*/    else
       rdb_out[`SEL(DATA_WIDTH,2)] = rdb_reg[`SEL(DATA_WIDTH,2)];
   `endif
   end
@@ -96,7 +97,7 @@ module regfile(rda_idx, rda_out,                // read port A
         if (i == `ZERO_REG)
             registers[i] <= `SD ZERO_REG_VAL;
         else if (reset)
-            registers[i] <= `SD 0;
+            registers[i] <= `SD RESET_TO;
         else if (copy)
             registers[i] <= `SD reg_vals_in[`SEL(DATA_WIDTH, i+1)];
 
