@@ -1,5 +1,8 @@
 `timescale 1ns/100ps
 
+//FIX ME : ZERO REGISTER FOR ARF
+
+
 module testbench;
 
 	integer idx;  //TEST VARS
@@ -54,15 +57,15 @@ rat  #(.IDX_WIDTH(`RAT_IDX)) rat0 (clk, reset, flush,
 		if (num_inst > 0) begin
 			issue[0] = 1'b1;
 			issue[1] = 1'b0;
-			rega_idx_in[`SEL(5,1)] = 3;
-			regb_idx_in[`SEL(5,1)] = 4;
+			rega_idx_in[`SEL(5,1)] = 15; //3
+			regb_idx_in[`SEL(5,1)] = 14; //4
 			dest_idx_in[`SEL(5,1)] = regc1;
 			
 
 			if (num_inst == 2) begin
 				issue[1] = 1'b1;
-				rega_idx_in[`SEL(5,2)] = 2;
-				regb_idx_in[`SEL(5,2)] = 7;
+				rega_idx_in[`SEL(5,2)] = 13; //2
+				regb_idx_in[`SEL(5,2)] = 12; //7
 				dest_idx_in[`SEL(5,2)] = regc2;
 			end
 		end else begin
@@ -72,6 +75,7 @@ rat  #(.IDX_WIDTH(`RAT_IDX)) rat0 (clk, reset, flush,
 
 	end
 	endtask
+
   task retire_inst;
 	input [1:0] num_inst;
   input [4:0] dest1;
@@ -79,7 +83,7 @@ rat  #(.IDX_WIDTH(`RAT_IDX)) rat0 (clk, reset, flush,
   input [4:0] dest2;
   input [`PRF_IDX:0] pdest2;
 	begin
-		
+
 		if (num_inst > 0) begin
 			retire[0] = 1'b1;
 			retire[1] = 1'b0;
@@ -142,7 +146,23 @@ rat  #(.IDX_WIDTH(`RAT_IDX)) rat0 (clk, reset, flush,
     
 	  end
 	endtask
+	
+	task show_freelist;
+	  begin
+		 `define DISPLAY_FREE(i) \
+    $display(" %2d  |  %2d", i, rat0.fl[i]);
 
+    $display("==================");
+    $display(" IDX | RAT | RRAT   ");
+    $display("==================");
+		for(idx=0; idx<`PRF_SZ; idx=idx+1)
+			begin    
+				`DISPLAY_FREE(idx)
+			end
+    $display("==================\n"); 
+    
+	  end
+	endtask
 
 task reset_all;
 begin
@@ -163,14 +183,42 @@ initial begin
 
 	reset_all();
 	reset = 1'b1; @(negedge clk); reset = 1'b0;
-	
-	show_RAT();@(negedge clk); 
+	show_RAT();@(negedge clk);
+	$display("============================================================================================ ");
+  $display(" TEST1: RANDOM INSERT  ");
+  $display("============================================================================================ ");
+
+ 
 
 	new_inst(2,4,5);show_io();@(negedge clk);show_RAT();
 	new_inst(2,12,2);show_io();@(negedge clk);show_RAT();
 	new_inst(1,9,2);show_io();@(negedge clk);show_RAT();
 	new_inst(2,7,8);show_io();@(negedge clk);show_RAT();
 	new_inst(0,9,2);show_io();@(negedge clk);show_RAT();
+//	show_freelist();
+	reset_all();
+	reset = 1'b1; @(negedge clk); reset = 1'b0;
+
+	$display("============================================================================================ ");
+  $display(" TEST2: In-order INSERT & REMOVE   ");
+  $display("============================================================================================ ");
+	show_RAT();@(negedge clk);
+//	show_freelist();
+	
+	new_inst(2,0,1);show_io();@(negedge clk);show_RAT();
+	new_inst(2,2,3);show_io();@(negedge clk);show_RAT();
+	new_inst(2,4,5);show_io();@(negedge clk);show_RAT();
+	new_inst(2,6,7);show_io();@(negedge clk);show_RAT();
+	new_inst(2,8,9);show_io();@(negedge clk);show_RAT();
+	issue[0] = 1'b0;
+  issue[1] = 1'b0;
+//	retire_inst(2,0,62,1,0);show_io();@(negedge clk);show_RAT();
+	retire_inst(2,2,61,3,1);show_io();@(negedge clk);show_RAT();
+	retire_inst(2,4,60,5,2);show_io();@(negedge clk);show_RAT();
+	retire_inst(2,6,59,7,3);show_io();@(negedge clk);show_RAT();
+	retire_inst(2,8,68,9,4);show_io();@(negedge clk);show_RAT();
+
+
 
 	$finish;
 end
