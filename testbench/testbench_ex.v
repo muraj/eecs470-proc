@@ -22,7 +22,7 @@ module testbench;
 
   reg clk, reset;
 
-// Inputs to EX_STAGE
+// Inputs to RS/EX pipeline registers
 	reg [`LSQ_IDX*`SCALAR-1:0]	LSQ_idx_in;
 	reg	[`PRF_IDX*`SCALAR-1:0]	pdest_idx_in;
 	reg	[64*`SCALAR-1:0] 				prega_value_in;
@@ -35,6 +35,7 @@ module testbench;
 	reg	[`ROB_IDX*`SCALAR-1:0] 	rob_idx_in;
 	reg	[`SCALAR-1:0] 					EX_en_in;
 
+// Inputs to EX_STAGE
 	reg [`LSQ_IDX*`SCALAR-1:0]	LSQ_idx_reg;
 	reg	[`PRF_IDX*`SCALAR-1:0]	pdest_idx_reg;
 	reg	[64*`SCALAR-1:0] 				prega_value_reg;
@@ -162,7 +163,7 @@ module testbench;
 
 	task show_inst;
 		begin
-	    $display("Cycle: %4.1f ==< NEW INSTRUCTION >======================================================================================================", cycle);
+/*	    $display("Cycle: %4.1f ==< NEW INSTRUCTION >======================================================================================================", cycle);
 			$display("Way     | LSQ_idx | pdest |     prega_value    |     pregb_value    | ALUop | rd/wr |    rs_IR   |        npc         | rob_idx | EX_en");
  	    $display("----------------------------------------------------------------------------------------------------------------------------------------");
 			if(EX_en_in[0]==1'b0) 									$display(" 1 NOOP |   %2d    |  %2d   | 0x%16h | 0x%16h | 0x%2h  | %1d / %1d | 0x%8h | 0x%16h |   %2d    |   %1d", LSQ_idx_in[`SEL(`LSQ_IDX,1)], pdest_idx_in[`SEL(`PRF_IDX,1)], prega_value_in[`SEL(64,1)], pregb_value_in[`SEL(64,1)], ALUop_in[`SEL(5,1)], rd_mem_in[`SEL(1,1)], wr_mem_in[`SEL(1,1)], rs_IR_in[`SEL(32,1)], npc_in[`SEL(64,1)], rob_idx_in[`SEL(`ROB_IDX,1)], EX_en_in[`SEL(1,1)]);
@@ -174,6 +175,7 @@ module testbench;
 			else if(ALUop_in[`SEL(5,2)]==5'b01011)	$display(" 2 MULT |   %2d    |  %2d   | 0x%16h | 0x%16h | 0x%2h  | %1d / %1d | 0x%8h | 0x%16h |   %2d    |   %1d", LSQ_idx_in[`SEL(`LSQ_IDX,2)], pdest_idx_in[`SEL(`PRF_IDX,2)], prega_value_in[`SEL(64,2)], pregb_value_in[`SEL(64,2)], ALUop_in[`SEL(5,2)], rd_mem_in[`SEL(1,2)], wr_mem_in[`SEL(1,2)], rs_IR_in[`SEL(32,2)], npc_in[`SEL(64,2)], rob_idx_in[`SEL(`ROB_IDX,2)], EX_en_in[`SEL(1,2)]);
 			else 																		$display(" 2 ALU  |   %2d    |  %2d   | 0x%16h | 0x%16h | 0x%2h  | %1d / %1d | 0x%8h | 0x%16h |   %2d    |   %1d", LSQ_idx_in[`SEL(`LSQ_IDX,2)], pdest_idx_in[`SEL(`PRF_IDX,2)], prega_value_in[`SEL(64,2)], pregb_value_in[`SEL(64,2)], ALUop_in[`SEL(5,2)], rd_mem_in[`SEL(1,2)], wr_mem_in[`SEL(1,2)], rs_IR_in[`SEL(32,2)], npc_in[`SEL(64,2)], rob_idx_in[`SEL(`ROB_IDX,2)], EX_en_in[`SEL(1,2)]);
  	    $display("========================================================================================================================================\n");
+*/			
 			new_line = 0;
 			if(EX_en_in[`SEL(1,1)]==1'b1) begin
 				inst_ID = inst_ID + 1;
@@ -289,9 +291,9 @@ module testbench;
 		input integer way;
 		begin
 			if(way == 1) begin
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`LSQ_IDX);
 				LSQ_idx_in[`SEL(`LSQ_IDX,1)] = temp32[`LSQ_IDX-1:0];
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`PRF_IDX);
 				pdest_idx_in[`SEL(`PRF_IDX,1)] = temp32[`PRF_IDX-1:0];
 				temp64 = {$random(seed)} % 100;
 				prega_value_in[`SEL(64,1)] = temp64;
@@ -305,14 +307,14 @@ module testbench;
 				temp32 = {$random(seed)} % 100;
 				rs_IR_in[15:0] = temp32[15:0];
 				npc_in[`SEL(64,1)] = NPC;
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`ROB_IDX);
 				rob_idx_in[`SEL(`ROB_IDX,1)] = temp32[`ROB_IDX-1:0];
 				EX_en_in[`SEL(1,1)] = 1'b1;
 			end
 			else if(way == 2) begin
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`LSQ_IDX);
 				LSQ_idx_in[`SEL(`LSQ_IDX,1)] = temp32[`LSQ_IDX-1:0];
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`PRF_IDX);
 				pdest_idx_in[`SEL(`PRF_IDX,2)] = temp32[`PRF_IDX-1:0];
 				temp64 = {$random(seed)} % 100;
 				prega_value_in[`SEL(64,2)] = temp64;
@@ -326,7 +328,7 @@ module testbench;
 				temp32 = {$random(seed)} % 100;
 				rs_IR_in[47:32] = temp32[15:0];
 				npc_in[`SEL(64,2)] = NPC + 4;
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`ROB_IDX);
 				rob_idx_in[`SEL(`ROB_IDX,2)] = temp32[`ROB_IDX-1:0];
 				EX_en_in[`SEL(1,2)] = 1'b1;
 			end
@@ -338,7 +340,7 @@ module testbench;
 		begin
 			if(way == 1) begin
 				LSQ_idx_in[`SEL(`LSQ_IDX,1)] = 0;
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`PRF_IDX);
 				pdest_idx_in[`SEL(`PRF_IDX,1)] = temp32[`PRF_IDX-1:0];
 				temp64 = {$random(seed)} % 100;
 				prega_value_in[`SEL(64,1)] = temp64;
@@ -350,13 +352,13 @@ module testbench;
 				rs_IR_in[31:21] = 11'b010_00000000;
 				rs_IR_in[20:0] = 21'b0;
 				npc_in[`SEL(64,1)] = NPC;
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`ROB_IDX);
 				rob_idx_in[`SEL(`ROB_IDX,1)] = temp32[`ROB_IDX-1:0];
 				EX_en_in[`SEL(1,1)] = 1'b1;
 			end
 			else if(way == 2) begin
 				LSQ_idx_in[`SEL(`LSQ_IDX,2)] = 0;
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`PRF_IDX);
 				pdest_idx_in[`SEL(`PRF_IDX,2)] = temp32[`PRF_IDX-1:0];
 				temp64 = {$random(seed)} % 100;
 				prega_value_in[`SEL(64,2)] = temp64;
@@ -368,7 +370,7 @@ module testbench;
 				rs_IR_in[63:53] = 11'b010_00000000;
 				rs_IR_in[52:32] = 21'b0;
 				npc_in[`SEL(64,2)] = NPC + 4;
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`ROB_IDX);
 				rob_idx_in[`SEL(`ROB_IDX,2)] = temp32[`ROB_IDX-1:0];
 				EX_en_in[`SEL(1,2)] = 1'b1;
 			end
@@ -380,7 +382,7 @@ module testbench;
 		begin
 			if(way == 1) begin
 				LSQ_idx_in[`SEL(`LSQ_IDX,1)] = 0;
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`PRF_IDX);
 				pdest_idx_in[`SEL(`PRF_IDX,1)] = temp32[`PRF_IDX-1:0];
 				temp64 = {$random(seed)} % 100;
 				prega_value_in[`SEL(64,1)] = temp64;
@@ -402,13 +404,13 @@ module testbench;
 				rs_IR_in[12] = temp;
 				rs_IR_in[11:0] = 12'b0;
 				npc_in[`SEL(64,1)] = NPC;
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`ROB_IDX);
 				rob_idx_in[`SEL(`ROB_IDX,1)] = temp32[`ROB_IDX-1:0];
 				EX_en_in[`SEL(1,1)] = 1'b1;
 			end
 			else if(way == 2) begin
 				LSQ_idx_in[`SEL(`LSQ_IDX,2)] = 0;
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`PRF_IDX);
 				pdest_idx_in[`SEL(`PRF_IDX,2)] = temp32[`PRF_IDX-1:0];
 				temp64 = {$random(seed)} % 100;
 				prega_value_in[`SEL(64,2)] = temp64;
@@ -430,40 +432,47 @@ module testbench;
 				rs_IR_in[44] = temp;
 				rs_IR_in[43:32] = 12'b0;
 				npc_in[`SEL(64,2)] = NPC + 4;
-				temp32 = {$random(seed)} % 32;
+				temp32 = {$random(seed)} % (1<<`ROB_IDX);
 				rob_idx_in[`SEL(`ROB_IDX,2)] = temp32[`ROB_IDX-1:0];
 				EX_en_in[`SEL(1,2)] = 1'b1;
 			end
 		end
 	endtask
 
-// Always use make_inst() at negedge clk
-	task make_inst;
+// Always use insert_inst() at negedge clk
+	task insert_inst;
 		begin
 			#(`VERILOG_CLOCK_PERIOD/4.0);
 			free={EX_ALU_free, EX_MULT_free};
-			if(free==4'b0000) make_NOOP(3);
+
+			// Usage of make_inst(x)
+			// x = 1 * (Num of ALU insts) + 3 * (Num of MULT insts)
+			if(free==4'b0000) make_inst(0); // No inst
 			else begin
 				case (free)
-					4'b1000, 4'b0100: begin
-															make_ALU_inst(1); make_NOOP(2);
+					4'b1000, 4'b0100: make_inst(1); // One ALU inst
+					4'b0010, 4'b0001: make_inst(3); // One MULT inst
+					4'b1100:					make_inst(2);	// Two ALU insts
+					4'b1010, 4'b1001, 
+					4'b0110, 4'b0101:	make_inst(4); // One ALU inst and One MULT inst
+					4'b0011:					make_inst(6); // Two MULT insts
+					4'b1110, 4'b1101:	begin
+															temp32 = {$random(seed)} % 2;
+															if(temp32[0] == 1'b0) make_inst(4); // One ALU inst and One MULT inst
+															else 									make_inst(2); // Two ALU insts
 														end
-					4'b0010, 4'b0001: begin
-															make_MULT_inst(1); make_NOOP(2);
+					4'b1011, 4'b0111:	begin
+															temp32 = {$random(seed)} % 2;
+															if(temp32[0] == 1'b0) make_inst(4); // One ALU inst and One MULT inst
+															else 									make_inst(6); // Two MULT insts
 														end
-					4'b1100: 	begin
-											make_ALU_inst(1); make_ALU_inst(2);
-										end
-					4'b0011: 	begin
-											make_MULT_inst(1); make_MULT_inst(2);
-										end
-					default	: begin
+					4'b1111:	begin
 											temp32 = {$random(seed)} % 2;
-											if(temp32[0] == 1'b0) make_ALU_inst(1);
-											else make_MULT_inst(1);
-											temp32 = {$random(seed)} % 2;
-											if(temp32[0] == 1'b0) make_ALU_inst(2);
-											else make_MULT_inst(2);
+											case(temp32[1:0])
+												2'b00, 2'b01:	make_inst(4); // One ALU inst and One MULT inst
+												2'b10:				make_inst(2); // Two ALU insts
+												2'b11:				make_inst(6); // Two MULT insts
+											endcase
 										end
 				endcase
 			end
@@ -471,23 +480,49 @@ module testbench;
 		end
 	endtask
 
+	task make_inst;
+		input integer inst;
+		begin
+			case(inst)
+				0: make_NOOP(3);
+				1: 	begin
+							make_ALU_inst(1); make_NOOP(2);
+						end
+				2:	begin
+							make_ALU_inst(1); make_ALU_inst(2);
+						end
+				3:	begin
+							make_MULT_inst(1); make_NOOP(2);
+						end
+				4:	begin
+							make_ALU_inst(1); make_MULT_inst(2);
+						end
+				6:	begin
+							make_MULT_inst(1); make_MULT_inst(2);
+						end
+				default:	make_NOOP(3);	// illegal case. just ignore.
+			endcase
+		end
+	endtask
+
+
 initial begin
 
 	inst_ID = 0;
 	cdb_ID = 0;
-/*
+
 	$system("date +%s > now_in_seconds");
 	FP = $fopen ("now_in_seconds", "r");
 	fgetsResult = $fgets(str, FP);
 	sscanfResult = $sscanf(str, "%d", seed);
 	$fclose(FP);
-*/
-	seed = 1;
+
+//	seed = 1;
 
 	fout1 = $fopen("./inst.txt", "wb");
 	fout2 = $fopen("./cdb.txt", "wb");
 
-  $display("@@@ Testbench Started Here!! ======================================================================================================\n");
+  $display("@@@ Testbench Started Here!! ===========================\n");
 	clk = 1'b0;
 	reset_all();
 	reset = 1'b1; @(negedge clk); reset = 1'b0;
@@ -497,19 +532,19 @@ initial begin
 
 	@(negedge clk); 
 
-	@(negedge clk); make_inst();
+	@(negedge clk); insert_inst();
 
-	NUM_CYCLES = 10;
-	while(i<NUM_CYCLES) begin
+	NUM_CYCLES = 1000;
+	while(i<NUM_CYCLES-1) begin
 		@(posedge clk); //show_fu_output();
-		@(negedge clk); show_cdb_output(); make_inst();
+		@(negedge clk); show_cdb_output(); insert_inst();
 		i=i+1;
 	end
 	@(posedge clk);
 	@(negedge clk); make_NOOP(3); show_cdb_output();
 
 	i=0;
-	while(i<90*NUM_CYCLES) begin
+	while(i<20*NUM_CYCLES) begin
 		@(posedge clk);
 		@(negedge clk); show_cdb_output();
 		i=i+1;
@@ -517,6 +552,9 @@ initial begin
 
 	$fclose(fout1);
 	$fclose(fout2);
+
+	$display("@@@ Testbench Finished!! ==============================\n");
+	$display("@@@ Run 'perl check_ex' to check the result.\n\n\n");
 
   $finish; 
 

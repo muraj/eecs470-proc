@@ -291,9 +291,9 @@
 `else
     `define SCALAR (1)
 `endif
-`define PRF_IDX (6)
+`define PRF_IDX (5)
 `define PRF_SZ (1<<`PRF_IDX)
-`define ROB_IDX (3)
+`define ROB_IDX (5)
 `define ROB_SZ (1<<`ROB_IDX)
 `define RS_IDX (4)
 `define RS_SZ (1<<`RS_IDX)
@@ -301,7 +301,7 @@
 `define SEL(WIDTH, WHICH) WIDTH*(WHICH)-1:WIDTH*(WHICH - 1)
 `define IF_ID_IDX (3)
 `define IF_ID_SZ (1<<`IF_ID_IDX)
-`define LSQ_IDX (4)
+`define LSQ_IDX (5)
 `define LSQ_SZ (1<<`LSQ_IDX)
 `define RAT_IDX (5)
 `define RAT_SZ (1<<`RAT_IDX)
