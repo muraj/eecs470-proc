@@ -12,7 +12,7 @@ module testbench;
   reg		[`SCALAR-1:0] issue, retire;
 	wire	[`SCALAR*`PRF_IDX-1:0] prega_idx_out, pregb_idx_out, pdest_idx_out;
 
-rat  #(.IDX_WIDTH(`RAT_IDX)) rat0 (clk, reset, flush,
+rat  #(.ARF_IDX(`RAT_IDX)) rat0 (clk, reset, flush,
 						// ARF inputs
 						rega_idx_in, regb_idx_in, dest_idx_in, retire_dest_idx_in,
 						// PRF i/o
@@ -79,21 +79,21 @@ rat  #(.IDX_WIDTH(`RAT_IDX)) rat0 (clk, reset, flush,
   task retire_inst;
 	input [1:0] num_inst;
   input [4:0] dest1;
-  input [`PRF_IDX:0] pdest1;
+  input [`PRF_IDX-1:0] pdest1;
   input [4:0] dest2;
-  input [`PRF_IDX:0] pdest2;
+  input [`PRF_IDX-1:0] pdest2;
 	begin
 
 		if (num_inst > 0) begin
 			retire[0] = 1'b1;
 			retire[1] = 1'b0;
 			retire_dest_idx_in[`SEL(5,1)] = dest1;
-			retire_pdest_idx_in[`SEL(5,1)] = pdest1;
+			retire_pdest_idx_in[`SEL(`PRF_IDX,1)] = pdest1;
 			
 			if (num_inst == 2) begin
-				retire[1] = 1'b0;
+				retire[1] = 1'b1;
 				retire_dest_idx_in[`SEL(5,2)] = dest2;
-				retire_pdest_idx_in[`SEL(5,2)] = pdest2;
+				retire_pdest_idx_in[`SEL(`PRF_IDX,2)] = pdest2;
 			end
 
 		end else begin
@@ -108,10 +108,18 @@ rat  #(.IDX_WIDTH(`RAT_IDX)) rat0 (clk, reset, flush,
 	task show_io;
 	  begin
 		
+    $display("=====INPUTS==============================");
+   	$display("ISSUE: %b, %b\tRETIRE: %b, %b\n", issue[0], issue[1], retire[0], retire[1]);
+   	$display("       REGA REGB DEST");
+		$display("Way0:  %2d   %2d   %2d", rega_idx_in[`SEL(5,1)], regb_idx_in[`SEL(5,1)], dest_idx_in[`SEL(5,1)]);
+		$display("Way1:  %2d   %2d   %2d\n", rega_idx_in[`SEL(5,2)], regb_idx_in[`SEL(5,2)], dest_idx_in[`SEL(5,2)]);
+   	$display("       REG  PRF");
+		$display("Way0:  %2d   %2d", retire_dest_idx_in[`SEL(5,1)], retire_pdest_idx_in[`SEL(`PRF_IDX,1)]);
+		$display("Way1:  %2d   %2d", retire_dest_idx_in[`SEL(5,2)], retire_pdest_idx_in[`SEL(`PRF_IDX,2)]);
     $display("=====OUTPUTS=============================");
-   	$display("       PRF1 PRF2 PDEST");
-		$display("Way0: %2d   %2d   %2d", prega_idx_out[`SEL(`PRF_IDX,1)], pregb_idx_out[`SEL(`PRF_IDX,1)], pdest_idx_out[`SEL(`PRF_IDX,1)]);
-		$display("Way1: %2d   %2d   %2d", prega_idx_out[`SEL(`PRF_IDX,2)], pregb_idx_out[`SEL(`PRF_IDX,2)], pdest_idx_out[`SEL(`PRF_IDX,2)]);
+   	$display("       PREGA PREGB PDEST FREE");
+		$display("Way0:  %2d    %2d    %2d    %2d", prega_idx_out[`SEL(`PRF_IDX,1)], pregb_idx_out[`SEL(`PRF_IDX,1)], pdest_idx_out[`SEL(`PRF_IDX,1)], rat0.free_prf[`SEL(`PRF_IDX,1)]);
+		$display("Way1:  %2d    %2d    %2d    %2d", prega_idx_out[`SEL(`PRF_IDX,2)], pregb_idx_out[`SEL(`PRF_IDX,2)], pdest_idx_out[`SEL(`PRF_IDX,2)], rat0.free_prf[`SEL(`PRF_IDX,2)]);
     $display("=========================================\n");
 
 	  end
@@ -150,7 +158,7 @@ rat  #(.IDX_WIDTH(`RAT_IDX)) rat0 (clk, reset, flush,
 	task show_freelist;
 	  begin
 		 `define DISPLAY_FREE(i) \
-    $display(" %2d  |  %2d", i, rat0.fl[i]);
+    $display(" %2d  |  %2d  |  %2d", i, rat0.fl[i], rat0.rfl[i]);
 
     $display("==================");
     $display(" IDX | RAT | RRAT   ");
@@ -168,7 +176,7 @@ task reset_all;
 begin
   clk=0; reset=0; flush=0;
   rega_idx_in=0; regb_idx_in=0; dest_idx_in=0; retire_dest_idx_in=0;
-  issue=0; retire=0;
+  issue=2'b00; retire=2'b00;
 	retire_pdest_idx_in=0;
 end
 endtask
@@ -197,7 +205,7 @@ initial begin
 	new_inst(0,9,2);show_io();@(negedge clk);show_RAT();
 //	show_freelist();
 	reset_all();
-	reset = 1'b1; @(negedge clk); reset = 1'b0;
+	reset = 1'b1; @(negedge clk); reset = 1'b0;show_freelist();
 
 	$display("============================================================================================ ");
   $display(" TEST2: In-order INSERT & REMOVE   ");
@@ -205,19 +213,20 @@ initial begin
 	show_RAT();@(negedge clk);
 //	show_freelist();
 	
-	new_inst(2,0,1);show_io();@(negedge clk);show_RAT();
-	new_inst(2,2,3);show_io();@(negedge clk);show_RAT();
+	show_freelist();new_inst(2,0,1);show_io();@(negedge clk);show_RAT();
+	show_freelist();new_inst(2,2,3);show_io();@(negedge clk);show_RAT();
 	new_inst(2,4,5);show_io();@(negedge clk);show_RAT();
 	new_inst(2,6,7);show_io();@(negedge clk);show_RAT();
 	new_inst(2,8,9);show_io();@(negedge clk);show_RAT();
 	issue[0] = 1'b0;
   issue[1] = 1'b0;
 //	retire_inst(2,0,62,1,0);show_io();@(negedge clk);show_RAT();
-	retire_inst(2,2,61,3,1);show_io();@(negedge clk);show_RAT();
-	retire_inst(2,4,60,5,2);show_io();@(negedge clk);show_RAT();
+	$display("look here");
+	show_freelist();retire_inst(2,2,4,3,9);show_io();@(negedge clk);show_RAT();
+/*	show_freelist();retire_inst(2,4,60,5,2);show_io();@(negedge clk);show_RAT();
 	retire_inst(2,6,59,7,3);show_io();@(negedge clk);show_RAT();
 	retire_inst(2,8,68,9,4);show_io();@(negedge clk);show_RAT();
-
+*/
 
 
 	$finish;

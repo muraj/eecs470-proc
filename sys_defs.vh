@@ -106,8 +106,9 @@
 // the Alpha register file zero register, any read of this register always
 // returns a zero value, and any write to this register is thrown away
 //
-`define ZERO_REG        {`PRF_IDX{1'd0}}
+`define ZERO_REG        {5{1'd0}}
 //`define ZERO_REG        {`PRF_IDX{1'd1}}
+//`define ZERO_REG        5'd31
 
 //
 // Memory bus commands control signals
@@ -291,7 +292,7 @@
 `else
     `define SCALAR (1)
 `endif
-`define PRF_IDX (5)
+`define PRF_IDX (6)
 `define PRF_SZ (1<<`PRF_IDX)
 `define ROB_IDX (5)
 `define ROB_SZ (1<<`ROB_IDX)
