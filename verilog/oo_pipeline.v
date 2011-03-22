@@ -137,9 +137,9 @@ module oo_pipeline (// Inputs
   wire  [`SCALAR-1:0]          ex_valid;
 
   // RAT wires
-  wire  [`SCALAR*`PRF_IDX-1:0] rat_prega_idx = 0;
-  wire  [`SCALAR*`PRF_IDX-1:0] rat_pregb_idx = 0;
-  wire  [`SCALAR*`PRF_IDX-1:0] rat_pdest_idx = 0;
+  wire  [`SCALAR*`PRF_IDX-1:0] rat_prega_idx;
+  wire  [`SCALAR*`PRF_IDX-1:0] rat_pregb_idx;
+  wire  [`SCALAR*`PRF_IDX-1:0] rat_pdest_idx;
 
   // PRF
   wire  [`SCALAR-1:0]  prf_valid_prega;
@@ -174,7 +174,8 @@ module oo_pipeline (// Inputs
   // For ROB
   wire [`SCALAR*`ROB_IDX-1:0] rob_idx_out;
   wire [`SCALAR*64-1:0]       rob_commit_npc_out;
-  wire [`SCALAR*`PRF_IDX-1:0] rob_commit_wr_idx;
+  wire [`SCALAR*`ARF_IDX-1:0] rob_commit_dest_idx;
+  wire [`SCALAR*`PRF_IDX-1:0] rob_commit_pdest_idx;
   wire [64*`SCALAR-1:0]       rob_commit_wr_data;
   wire [`SCALAR-1:0]          rob_valid_out;
   wire [64*`SCALAR-1:0]       rob_commit_NPC;
@@ -188,11 +189,11 @@ module oo_pipeline (// Inputs
                    : (id_dp_halt ? `HALTED_ON_HALT
                                  : `NO_ERROR);
 
-  assign pipeline_commit_wr_idx = rob_commit_wr_idx;
+  assign pipeline_commit_wr_idx = rob_commit_pdest_idx;
   assign pipeline_commit_wr_data = rob_commit_wr_data;
-  assign pipeline_commit_wr_en[0] = rob_commit_wr_idx[`SEL(`PRF_IDX,1)] != `ZERO_REG;
+  assign pipeline_commit_wr_en[0] = rob_commit_pdest_idx[`SEL(`PRF_IDX,1)] != `ZERO_REG;
   `ifdef SUPERSCALAR
-  assign pipeline_commit_wr_en[1] = rob_commit_wr_idx[`SEL(`PRF_IDX,2)] != `ZERO_REG;
+  assign pipeline_commit_wr_en[1] = rob_commit_pdest_idx[`SEL(`PRF_IDX,2)] != `ZERO_REG;
   `endif
   assign pipeline_commit_NPC = rob_commit_npc_out;
 
@@ -416,24 +417,43 @@ module oo_pipeline (// Inputs
   //                                              //
   //////////////////////////////////////////////////
 
+  rat rat0 (.clk(clk), .reset(reset), .flush(rob_mispredict),
+						// ARF inputs
+						.rega_idx_in(id_dp_rega_idx), .regb_idx_in(id_dp_regb_idx), 
+						.dest_idx_in(id_dp_dest_reg_idx), .retire_dest_idx_in(rob_commit_dest_idx),
+						// PRF i/o
+						.prega_idx_out(rat_prega_idx), .pregb_idx_out(rat_pregb_idx),
+						.pdest_idx_out(rat_pdest_idx), .retire_pdest_idx_in(rob_commit_pdest_idx),
+						// enable signals for rat and rrat
+						.issue(id_dp_valid_inst), .retire(rob_valid_out)
+				 	 );
+
   rob rob0 (.clk(clock), .reset(reset),
 						.full(rob_full), .full_almost(rob_full_almost),
-                        .dout1_valid(rob_valid_out[0]), .dout2_valid(rob_valid_out[1]),//FIXME: used at retire 
+						// Dispatch request
 						.din1_req(id_dp_valid_inst[0]), .din2_req(id_dp_valid_inst[1]),
+						// Update request
 						.dup1_req(1'b0), .dup2_req(1'b0),
-						.ir_in1(id_dp_IR[`SEL(32,1)]), .ir_in2(id_dp_IR[`SEL(32,2)]), 
-                        .npc_in1(id_dp_NPC[`SEL(64,1)]), .npc_in2(id_dp_NPC[`SEL(64,2)]), 
-                        .pdest_in1(rat_pdest_idx[`SEL(`PRF_IDX,1)]), .pdest_in2(rat_pdest_idx[`SEL(`PRF_IDX,2)]), //FIXME
-                        .adest_in1(id_dp_dest_reg_idx[`SEL(5,1)]), .adest_in2(id_dp_dest_reg_idx[`SEL(5,2)]), //FIXME
-                        .ba_pd_in1(64'b0), .ba_pd_in2(64'b0), //FIXME 
-                        .bt_pd_in1(1'b0), .bt_pd_in2(1'b0), //FIXME
-                        .isbranch_in1(id_dp_isbranch[0]), .isbranch_in2(id_dp_isbranch[1]),
-						.ba_ex_in1(64'b0), .ba_ex_in2(64'b0), .bt_ex_in1(1'b0), .bt_ex_in2(1'b0),//FIXME
 						.rob_idx_in1({`ROB_IDX{1'b0}}), .rob_idx_in2({`ROB_IDX{1'b0}}),//FIXME
+						// Inputs @ dispatch
+						.ir_in1(id_dp_IR[`SEL(32,1)]), .ir_in2(id_dp_IR[`SEL(32,2)]), 
+            .npc_in1(id_dp_NPC[`SEL(64,1)]), .npc_in2(id_dp_NPC[`SEL(64,2)]),
+            .pdest_in1(rat_pdest_idx[`SEL(`PRF_IDX,1)]), .pdest_in2(rat_pdest_idx[`SEL(`PRF_IDX,2)]), 
+            .adest_in1(id_dp_dest_reg_idx[`SEL(5,1)]), .adest_in2(id_dp_dest_reg_idx[`SEL(5,2)]),
+						// Branch @ dispatch
+            .ba_pd_in1(64'b0), .ba_pd_in2(64'b0), //FIXME 
+            .bt_pd_in1(1'b0), .bt_pd_in2(1'b0), //FIXME
+            .isbranch_in1(id_dp_isbranch[0]), .isbranch_in2(id_dp_isbranch[1]),
+						// Real branch results
+						.ba_ex_in1(64'b0), .ba_ex_in2(64'b0), .bt_ex_in1(1'b0), .bt_ex_in2(1'b0),//FIXME
+						// For retire
+            .dout1_valid(rob_valid_out[0]), .dout2_valid(rob_valid_out[1]), 
 						.rob_idx_out1(rob_idx_out[`SEL(`ROB_IDX,1)]), .rob_idx_out2(rob_idx_out[`SEL(`ROB_IDX,2)]),
 						.ir_out1(rob_commit_IR[`SEL(32,1)]), .ir_out2(rob_commit_IR[`SEL(32,1)]), 
-                        .npc_out1(rob_commit_npc_out[`SEL(64,1)]), .npc_out2(rob_commit_npc_out[`SEL(64,2)]),
-                        .pdest_out1(rob_commit_wr_idx[`SEL(`PRF_IDX,1)]), .pdest_out2(rob_commit_wr_idx[`SEL(`PRF_IDX,2)]),
+            .npc_out1(rob_commit_npc_out[`SEL(64,1)]), .npc_out2(rob_commit_npc_out[`SEL(64,2)]),
+            .pdest_out1(rob_commit_pdest_idx[`SEL(`PRF_IDX,1)]), .pdest_out2(rob_commit_pdest_idx[`SEL(`PRF_IDX,2)]),
+						.adest_out1(rob_commit_dest_idx[`SEL(`ARF_IDX,1)]), .adest_out2(rob_commit_dest_idx[`SEL(`ARF_IDX,1)]),
+						// Branch Miss
 						.branch_miss(rob_mispredict), .ba_out(rob_target_pc)
 						);
 

@@ -40,6 +40,7 @@ SIMFILES =	verilog/oo_pipeline.v	\
 		verilog/cb.v				\
 		verilog/superrs.v   \
 		verilog/rs.v				\
+		verilog/rat.v				\
 		verilog/ps.v				\
 		verilog/pe.v				\
 		verilog/regfile.v

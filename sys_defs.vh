@@ -292,6 +292,7 @@
 `else
     `define SCALAR (1)
 `endif
+`define ARF_IDX (5)
 `define PRF_IDX (6)
 `define PRF_SZ (1<<`PRF_IDX)
 `define ROB_IDX (5)
