@@ -307,3 +307,7 @@
 `define LSQ_SZ (1<<`LSQ_IDX)
 `define RAT_IDX (5)
 `define RAT_SZ (1<<`RAT_IDX)
+`define	BR_IDX (8)
+`define BR_SZ (1<<`BR_IDX)
+
+
