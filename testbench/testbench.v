@@ -157,6 +157,58 @@ genvar rob_iter;
   assign cb_isbranch[rob_iter] = pipeline_0.rob0.cb_isbranch.data[rob_iter];
   end
 endgenerate
+
+//*** RAT DEBUG ***//
+wire [`PRF_IDX-1:0] rat_value[31:0];
+wire [`PRF_IDX-1:0] rrat_value[31:0];
+integer rat_fileno, rat_loop;
+initial begin                
+  rat_fileno = $fopen("rat.out");
+end                          
+
+generate
+genvar rat_iter;
+  for(rat_iter=0;rat_iter<`ROB_SZ;rat_iter=rat_iter+1) begin : RAT_DEBUG
+    assign rat_value[rat_iter] = pipeline_0.rat0.file_rat.registers[rat_iter];
+    assign rrat_value[rat_iter] = pipeline_0.rat0.file_rrat.registers[rat_iter];
+  end
+endgenerate
+always @(posedge clock) begin 
+ if(~reset) begin
+  $fdisplay(rat_fileno, "\n|================= Cycle: %10d =================|", clock_count);
+  $fdisplay(rat_fileno, "| IDX | RAT PRF | RRAT PRF | IDX | RAT PRF | RRAT PRF |");
+  $fdisplay(rat_fileno, "|=====================================================|");
+  `define DISPLAY_RAT(i) \
+    $fwrite(rat_fileno, "|%4d |%8d |%9d ", \
+              i, rat_value[i], rrat_value[i]);
+  `DISPLAY_RAT(0)  `DISPLAY_RAT(1)  $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(16) `DISPLAY_RAT(17) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(2)  `DISPLAY_RAT(3)  $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(18) `DISPLAY_RAT(19) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(4)  `DISPLAY_RAT(5)  $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(20) `DISPLAY_RAT(21) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(6)  `DISPLAY_RAT(7)  $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(22) `DISPLAY_RAT(23) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(8)  `DISPLAY_RAT(9)  $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(24) `DISPLAY_RAT(25) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(10) `DISPLAY_RAT(11) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(26) `DISPLAY_RAT(27) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(12) `DISPLAY_RAT(13) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(28) `DISPLAY_RAT(29) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(14) `DISPLAY_RAT(15) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(30) `DISPLAY_RAT(31) $fwrite(rat_fileno, "|\n");
+  $fdisplay(rat_fileno, "%b", pipeline_0.rat0.fl);
+  for(rat_loop=4;rat_loop <= `PRF_SZ; rat_loop=rat_loop+4) begin : RAT_LOOP
+    $fwrite(rat_fileno, "%3d|", rat_loop);
+  end
+  $fwrite(rat_fileno, "\n");
+  $fdisplay(rat_fileno, "%b", pipeline_0.rat0.rfl);
+ end
+end
+always @(pipeline_error_status) begin
+  if(pipeline_error_status != `NO_ERROR)
+    $fclose(rat_fileno);
+end
 `endif  //SYNTH
 
 
