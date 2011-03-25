@@ -376,7 +376,9 @@ module EX_CDB_Mux (//Inputs
 										MEM_valid_value, MEM_done, MEM_value, MEM_pdest_idx, MEM_rob_idx, MEM_granted,
 										//Outputs
 										cdb_tag_out, cdb_valid_out, cdb_value_out, cdb_MEM_value_valid_out, 
-										rob_idx_out, branch_NT_out
+										rob_idx_out, branch_NT_out,
+										//for DEBUGGING
+										ALU_NPC, ALU_IR, MULT_NPC, MULT_IR, MEM_NPC, MEM_IR, cdb_NPC_out, cdb_IR_out
 										);
 	input [64*`SCALAR-1:0]				ALU_result;
 	input [`SCALAR-1:0] 					BRcond_result;
@@ -395,6 +397,13 @@ module EX_CDB_Mux (//Inputs
 	input [`PRF_IDX*`SCALAR-1:0]	MEM_pdest_idx;
 	input [`ROB_IDX*`SCALAR-1:0]	MEM_rob_idx;
 	input [`SCALAR-1:0]						MEM_granted;
+	// for DEBUGGING
+	input [64*`SCALAR-1:0]				ALU_NPC;
+	input [32*`SCALAR-1:0]				ALU_IR;
+	input [64*`SCALAR-1:0]				MULT_NPC;
+	input [32*`SCALAR-1:0]				MULT_IR;
+	input [64*`SCALAR-1:0]				MEM_NPC;
+	input [32*`SCALAR-1:0]				MEM_IR;
 
 	output reg [`PRF_IDX*`SCALAR-1:0] cdb_tag_out;
 	output reg [`SCALAR-1:0] 					cdb_valid_out;
@@ -402,6 +411,9 @@ module EX_CDB_Mux (//Inputs
 	output reg [`SCALAR-1:0] 					cdb_MEM_value_valid_out;
 	output reg [`ROB_IDX*`SCALAR-1:0] rob_idx_out;
 	output reg [`SCALAR-1:0] 					branch_NT_out;
+	// for DEBUGGING
+	output reg [64*`SCALAR-1:0]				cdb_NPC_out;
+	output reg [32*`SCALAR-1:0]				cdb_IR_out;
 
 	`ifdef SUPERSCALAR
 	wire [5:0] 	granted = {ALU_granted, MULT_granted, MEM_granted};
@@ -414,118 +426,146 @@ module EX_CDB_Mux (//Inputs
 		case (granted_cdb1)
 			6'b100000	:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,1)] 			= ALU_pdest_idx[`SEL(`PRF_IDX,2)];
-										cdb_valid_out[`SEL(1,1)] 					= ALU_EX_en[`SEL(1,2)];
+										cdb_valid_out[`SEL(1,1)] 						= ALU_EX_en[`SEL(1,2)];
 										cdb_value_out[`SEL(64,1)] 					= ALU_result[`SEL(64,2)];
 										cdb_MEM_value_valid_out[`SEL(1,1)]	= 1'b0;
 										rob_idx_out[`SEL(`ROB_IDX,1)] 			= ALU_rob_idx[`SEL(`ROB_IDX,2)];
-										branch_NT_out[`SEL(1,1)] 					= BRcond_result[`SEL(1,2)];
+										branch_NT_out[`SEL(1,1)] 						= BRcond_result[`SEL(1,2)];
+										cdb_NPC_out[`SEL(64,1)]							= ALU_NPC[`SEL(64,2)];
+										cdb_IR_out[`SEL(32,1)]							= ALU_IR[`SEL(32,2)];
 									end
 			6'b010000	:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,1)] 			= ALU_pdest_idx[`SEL(`PRF_IDX,1)];
-										cdb_valid_out[`SEL(1,1)] 					= ALU_EX_en[`SEL(1,1)];
+										cdb_valid_out[`SEL(1,1)] 						= ALU_EX_en[`SEL(1,1)];
 										cdb_value_out[`SEL(64,1)] 					= ALU_result[`SEL(64,1)];
 										cdb_MEM_value_valid_out[`SEL(1,1)]	= 1'b0;
 										rob_idx_out[`SEL(`ROB_IDX,1)] 			= ALU_rob_idx[`SEL(`ROB_IDX,1)];
-										branch_NT_out[`SEL(1,1)] 					= BRcond_result[`SEL(1,1)];
+										branch_NT_out[`SEL(1,1)] 						= BRcond_result[`SEL(1,1)];
+										cdb_NPC_out[`SEL(64,1)]							= ALU_NPC[`SEL(64,1)];
+										cdb_IR_out[`SEL(32,1)]							= ALU_IR[`SEL(32,1)];
 									end
 			6'b001000	:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,1)] 			= MULT_pdest_idx[`SEL(`PRF_IDX,2)];
-										cdb_valid_out[`SEL(1,1)] 					= MULT_done[`SEL(1,2)];
+										cdb_valid_out[`SEL(1,1)] 						= MULT_done[`SEL(1,2)];
 										cdb_value_out[`SEL(64,1)] 					= MULT_product[`SEL(64,2)];
 										cdb_MEM_value_valid_out[`SEL(1,1)]	= 1'b0;
 										rob_idx_out[`SEL(`ROB_IDX,1)] 			= MULT_rob_idx[`SEL(`ROB_IDX,2)];
-										branch_NT_out[`SEL(1,1)] 					= 1'b0;
+										branch_NT_out[`SEL(1,1)] 						= 1'b0;
+										cdb_NPC_out[`SEL(64,1)]							= MULT_NPC[`SEL(64,2)];
+										cdb_IR_out[`SEL(32,1)]							= MULT_IR[`SEL(32,2)];
 									end
 			6'b000100	:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,1)] 			= MULT_pdest_idx[`SEL(`PRF_IDX,1)];
-										cdb_valid_out[`SEL(1,1)] 					= MULT_done[`SEL(1,1)];
+										cdb_valid_out[`SEL(1,1)] 						= MULT_done[`SEL(1,1)];
 										cdb_value_out[`SEL(64,1)] 					= MULT_product[`SEL(64,1)];
 										cdb_MEM_value_valid_out[`SEL(1,1)]	= 1'b0;
 										rob_idx_out[`SEL(`ROB_IDX,1)] 			= MULT_rob_idx[`SEL(`ROB_IDX,1)];
-										branch_NT_out[`SEL(1,1)] 					= 1'b0;
+										branch_NT_out[`SEL(1,1)] 						= 1'b0;
+										cdb_NPC_out[`SEL(64,1)]							= MULT_NPC[`SEL(64,1)];
+										cdb_IR_out[`SEL(32,1)]							= MULT_IR[`SEL(32,1)];
 									end
 			6'b000010	:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,1)] 			= MEM_pdest_idx[`SEL(`PRF_IDX,2)];
-										cdb_valid_out[`SEL(1,1)] 					= MEM_done[`SEL(1,2)];
+										cdb_valid_out[`SEL(1,1)] 						= MEM_done[`SEL(1,2)];
 										cdb_value_out[`SEL(64,1)] 					= MEM_value[`SEL(64,2)];
 										cdb_MEM_value_valid_out[`SEL(1,1)]	= MEM_valid_value[`SEL(1,2)];
 										rob_idx_out[`SEL(`ROB_IDX,1)] 			= MEM_rob_idx[`SEL(`ROB_IDX,2)];
-										branch_NT_out[`SEL(1,1)] 					= 1'b0;
+										branch_NT_out[`SEL(1,1)] 						= 1'b0;
+										cdb_NPC_out[`SEL(64,1)]							= MEM_NPC[`SEL(64,2)];
+										cdb_IR_out[`SEL(32,1)]							= MEM_IR[`SEL(32,2)];
 									end
 			6'b000001	:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,1)] 			= MEM_pdest_idx[`SEL(`PRF_IDX,1)];
-										cdb_valid_out[`SEL(1,1)] 					= MEM_done[`SEL(1,1)];
+										cdb_valid_out[`SEL(1,1)] 						= MEM_done[`SEL(1,1)];
 										cdb_value_out[`SEL(64,1)] 					= MEM_value[`SEL(64,1)];
 										cdb_MEM_value_valid_out[`SEL(1,1)]	= MEM_valid_value[`SEL(1,1)];
 										rob_idx_out[`SEL(`ROB_IDX,1)] 			= MEM_rob_idx[`SEL(`ROB_IDX,1)];
-										branch_NT_out[`SEL(1,1)] 					= 1'b0;
+										branch_NT_out[`SEL(1,1)] 						= 1'b0;
+										cdb_NPC_out[`SEL(64,1)]							= MEM_NPC[`SEL(64,1)];
+										cdb_IR_out[`SEL(32,1)]							= MEM_IR[`SEL(32,1)];
 									end
 			default		:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,1)] 			= {`PRF_IDX{1'b0}};
-										cdb_valid_out[`SEL(1,1)] 					= 1'b0;
+										cdb_valid_out[`SEL(1,1)] 						= 1'b0;
 										cdb_value_out[`SEL(64,1)] 					= {64{1'b0}};
 										cdb_MEM_value_valid_out[`SEL(1,1)]	= 1'b0;
 										rob_idx_out[`SEL(`ROB_IDX,1)] 			= {`ROB_IDX{1'b0}};
-										branch_NT_out[`SEL(1,1)] 					= 1'b0;
+										branch_NT_out[`SEL(1,1)] 						= 1'b0;
+										cdb_NPC_out[`SEL(64,1)]							= {64{1'b0}};
+										cdb_IR_out[`SEL(32,1)]							= {32{1'b0}};
 									end
 		endcase
 
 		case (granted_cdb2)
 			6'b100000	:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,2)] 			= ALU_pdest_idx[`SEL(`PRF_IDX,2)];
-										cdb_valid_out[`SEL(1,2)] 					= ALU_EX_en[`SEL(1,2)];
+										cdb_valid_out[`SEL(1,2)] 						= ALU_EX_en[`SEL(1,2)];
 										cdb_value_out[`SEL(64,2)] 					= ALU_result[`SEL(64,2)];
 										cdb_MEM_value_valid_out[`SEL(1,2)]	= 1'b0;
 										rob_idx_out[`SEL(`ROB_IDX,2)] 			= ALU_rob_idx[`SEL(`ROB_IDX,2)];
-										branch_NT_out[`SEL(1,2)] 					= BRcond_result[`SEL(1,2)];
+										branch_NT_out[`SEL(1,2)] 						= BRcond_result[`SEL(1,2)];
+										cdb_NPC_out[`SEL(64,2)]							= ALU_NPC[`SEL(64,2)];
+										cdb_IR_out[`SEL(32,2)]							= ALU_IR[`SEL(32,2)];
 									end
 			6'b010000	:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,2)] 			= ALU_pdest_idx[`SEL(`PRF_IDX,1)];
-										cdb_valid_out[`SEL(1,2)] 					= ALU_EX_en[`SEL(1,1)];
+										cdb_valid_out[`SEL(1,2)] 						= ALU_EX_en[`SEL(1,1)];
 										cdb_value_out[`SEL(64,2)] 					= ALU_result[`SEL(64,1)];
 										cdb_MEM_value_valid_out[`SEL(1,2)]	= 1'b0;
 										rob_idx_out[`SEL(`ROB_IDX,2)] 			= ALU_rob_idx[`SEL(`ROB_IDX,1)];
-										branch_NT_out[`SEL(1,2)] 					= BRcond_result[`SEL(1,1)];
+										branch_NT_out[`SEL(1,2)] 						= BRcond_result[`SEL(1,1)];
+										cdb_NPC_out[`SEL(64,2)]							= ALU_NPC[`SEL(64,1)];
+										cdb_IR_out[`SEL(32,2)]							= ALU_IR[`SEL(32,1)];
 									end
 			6'b001000	:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,2)] 			= MULT_pdest_idx[`SEL(`PRF_IDX,2)];
-										cdb_valid_out[`SEL(1,2)] 					= MULT_done[`SEL(1,2)];
+										cdb_valid_out[`SEL(1,2)] 						= MULT_done[`SEL(1,2)];
 										cdb_value_out[`SEL(64,2)] 					= MULT_product[`SEL(64,2)];
 										cdb_MEM_value_valid_out[`SEL(1,2)]	= 1'b0;
 										rob_idx_out[`SEL(`ROB_IDX,2)] 			= MULT_rob_idx[`SEL(`ROB_IDX,2)];
-										branch_NT_out[`SEL(1,2)] 					= 1'b0;
+										branch_NT_out[`SEL(1,2)] 						= 1'b0;
+										cdb_NPC_out[`SEL(64,2)]							= MULT_NPC[`SEL(64,2)];
+										cdb_IR_out[`SEL(32,2)]							= MULT_IR[`SEL(32,2)];
 									end
 			6'b000100	:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,2)] 			= MULT_pdest_idx[`SEL(`PRF_IDX,1)];
-										cdb_valid_out[`SEL(1,2)] 					= MULT_done[`SEL(1,1)];
+										cdb_valid_out[`SEL(1,2)] 						= MULT_done[`SEL(1,1)];
 										cdb_value_out[`SEL(64,2)] 					= MULT_product[`SEL(64,1)];
 										cdb_MEM_value_valid_out[`SEL(1,2)]	= 1'b0;
 										rob_idx_out[`SEL(`ROB_IDX,2)] 			= MULT_rob_idx[`SEL(`ROB_IDX,1)];
-										branch_NT_out[`SEL(1,2)] 					= 1'b0;
+										branch_NT_out[`SEL(1,2)] 						= 1'b0;
+										cdb_NPC_out[`SEL(64,2)]							= MULT_NPC[`SEL(64,1)];
+										cdb_IR_out[`SEL(32,2)]							= MULT_IR[`SEL(32,1)];
 									end
 			6'b000010	:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,2)] 			= MEM_pdest_idx[`SEL(`PRF_IDX,2)];
-										cdb_valid_out[`SEL(1,2)] 					= MEM_done[`SEL(1,2)];
+										cdb_valid_out[`SEL(1,2)] 						= MEM_done[`SEL(1,2)];
 										cdb_value_out[`SEL(64,2)] 					= MEM_value[`SEL(64,2)];
 										cdb_MEM_value_valid_out[`SEL(1,2)]	= MEM_valid_value[`SEL(1,2)];
 										rob_idx_out[`SEL(`ROB_IDX,2)] 			= MEM_rob_idx[`SEL(`ROB_IDX,2)];
-										branch_NT_out[`SEL(1,2)] 					= 1'b0;
+										branch_NT_out[`SEL(1,2)] 						= 1'b0;
+										cdb_NPC_out[`SEL(64,2)]							= MEM_NPC[`SEL(64,2)];
+										cdb_IR_out[`SEL(32,2)]							= MEM_IR[`SEL(32,2)];
 									end
 			6'b000001	:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,2)] 			= MEM_pdest_idx[`SEL(`PRF_IDX,1)];
-										cdb_valid_out[`SEL(1,2)] 					= MEM_done[`SEL(1,1)];
+										cdb_valid_out[`SEL(1,2)] 						= MEM_done[`SEL(1,1)];
 										cdb_value_out[`SEL(64,2)] 					= MEM_value[`SEL(64,1)];
 										cdb_MEM_value_valid_out[`SEL(1,2)]	= MEM_valid_value[`SEL(1,1)];
 										rob_idx_out[`SEL(`ROB_IDX,2)] 			= MEM_rob_idx[`SEL(`ROB_IDX,1)];
-										branch_NT_out[`SEL(1,2)] 					= 1'b0;
+										branch_NT_out[`SEL(1,2)] 						= 1'b0;
+										cdb_NPC_out[`SEL(64,2)]							= MEM_NPC[`SEL(64,1)];
+										cdb_IR_out[`SEL(32,2)]							= MEM_IR[`SEL(32,1)];
 									end
 			default		:	begin
 										cdb_tag_out[`SEL(`PRF_IDX,2)] 			= {`PRF_IDX{1'b0}};
-										cdb_valid_out[`SEL(1,2)] 					= 1'b0;
+										cdb_valid_out[`SEL(1,2)] 						= 1'b0;
 										cdb_value_out[`SEL(64,2)] 					= {64{1'b0}};
 										cdb_MEM_value_valid_out[`SEL(1,2)]	= 1'b0;
 										rob_idx_out[`SEL(`ROB_IDX,2)] 			= {`ROB_IDX{1'b0}};
-										branch_NT_out[`SEL(1,2)] 					= 1'b0;
+										branch_NT_out[`SEL(1,2)] 						= 1'b0;
+										cdb_NPC_out[`SEL(64,2)]							= {64{1'b0}};
+										cdb_IR_out[`SEL(32,2)]							= {32{1'b0}};
 									end
 		endcase
 	end // always @*
@@ -544,6 +584,8 @@ module EX_CDB_Mux (//Inputs
 									cdb_MEM_value_valid_out	= 1'b0;
 									rob_idx_out				 			= ALU_rob_idx;
 									branch_NT_out						= BRcond_result;
+									cdb_NPC_out							= ALU_NPC;
+									cdb_IR_out							= ALU_IR;
 								end
 			3'b010	:	begin
 									cdb_tag_out				 			= MULT_pdest_idx;
@@ -552,6 +594,8 @@ module EX_CDB_Mux (//Inputs
 									cdb_MEM_value_valid_out	= 1'b0;
 									rob_idx_out				 			= MULT_rob_idx;
 									branch_NT_out						= 1'b0;
+									cdb_NPC_out							= MULT_NPC;
+									cdb_IR_out							= MULT_IR;
 								end
 			3'b001	:	begin
 									cdb_tag_out							= MEM_pdest_idx;
@@ -560,6 +604,8 @@ module EX_CDB_Mux (//Inputs
 									cdb_MEM_value_valid_out	= MEM_valid_value;
 									rob_idx_out				 			= MEM_rob_idx;
 									branch_NT_out						= 1'b0;
+									cdb_NPC_out							= MEM_NPC;
+									cdb_IR_out							= MEM_IR;
 								end
 			default		:	begin
 									cdb_tag_out				 			= {`PRF_IDX{1'b0}};
@@ -568,6 +614,8 @@ module EX_CDB_Mux (//Inputs
 									cdb_MEM_value_valid_out	= 1'b0;
 									rob_idx_out				 			= {`ROB_IDX{1'b0}};
 									branch_NT_out						= 1'b0;
+									cdb_NPC_out							= 64'b0;
+									cdb_IR_out							= 32'b0;
 								end
 		endcase
 	end // always @*
@@ -883,16 +931,16 @@ module EX_input_logic (//Inputs
 		ALU_func_out				= {5*`SCALAR				{1'b0}};
 		BRcond_opa_out			= {64*`SCALAR				{1'b0}};
 		BRcond_func_out			= {3*`SCALAR				{1'b0}};
-		ALU_pdest_idx_out		= {`PRF_IDX*`SCALAR	{1'b0}};
-		ALU_rs_IR_out				= {32*`SCALAR				{1'b0}};
+		ALU_pdest_idx_out		= {`SCALAR{`ZERO_REG}};
+		ALU_rs_IR_out				= {`SCALAR{`NOOP_INST}};
 		ALU_npc_out					= {64*`SCALAR				{1'b0}};
 		ALU_rob_idx_out			= {`ROB_IDX*`SCALAR	{1'b0}};
 		ALU_EX_en_out				=	{`SCALAR					{1'b0}};
 		MULT_mplier_out			= {64*`SCALAR				{1'b0}};
 		MULT_mcand_out			= {64*`SCALAR				{1'b0}};
 		MULT_start_out			= {`SCALAR					{1'b0}};
-		MULT_pdest_idx_out	= {`PRF_IDX*`SCALAR	{1'b0}};
-		MULT_rs_IR_out			= {32*`SCALAR				{1'b0}};
+		MULT_pdest_idx_out	= {`SCALAR{`ZERO_REG}};
+		MULT_rs_IR_out			= {`SCALAR{`NOOP_INST}};
 		MULT_npc_out				= {64*`SCALAR				{1'b0}};
 		MULT_rob_idx_out		= {`ROB_IDX*`SCALAR	{1'b0}};
 		MULT_EX_en_out			= {`SCALAR					{1'b0}};
@@ -902,8 +950,8 @@ module EX_input_logic (//Inputs
 		MEM_disp_out				= {64*`SCALAR				{1'b0}};
 		MEM_rd_out					= {`SCALAR					{1'b0}};
 		MEM_wr_out					= {`SCALAR					{1'b0}};
-		MEM_pdest_idx_out		= {`PRF_IDX*`SCALAR	{1'b0}};
-		MEM_rs_IR_out				= {32*`SCALAR				{1'b0}};
+		MEM_pdest_idx_out		= {`SCALAR{`ZERO_REG}};
+		MEM_rs_IR_out				= {`SCALAR{`NOOP_INST}};
 		MEM_npc_out					= {64*`SCALAR				{1'b0}};
 		MEM_rob_idx_out			= {`ROB_IDX*`SCALAR	{1'b0}};
 		MEM_EX_en_out				= {`SCALAR					{1'b0}};
@@ -1115,7 +1163,13 @@ module ex_stage(clk, reset,
 								ALU_free, MULT_free, 												// to RS
 
 								// Outputs (to LSQ)
-								EX_LSQ_idx, EX_MEM_ADDR, EX_MEM_reg_value
+								EX_LSQ_idx, EX_MEM_ADDR, EX_MEM_reg_value,
+
+								// Outputs (for DEBUGGING)
+								ex_cdb_NPC, ex_cdb_IR, ex_cdb_valid_inst,
+								ex_cdb_ALU_NPC, ex_cdb_ALU_IR, ex_cdb_ALU_valid_inst,
+								ex_cdb_MULT_NPC, ex_cdb_MULT_IR, ex_cdb_MULT_valid_inst,
+								ex_cdb_MEM_NPC, ex_cdb_MEM_IR, ex_cdb_MEM_valid_inst
                );
 
   input clk;  
@@ -1158,6 +1212,8 @@ module ex_stage(clk, reset,
 	output [`ROB_IDX*`SCALAR-1:0]	rob_idx_out;
 	output [`SCALAR-1:0] 					branch_NT_out;
 // END OF Outputs to the Output Logic
+
+
 
 // Inputs to the functional units
 	wire [64*`SCALAR-1:0]				ALU_opa_in;
@@ -1254,6 +1310,33 @@ module ex_stage(clk, reset,
 	reg [`SCALAR-1:0]						MULT_gnt_reg;
 	reg [`SCALAR-1:0]						MEM_gnt_reg;
 // END OF Outputs from the EX/CDB registers
+
+// Only for Debugging
+	output [64*`SCALAR-1:0]				ex_cdb_NPC;
+	output [32*`SCALAR-1:0]				ex_cdb_IR;
+	output [`SCALAR-1:0]					ex_cdb_valid_inst;
+	output [64*`SCALAR-1:0]				ex_cdb_ALU_NPC;
+	output [32*`SCALAR-1:0]				ex_cdb_ALU_IR;
+	output [`SCALAR-1:0]					ex_cdb_ALU_valid_inst;
+	output [64*`SCALAR-1:0]				ex_cdb_MULT_NPC;
+	output [32*`SCALAR-1:0]				ex_cdb_MULT_IR;
+	output [`SCALAR-1:0]					ex_cdb_MULT_valid_inst;
+	output [64*`SCALAR-1:0]				ex_cdb_MEM_NPC;
+	output [32*`SCALAR-1:0]				ex_cdb_MEM_IR;
+	output [`SCALAR-1:0]					ex_cdb_MEM_valid_inst;
+
+	wire [`SCALAR-1:0]						ex_cdb_valid_inst 			= cdb_valid_out;
+	wire [64*`SCALAR-1:0]					ex_cdb_ALU_NPC 					= ALU_npc_reg;
+	wire [32*`SCALAR-1:0]					ex_cdb_ALU_IR 					= ALU_rs_IR_reg;
+	wire [`SCALAR-1:0]						ex_cdb_ALU_valid_inst 	= ALU_EX_en_reg;
+	wire [64*`SCALAR-1:0]					ex_cdb_MULT_NPC 				= MULT_npc_reg;
+	wire [32*`SCALAR-1:0]					ex_cdb_MULT_IR 					= MULT_rs_IR_reg;
+	wire [`SCALAR-1:0]						ex_cdb_MULT_valid_inst 	= MULT_EX_en_reg;
+	wire [64*`SCALAR-1:0]					ex_cdb_MEM_NPC 					= MEM_npc_reg;
+	wire [32*`SCALAR-1:0]					ex_cdb_MEM_IR 					= MEM_rs_IR_reg;
+	wire [`SCALAR-1:0]						ex_cdb_MEM_valid_inst 	= MEM_done_reg;
+
+
 
 	EX_input_logic EX_input_logic0 (.clk(clk),
 																	.reset(reset),
@@ -1459,23 +1542,23 @@ module ex_stage(clk, reset,
 		if(reset) begin
 			ALU_result_reg			<= `SD {64*`SCALAR{1'b0}};
 			BRcond_result_reg		<= `SD {`SCALAR{1'b0}};
-			ALU_pdest_idx_reg		<= `SD {`PRF_IDX*`SCALAR{1'b0}};
-			ALU_rs_IR_reg				<= `SD {32*`SCALAR{1'b0}};			
+			ALU_pdest_idx_reg		<= `SD {`SCALAR{`ZERO_REG}};
+			ALU_rs_IR_reg				<= `SD {`SCALAR{`NOOP_INST}};
 			ALU_npc_reg					<= `SD {64*`SCALAR{1'b0}};		
 			ALU_rob_idx_reg			<= `SD {`ROB_IDX*`SCALAR{1'b0}};
 			ALU_EX_en_reg				<= `SD {`SCALAR{1'b0}};				
 			MULT_product_reg		<= `SD {64*`SCALAR{1'b0}};	
 			MULT_done_reg				<= `SD {`SCALAR{1'b0}};	
-			MULT_pdest_idx_reg	<= `SD {`PRF_IDX*`SCALAR{1'b0}};
-			MULT_rs_IR_reg			<= `SD {32*`SCALAR{1'b0}};			
+			MULT_pdest_idx_reg	<= `SD {`SCALAR{`ZERO_REG}};
+			MULT_rs_IR_reg			<= `SD {`SCALAR{`NOOP_INST}};
 			MULT_npc_reg				<= `SD {64*`SCALAR{1'b0}};		
 			MULT_rob_idx_reg		<= `SD {`ROB_IDX*`SCALAR{1'b0}};
 			MULT_EX_en_reg			<= `SD {`SCALAR{1'b0}};				
 			MEM_valid_value_reg	<= `SD {`SCALAR{1'b0}};				
 			MEM_done_reg				<= `SD {`SCALAR{1'b0}};				
 			MEM_value_reg				<= `SD {64*`SCALAR{1'b0}};	
-			MEM_pdest_idx_reg		<= `SD {`PRF_IDX*`SCALAR{1'b0}};
-			MEM_rs_IR_reg				<= `SD {32*`SCALAR{1'b0}};			
+			MEM_pdest_idx_reg		<= `SD {`SCALAR{`ZERO_REG}};
+			MEM_rs_IR_reg				<= `SD {`SCALAR{`NOOP_INST}};
 			MEM_npc_reg					<= `SD {64*`SCALAR{1'b0}};		
 			MEM_rob_idx_reg			<= `SD {`ROB_IDX*`SCALAR{1'b0}};
 			MEM_EX_en_reg				<= `SD {`SCALAR{1'b0}};				
@@ -1624,7 +1707,16 @@ EX_CDB_Mux EX_CDB_Mux0	(
 													.cdb_value_out(cdb_value_out),
 													.cdb_MEM_value_valid_out(mem_value_valid_out),
 													.rob_idx_out(rob_idx_out),
-													.branch_NT_out(branch_NT_out)
+													.branch_NT_out(branch_NT_out),
+													// for DEBUGGING
+													.ALU_NPC(ALU_npc_reg),
+													.ALU_IR(ALU_rs_IR_reg),
+													.MULT_NPC(MULT_npc_reg),
+													.MULT_IR(MULT_rs_IR_reg),
+													.MEM_NPC(MEM_npc_reg),
+													.MEM_IR(MEM_rs_IR_reg),
+													.cdb_NPC_out(ex_cdb_NPC),
+													.cdb_IR_out(ex_cdb_IR)
 													);
 
 

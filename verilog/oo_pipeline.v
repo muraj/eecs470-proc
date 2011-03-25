@@ -43,7 +43,19 @@ module oo_pipeline (// Inputs
                  if_id_valid_inst,
                  id_dp_NPC,
                  id_dp_IR,
-                 id_dp_valid_inst
+                 id_dp_valid_inst,
+								 ex_cdb_NPC, 
+								 ex_cdb_IR, 
+								 ex_cdb_valid_inst,
+								 ex_cdb_ALU_NPC, 
+								 ex_cdb_ALU_IR, 
+								 ex_cdb_ALU_valid_inst,
+								 ex_cdb_MULT_NPC, 
+								 ex_cdb_MULT_IR, 
+								 ex_cdb_MULT_valid_inst,
+								 ex_cdb_MEM_NPC, 
+								 ex_cdb_MEM_IR, 
+								 ex_cdb_MEM_valid_inst
                 );
 
   input         clock;             // System clock
@@ -116,6 +128,49 @@ module oo_pipeline (// Inputs
   reg  [`SCALAR-1:0]    id_dp_halt;
   reg  [`SCALAR-1:0]    id_dp_illegal;
   reg  [`SCALAR-1:0]    id_dp_valid_inst;
+
+	// Outputs from DISPATCH stage
+	wire	[`LSQ_IDX*`SCALAR-1:0]	dp_LSQ_idx;
+	wire	[`PRF_IDX*`SCALAR-1:0]	dp_pdest_idx;
+	wire	[`PRF_IDX*`SCALAR-1:0]	dp_prega_idx;
+	wire	[`PRF_IDX*`SCALAR-1:0]	dp_pregb_idx;
+	wire	[64*`SCALAR-1:0] 				dp_prega_value;
+	wire	[64*`SCALAR-1:0] 				dp_pregb_value;
+	wire	[5*`SCALAR-1:0] 				dp_ALUop;
+	wire	[`SCALAR-1:0] 					dp_rd_mem;
+	wire	[`SCALAR-1:0] 					dp_wr_mem;
+	wire	[32*`SCALAR-1:0] 				dp_rs_IR;
+	wire	[64*`SCALAR-1:0] 				dp_npc;
+	wire	[`ROB_IDX*`SCALAR-1:0] 	dp_rob_idx;
+	wire	[`SCALAR-1:0] 					dp_en_out;
+
+	// Outputs from DISPATCH/EX Pipeline Register
+	reg [`LSQ_IDX*`SCALAR-1:0]	dp_ex_LSQ_idx;
+	reg	[`PRF_IDX*`SCALAR-1:0]	dp_ex_pdest_idx;
+	reg	[64*`SCALAR-1:0] 				dp_ex_prega_value;
+	reg	[64*`SCALAR-1:0] 				dp_ex_pregb_value;
+	reg	[5*`SCALAR-1:0] 				dp_ex_ALUop;
+	reg	[`SCALAR-1:0] 					dp_ex_rd_mem;
+	reg	[`SCALAR-1:0] 					dp_ex_wr_mem;
+	reg	[32*`SCALAR-1:0] 				dp_ex_rs_IR;
+	reg	[64*`SCALAR-1:0] 				dp_ex_npc;
+	reg	[`ROB_IDX*`SCALAR-1:0] 	dp_ex_rob_idx;
+	reg	[`SCALAR-1:0] 					dp_ex_EX_en;
+
+		// only for DEBUGGING
+	output [64*`SCALAR-1:0]				ex_cdb_NPC;
+	output [32*`SCALAR-1:0]				ex_cdb_IR;
+	output [`SCALAR-1:0]					ex_cdb_valid_inst;
+	output [64*`SCALAR-1:0]				ex_cdb_ALU_NPC; 	
+	output [32*`SCALAR-1:0]				ex_cdb_ALU_IR; 
+	output [`SCALAR-1:0]					ex_cdb_ALU_valid_inst;
+	output [64*`SCALAR-1:0]				ex_cdb_MULT_NPC; 		
+	output [32*`SCALAR-1:0]				ex_cdb_MULT_IR; 		
+	output [`SCALAR-1:0]					ex_cdb_MULT_valid_inst;
+	output [64*`SCALAR-1:0]				ex_cdb_MEM_NPC; 			
+	output [32*`SCALAR-1:0]				ex_cdb_MEM_IR; 		
+	output [`SCALAR-1:0]					ex_cdb_MEM_valid_inst;
+
    
   // CDB FIXME
   wire [`SCALAR*`PRF_IDX-1:0] cdb_tag = 0;
@@ -123,18 +178,14 @@ module oo_pipeline (// Inputs
   wire [`SCALAR-1:0]          cdb_valid = 0;
 
   // EX wires
-  wire  [`SCALAR*`PRF_IDX-1:0] ex_prega_idx;
-  wire  [`SCALAR*`PRF_IDX-1:0] ex_pregb_idx;
-  wire  [`SCALAR*`PRF_IDX-1:0] ex_pdest_idx;
-  wire  [`SCALAR*64-1:0]       ex_prega_val;
-  wire  [`SCALAR*64-1:0]       ex_pregb_val;
-  wire  [`SCALAR*5-1:0]        ex_alu_func;
-  wire  [`SCALAR*32-1:0]       ex_IR;
-  wire  [`SCALAR*64-1:0]       ex_npc;
-  wire  [`SCALAR*`ROB_IDX-1:0] ex_rob_idx;
-  wire  [`SCALAR-1:0]          ex_wr_mem;
-  wire  [`SCALAR-1:0]          ex_rd_mem;
-  wire  [`SCALAR-1:0]          ex_valid;
+	wire [`PRF_IDX*`SCALAR-1:0]	ex_cdb_tag_out;
+	wire [`SCALAR-1:0] 					ex_cdb_valid_out;
+	wire [64*`SCALAR-1:0] 			ex_cdb_value_out;
+	wire [`SCALAR-1:0] 					ex_mem_value_valid_out;
+	wire [`ROB_IDX*`SCALAR-1:0]	ex_rob_idx_out;
+	wire [`SCALAR-1:0] 					ex_branch_NT_out;
+	wire [`SCALAR-1:0]					ex_ALU_free;
+	wire [`SCALAR-1:0]					ex_MULT_free;
 
   // RAT wires
   wire  [`SCALAR*`PRF_IDX-1:0] rat_prega_idx;
@@ -492,51 +543,110 @@ module oo_pipeline (// Inputs
     end
 
   regfile #(.IDX_WIDTH(`PRF_IDX), .DATA_WIDTH(64))
-  PRF(.rda_idx(ex_prega_idx), .rda_out(ex_prega_val),
-              .rdb_idx(ex_prega_idx), .rdb_out(ex_pregb_val),
-              .reg_vals_out(),
-              .wr_idx(cdb_tag), .wr_data(cdb_data),
-              .wr_en(cdb_valid), .wr_clk(clock), .reset(reset),
-              .copy(1'b0), .reg_vals_in({`PRF_SZ*64{1'b0}})
-              );
+  PRF(.rda_idx(dp_prega_idx), .rda_out(dp_prega_value),
+      .rdb_idx(dp_pregb_idx), .rdb_out(dp_pregb_value),
+      .reg_vals_out(),
+      .wr_idx(cdb_tag), .wr_data(cdb_data),
+      .wr_en(cdb_valid), .wr_clk(clock), .reset(reset),
+      .copy(1'b0), .reg_vals_in({`PRF_SZ*64{1'b0}})
+      );
 
   SUPER_RS rs0 (.clk(clock), .reset(reset),
                 //INPUTS
                 .inst_valid(id_dp_valid_inst), .prega_idx(rat_prega_idx), .pregb_idx(rat_pregb_idx), .pdest_idx(rat_pdest_idx), .prega_valid(prf_valid_prega), .pregb_valid(prf_valid_pregb), //RAT
                 .ALUop(id_dp_alu_func), .rd_mem(id_dp_rd_mem), .wr_mem(id_dp_wr_mem), .rs_IR(id_dp_IR), . npc(id_dp_NPC), .cond_branch(id_dp_cond_branch), .uncond_branch(id_dp_uncond_branch),     //Issue Stage
-                .multfu_free(2'b0), .exfu_free(2'b0), .memfu_free(2'b0), .cdb_valid(cdb_valid), .cdb_tag(cdb_tag), .entry_flush({`RS_SZ{0}}),   //Pipeline communication
+                .multfu_free(ex_MULT_free), .exfu_free(ex_ALU_free), .memfu_free(2'b11), .cdb_valid(cdb_valid), .cdb_tag(cdb_tag), .entry_flush({`RS_SZ{0}}),   //Pipeline communication
                 .rob_idx(rob_idx_out), //ROB
 
                 //OUTPUT
                 .rs_stall(rs_stall), .rs_rdy(), //Hazard detect
-                .pdest_idx_out(), .prega_idx_out(), .pregb_idx_out(), .ALUop_out(), .rd_mem_out(), //FU
-                .wr_mem_out(), .rs_IR_out(), .npc_out(), .rob_idx_out(), .en_out(), //FU
+                .pdest_idx_out(dp_pdest_idx), .prega_idx_out(dp_preg_idx), .pregb_idx_out(dp_pregb_idx), 
+								.ALUop_out(dp_ALUop), .rd_mem_out(dp_rd_mem), //FU
+                .wr_mem_out(dp_wr_mem), .rs_IR_out(dp_rs_IR), .npc_out(dp_npc), 
+								.rob_idx_out(dp_rob_idx), .en_out(dp_en_out), //FU
                 .rs_idx_out() //ROB
          			 );
+
+  //////////////////////////////////////////////////
+  //                                              //
+  //            DP/EX Pipeline Register           //
+  //                                              //
+  //////////////////////////////////////////////////
+
+  always @(posedge clock)
+  begin
+    if (reset)
+    begin
+			dp_ex_LSQ_idx			<= `SD 0;
+			dp_ex_pdest_idx		<= `SD {`SCALAR{`ZERO_REG}};
+			dp_ex_prega_value	<= `SD 0;
+			dp_ex_pregb_value	<= `SD 0;
+			dp_ex_ALUop				<= `SD 0;
+			dp_ex_rd_mem			<= `SD 0;
+			dp_ex_wr_mem			<= `SD 0;
+			dp_ex_rs_IR				<= `SD {`SCALAR{`NOOP_INST}};
+			dp_ex_npc					<= `SD 0;
+			dp_ex_rob_idx			<= `SD 0;
+			dp_ex_EX_en				<= `SD 0;
+    end // if (reset)
+    else begin
+			dp_ex_LSQ_idx			<= `SD 0;	// FIXME
+			dp_ex_pdest_idx		<= `SD dp_pdest_idx;
+			dp_ex_prega_value	<= `SD dp_prega_value;
+			dp_ex_pregb_value	<= `SD dp_pregb_value;
+			dp_ex_ALUop				<= `SD dp_ALUop;
+			dp_ex_rd_mem			<= `SD dp_rd_mem;
+			dp_ex_wr_mem			<= `SD dp_wr_mem;
+			dp_ex_rs_IR				<= `SD dp_rs_IR;
+			dp_ex_npc					<= `SD dp_npc;
+			dp_ex_rob_idx			<= `SD dp_rob_idx;
+			dp_ex_EX_en				<= `SD dp_en_out;
+    end // else: !if(reset)
+  end // always
 
   //////////////////////////////////////////////////
   //                                              //
   //                  EX-Stage                    //
   //                                              //
   //////////////////////////////////////////////////
+ex_stage ex_stage0 (.clk(clock), .reset(reset),
+										// Inputs
+										.LSQ_idx(dp_ex_LSQ_idx), .pdest_idx(dp_ex_pdest_idx), 
+										.prega_value(dp_ex_prega_value), .pregb_value(dp_ex_pregb_value),  
+										.ALUop(dp_ex_ALUop), .rd_mem(dp_ex_rd_mem), .wr_mem(dp_ex_wr_mem), 
+										.rs_IR(dp_ex_rs_IR), .npc(dp_ex_npc), .rob_idx(dp_ex_rob_idx), .EX_en(dp_ex_EX_en), 
+		
+										// Inputs (from LSQ)
+										.LSQ_rob_idx(), .LSQ_pdest_idx(), .LSQ_mem_value(), .LSQ_done(), .LSQ_rd_mem(), .LSQ_wr_mem(), 
+		
+										// Outputs
+										.cdb_tag_out(ex_cdb_tag_out), .cdb_valid_out(ex_cdb_valid_out), .cdb_value_out(ex_cdb_value_out),				 	// to CDB
+										.mem_value_valid_out(ex_mem_value_valid_out), .rob_idx_out(ex_rob_idx_out), .branch_NT_out(ex_branch_NT_out), 	// to ROB
+										.ALU_free(ex_ALU_free), .MULT_free(ex_MULT_free),  																// to RS
+		
+										// Outputs (to LSQ)
+										.EX_LSQ_idx(), .EX_MEM_ADDR(), .EX_MEM_reg_value()
+
+										.ex_cdb_NPC(ex_cdb_NPC), .ex_cdb_IR(ex_cdb_IR), .ex_cdb_valid_inst(ex_cdb_valid_inst),
+										.ex_cdb_ALU_NPC(ex_cdb_ALU_NPC), .ex_cdb_ALU_IR(ex_cdb_ALU_IR), .ex_cdb_ALU_valid_inst(ex_cdb_ALU_valid_inst),
+										.ex_cdb_MULT_NPC(ex_cdb_MULT_NPC), .ex_cdb_MULT_IR(ex_cdb_MULT_IR), .ex_cdb_MULT_valid_inst(ex_cdb_MULT_valid_inst),
+										.ex_cdb_MEM_NPC(ex_cdb_MEM_NPC), .ex_cdb_MEM_IR(ex_cdb_MEM_IR), .ex_cdb_MEM_valid_inst(ex_cdb_MEM_valid_inst)
+		               );
 /*
-ex_stage ex_stage0(.clk(clock), .reset(reset),
-								// Inputs
-								.LSQ_idx(), .pdest_idx(), .prega_value(), .pregb_value(),
-								.ALUop(), .rd_mem(), .wr_mem(),
-								.rs_IR(), .npc(), .rob_idx(), .EX_en(),
+// Should connect the below signals to EX-Stage
 
-								// Inputs (from LSQ)
-								.LSQ_rob_idx(0), .LSQ_pdest_idx(0), .LSQ_mem_value(0), .LSQ_done(0), .LSQ_rd_mem(0), .LSQ_wr_mem(0),
+// Inputs from the LSQ
+	input [`ROB_IDX*`SCALAR-1:0]	LSQ_rob_idx;
+	input [`PRF_IDX*`SCALAR-1:0]	LSQ_pdest_idx;
+	input [64*`SCALAR-1:0]				LSQ_mem_value;
+	input [`SCALAR-1:0]						LSQ_done;
+	input [`SCALAR-1:0]						LSQ_rd_mem;
+	input [`SCALAR-1:0]						LSQ_wr_mem;
 
-								// Outputs
-								.cdb_tag_out(), .cdb_valid_out(), .cdb_value_out(),	// to CDB
-								.mem_value_valid_out(), .rob_idx_out(), .branch_NT_out(), // to ROB
-								.ALU_free(), .MULT_free(), // to RS
-
-								// Outputs (to LSQ)
-								.EX_LSQ_idx(), .EX_MEM_ADDR(), .EX_MEM_reg_value()
-               );
+// Outputs to the LSQ
+	output [`LSQ_IDX*`SCALAR-1:0]	EX_LSQ_idx;
+	output [64*`SCALAR-1:0]				EX_MEM_ADDR;
+	output [64*`SCALAR-1:0]				EX_MEM_reg_value;
 
 */
 
