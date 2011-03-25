@@ -468,7 +468,7 @@ module oo_pipeline (// Inputs
   //                                              //
   //////////////////////////////////////////////////
 
-  rat rat0 (.clk(clk), .reset(reset), .flush(rob_mispredict),
+  rat rat0 (.clk(clock), .reset(reset), .flush(rob_mispredict),
 						// ARF inputs
 						.rega_idx_in(id_dp_rega_idx), .regb_idx_in(id_dp_regb_idx), 
 						.dest_idx_in(id_dp_dest_reg_idx), .retire_dest_idx_in(rob_commit_dest_idx),
@@ -625,7 +625,7 @@ ex_stage ex_stage0 (.clk(clock), .reset(reset),
 										.ALU_free(ex_ALU_free), .MULT_free(ex_MULT_free),  																// to RS
 		
 										// Outputs (to LSQ)
-										.EX_LSQ_idx(), .EX_MEM_ADDR(), .EX_MEM_reg_value()
+										.EX_LSQ_idx(), .EX_MEM_ADDR(), .EX_MEM_reg_value(),
 
 										.ex_cdb_NPC(ex_cdb_NPC), .ex_cdb_IR(ex_cdb_IR), .ex_cdb_valid_inst(ex_cdb_valid_inst),
 										.ex_cdb_ALU_NPC(ex_cdb_ALU_NPC), .ex_cdb_ALU_IR(ex_cdb_ALU_IR), .ex_cdb_ALU_valid_inst(ex_cdb_ALU_valid_inst),

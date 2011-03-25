@@ -51,15 +51,21 @@ module testbench;
   integer rs_fileno, rs_idx;
   wire [31:0] rs1_IR[`RS_SZ-1:0];
   wire [63:0] rs1_npc[`RS_SZ-1:0];
-  wire [`ROB_IDX:0] rs1_rob_idx[`RS_SZ-1:0];
+  wire [`ROB_IDX-1:0] rs1_rob_idx[`RS_SZ-1:0];
   wire [`RS_SZ-1:0] rs1_rdy;
   wire [`RS_SZ-1:0] rs1_free;
+  wire [`PRF_IDX-1:0] rs1_prega_idx[`RS_SZ-1:0];
+  wire [`PRF_IDX-1:0] rs1_pregb_idx[`RS_SZ-1:0];
+  wire [`PRF_IDX-1:0] rs1_pdest_idx[`RS_SZ-1:0];
 `ifdef SUPERSCALAR
   wire [31:0] rs2_IR[`RS_SZ-1:0];
   wire [63:0] rs2_npc[`RS_SZ-1:0];
-  wire [`ROB_IDX:0] rs2_rob_idx[`RS_SZ-1:0];
+  wire [`ROB_IDX-1:0] rs2_rob_idx[`RS_SZ-1:0];
   wire [`RS_SZ-1:0] rs2_rdy;
   wire [`RS_SZ-1:0] rs2_free;
+  wire [`PRF_IDX-1:0] rs2_prega_idx[`RS_SZ-1:0];
+  wire [`PRF_IDX-1:0] rs2_pregb_idx[`RS_SZ-1:0];
+  wire [`PRF_IDX-1:0] rs2_pdest_idx[`RS_SZ-1:0];
 `endif  //SUPERSCALAR
 
 generate
@@ -70,11 +76,17 @@ genvar rs_iter;
     assign rs1_rob_idx[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.rob_idx_out;
     assign rs1_rdy[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.rdy;
     assign rs1_free[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.entry_free;
+    assign rs1_prega_idx[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.prega_idx_out;
+    assign rs1_pregb_idx[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.pregb_idx_out;
+    assign rs1_pdest_idx[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.pdest_idx_out;
     assign rs2_IR[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rs_IR_out;
     assign rs2_npc[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.npc_out;
     assign rs2_rob_idx[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rob_idx_out;
     assign rs2_rdy[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rdy;
     assign rs2_free[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.entry_free;
+    assign rs2_prega_idx[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.prega_idx_out;
+    assign rs2_pregb_idx[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.pregb_idx_out;
+    assign rs2_pdest_idx[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.pdest_idx_out;
   end
 endgenerate
 initial begin
@@ -87,15 +99,15 @@ always @(pipeline_error_status) begin
 end
 always @(posedge clock) begin
  if(~reset) begin
-  $fdisplay(rs_fileno, "|=============================== Cycle: %10d ===============================|", clock_count);
+  $fdisplay(rs_fileno, "|======================================== Cycle: %10d ====================================================|", clock_count);
   $fdisplay(rs_fileno, "inst_valid: %b rs1_sel: %b npc: %h IR: %h", pipeline_0.rs0.inst_valid, pipeline_0.rs0.rs1_sel, pipeline_0.rs0.npc, pipeline_0.rs0.rs_IR);
-  $fdisplay(rs_fileno, "|                      RS0                  |                   RS1               |");
-  $fdisplay(rs_fileno, "| IDX |   IR   |       NPC      | ROB | R/F |   IR   |       NPC      | ROB | R/F |");
-  $fdisplay(rs_fileno, "|=================================================================================|");
+  $fdisplay(rs_fileno, "|                            RS0                           |                           RS1                      |");
+  $fdisplay(rs_fileno, "| IDX |   IR   |       NPC      | ROB | RA | RB | RD | R/F |   IR   |       NPC      | ROB | RA | RB | RD | R/F |");
+  $fdisplay(rs_fileno, "|===============================================================================================================|");
   `define DISPLAY_RS(i) \
-      $fdisplay(rs_fileno, "|%4d |%7s|%16h|  %2d | %b/%b |%7s|%16h|  %2d | %b/%b |", i, \
-                get_instr_string(rs1_IR[i], !rs1_free[i]), rs1_npc[i], rs1_rob_idx[i], rs1_rdy[i], rs1_free[i], \
-                get_instr_string(rs2_IR[i], !rs2_free[i]), rs2_npc[i], rs2_rob_idx[i], rs2_rdy[i], rs2_free[i]);
+      $fdisplay(rs_fileno, "|%4d |%7s|%16h|  %02d | %02d | %02d | %02d | %b/%b |%7s|%16h|  %02d | %02d | %02d | %02d | %b/%b |", i, \
+                get_instr_string(rs1_IR[i], !rs1_free[i]), rs1_npc[i], rs1_rob_idx[i], rs1_prega_idx[i], rs1_pregb_idx[i], rs1_pdest_idx[i], rs1_rdy[i], rs1_free[i], \
+                get_instr_string(rs2_IR[i], !rs2_free[i]), rs2_npc[i], rs2_rob_idx[i], rs2_prega_idx[i], rs2_pregb_idx[i], rs2_pdest_idx[i], rs2_rdy[i], rs2_free[i]);
   `DISPLAY_RS(0) `DISPLAY_RS(1) `DISPLAY_RS(2)
   `DISPLAY_RS(3) `DISPLAY_RS(4) `DISPLAY_RS(5)
   `DISPLAY_RS(6) `DISPLAY_RS(7) `DISPLAY_RS(8)
@@ -175,34 +187,35 @@ genvar rat_iter;
 endgenerate
 always @(posedge clock) begin 
  if(~reset) begin
-  $fdisplay(rat_fileno, "\n|================= Cycle: %10d =================|", clock_count);
-  $fdisplay(rat_fileno, "| IDX | RAT PRF | RRAT PRF | IDX | RAT PRF | RRAT PRF |");
-  $fdisplay(rat_fileno, "|=====================================================|");
+  $fdisplay(rat_fileno, "\n|=============================================== Cycle: %10d ===================================|", clock_count);
+  $fdisplay(rat_fileno, "| IDX | RAT PRF | RRAT PRF | IDX | RAT PRF | RRAT PRF | IDX | RAT PRF | RRAT PRF | IDX | RAT PRF | RRAT PRF |");
+  $fdisplay(rat_fileno, "|===========================================================================================================|");
   `define DISPLAY_RAT(i) \
     $fwrite(rat_fileno, "|%4d |%8d |%9d ", \
               i, rat_value[i], rrat_value[i]);
-  `DISPLAY_RAT(0)  `DISPLAY_RAT(1)  $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(0)  `DISPLAY_RAT(1)
   `DISPLAY_RAT(16) `DISPLAY_RAT(17) $fwrite(rat_fileno, "|\n");
-  `DISPLAY_RAT(2)  `DISPLAY_RAT(3)  $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(2)  `DISPLAY_RAT(3)
   `DISPLAY_RAT(18) `DISPLAY_RAT(19) $fwrite(rat_fileno, "|\n");
-  `DISPLAY_RAT(4)  `DISPLAY_RAT(5)  $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(4)  `DISPLAY_RAT(5)
   `DISPLAY_RAT(20) `DISPLAY_RAT(21) $fwrite(rat_fileno, "|\n");
-  `DISPLAY_RAT(6)  `DISPLAY_RAT(7)  $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(6)  `DISPLAY_RAT(7)
   `DISPLAY_RAT(22) `DISPLAY_RAT(23) $fwrite(rat_fileno, "|\n");
-  `DISPLAY_RAT(8)  `DISPLAY_RAT(9)  $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(8)  `DISPLAY_RAT(9)
   `DISPLAY_RAT(24) `DISPLAY_RAT(25) $fwrite(rat_fileno, "|\n");
-  `DISPLAY_RAT(10) `DISPLAY_RAT(11) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(10) `DISPLAY_RAT(11)
   `DISPLAY_RAT(26) `DISPLAY_RAT(27) $fwrite(rat_fileno, "|\n");
-  `DISPLAY_RAT(12) `DISPLAY_RAT(13) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(12) `DISPLAY_RAT(13)
   `DISPLAY_RAT(28) `DISPLAY_RAT(29) $fwrite(rat_fileno, "|\n");
-  `DISPLAY_RAT(14) `DISPLAY_RAT(15) $fwrite(rat_fileno, "|\n");
+  `DISPLAY_RAT(14) `DISPLAY_RAT(15)
   `DISPLAY_RAT(30) `DISPLAY_RAT(31) $fwrite(rat_fileno, "|\n");
-  $fdisplay(rat_fileno, "%b", pipeline_0.rat0.fl);
+  $fdisplay(rat_fileno, "Free List:        %b", pipeline_0.rat0.fl);
+  $fwrite(rat_fileno,   "                 0|");
   for(rat_loop=4;rat_loop <= `PRF_SZ; rat_loop=rat_loop+4) begin : RAT_LOOP
     $fwrite(rat_fileno, "%3d|", rat_loop);
   end
   $fwrite(rat_fileno, "\n");
-  $fdisplay(rat_fileno, "%b", pipeline_0.rat0.rfl);
+  $fdisplay(rat_fileno, "Retire Free List: %b", pipeline_0.rat0.rfl);
  end
 end
 always @(pipeline_error_status) begin

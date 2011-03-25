@@ -47,7 +47,7 @@ module rat (clk, reset, flush,
 	assign pdest_idx_out[`SEL(`PRF_IDX,1)] = (dest_idx_in[`SEL(5,1)] == `ZERO_REG)? `ZERO_PRF: free_prf[`SEL(`PRF_IDX,1)];
 	assign pdest_idx_out[`SEL(`PRF_IDX,2)] = (dest_idx_in[`SEL(5,2)] == `ZERO_REG)? `ZERO_PRF: free_prf[`SEL(`PRF_IDX,2)];
 
-	regfile #(.IDX_WIDTH(ARF_IDX), .DATA_WIDTH(`PRF_IDX), .ZERO_REG_VAL(`ZERO_REG))
+	regfile #(.IDX_WIDTH(ARF_IDX), .DATA_WIDTH(`PRF_IDX), .ZERO_REG_VAL(`ZERO_PRF), .RESET_TO(`ZERO_PRF))
         file_rat (.wr_clk(clk), .reset(reset), .copy(flush),
 				 					.rda_idx(rega_idx_in), .rda_out(prega_idx_out_file), // reg A
                   .rdb_idx(regb_idx_in), .rdb_out(pregb_idx_out_file), // reg B
@@ -56,7 +56,7 @@ module rat (clk, reset, flush,
         	        .reg_vals_out(rat_data) //not needed
 								  ); // write port
   
-	regfile #(.IDX_WIDTH(ARF_IDX), .DATA_WIDTH(`PRF_IDX), .ZERO_REG_VAL(`ZERO_REG))
+	regfile #(.IDX_WIDTH(ARF_IDX), .DATA_WIDTH(`PRF_IDX), .ZERO_REG_VAL(`ZERO_PRF), .RESET_TO(`ZERO_PRF))
        file_rrat (.wr_clk(clk), .reset(reset), .copy(1'b0),
 				 					.rda_idx(retire_dest_idx_in), .rda_out(retire_prev_prf), // not needed
                   .rdb_idx(10'b0), .rdb_out(), // not needed

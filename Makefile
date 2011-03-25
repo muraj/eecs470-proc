@@ -35,6 +35,7 @@ SIMFILES =	verilog/oo_pipeline.v	\
 		verilog/icache.v	\
 		verilog/if_stage.v	\
 		verilog/id_stage.v	\
+		verilog/ex_stage.v	\
 		verilog/cachemem.v  \
 		verilog/rob.v			  \
 		verilog/cb.v				\

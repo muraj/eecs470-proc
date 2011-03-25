@@ -99,7 +99,7 @@ module testbench;
   begin
     clk = 1'b0;
     copy = 1'b0;
-    reset = 1'b0;
+    reset = 1'b1;
     idx = 1;
     @(negedge clk);
     // Initialize input signals
@@ -108,7 +108,8 @@ module testbench;
     rdb_idx = 0;
     wr_idx = 0;
     wr_data = 0;
-	$display("=============================================================\n");
+    reset = 1'b0;
+  	$display("=============================================================\n");
     $display("@@@ Time: %4.0f  Test case: Write/Read 1 value", $time);
     $display("=============================================================\n");
     @(negedge clk);
@@ -127,7 +128,7 @@ module testbench;
 
     idx = idx + 1;
 
-	$display("=============================================================\n");
+/*	$display("=============================================================\n");
     $display("@@@ Time: %4.0f  Test case: Write forward 1 value", $time);
     $display("=============================================================\n");
     @(negedge clk);
@@ -143,10 +144,9 @@ module testbench;
         $display("@@@ Success! Time: %4.0f  Test case: Write/Read 1 value", $time);
     @(negedge clk);
     wr_en[1] = 0;  //Disable write
-
+*/
     idx = idx + 1;
-
-	$display("=============================================================\n");
+/*	$display("=============================================================\n");
     $display("@@@ Time: %4.0f  Test case: Write forward 1 value superscalar", $time);
     $display("=============================================================\n");
     @(negedge clk);
@@ -162,10 +162,10 @@ module testbench;
         $display("@@@ Success! Time: %4.0f  Test case: Write/Read 1 value", $time);
     @(negedge clk);
     wr_en[1] = 0;  //Disable write
-
+*/
     idx = idx + 1;
-
-	$display("=============================================================\n");
+	
+  $display("=============================================================\n");
     $display("@@@ Time: %4.0f  Test case: Write/Read 4 values superscalar", $time);
     $display("=============================================================\n");
     @(negedge clk);
