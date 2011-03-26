@@ -101,7 +101,8 @@ always @(posedge clock) begin
  if(~reset) begin
   $fdisplay(rs_fileno, "|======================================== Cycle: %10d ====================================================|", clock_count);
   $fdisplay(rs_fileno, "inst_valid: %b rs1_sel: %b npc: %h IR: %h", pipeline_0.rs0.inst_valid, pipeline_0.rs0.rs1_sel, pipeline_0.rs0.npc, pipeline_0.rs0.rs_IR);
-  $fdisplay(rs_fileno, "rega_idx: %h, regb_idx: %h", pipeline_0.id_stage_0.id_ra_idx_out, pipeline_0.id_stage_0.id_rb_idx_out);
+  $fdisplay(rs_fileno, "rega_idx: %h, regb_idx: %h", pipeline_0.id_dp_rega_idx, pipeline_0.id_dp_regb_idx);
+  $fdisplay(rs_fileno, "prega_v: %b, pregb_v: %b", pipeline_0.rs0.rs0.entries[15].entry.prega_valid, pipeline_0.rs0.rs0.entries[15].entry.pregb_valid, pipeline_0.rs0.rs0.entries[15].entry.rdy);
   $fdisplay(rs_fileno, "|                            RS0                           |                           RS1                      |");
   $fdisplay(rs_fileno, "| IDX |   IR   |       NPC      | ROB | RA | RB | RD | R/F |   IR   |       NPC      | ROB | RA | RB | RD | R/F |");
   $fdisplay(rs_fileno, "|===============================================================================================================|");
@@ -188,7 +189,10 @@ genvar rat_iter;
 endgenerate
 always @(posedge clock) begin 
  if(~reset) begin
-  $fdisplay(rat_fileno, "\n|=============================================== Cycle: %10d ===================================|", clock_count);
+  $fdisplay(rat_fileno, "\n|=============================================== Cycle: %10d =========================================|", clock_count);
+  $fdisplay(rat_fileno, "prega_idx_out_file: %h, pregb_idx_out_file: %h prega_idx_out: %h pregb_idx_out: %h",
+            pipeline_0.rat0.prega_idx_out_file, pipeline_0.rat0.pregb_idx_out_file, pipeline_0.rat0.prega_idx_out, pipeline_0.rat0.pregb_idx_out);
+  $fdisplay(rat_fileno, "prega_valid: %b, pregb_valid: %b", pipeline_0.rat0.prega_valid_out, pipeline_0.rat0.pregb_valid_out);
   $fdisplay(rat_fileno, "| IDX | RAT PRF | RRAT PRF | IDX | RAT PRF | RRAT PRF | IDX | RAT PRF | RRAT PRF | IDX | RAT PRF | RRAT PRF |");
   $fdisplay(rat_fileno, "|===========================================================================================================|");
   `define DISPLAY_RAT(i) \
@@ -212,11 +216,17 @@ always @(posedge clock) begin
   `DISPLAY_RAT(30) `DISPLAY_RAT(31) $fwrite(rat_fileno, "|\n");
   $fdisplay(rat_fileno, "Free List:        %b", pipeline_0.rat0.fl);
   $fwrite(rat_fileno,   "                 0|");
-  for(rat_loop=4;rat_loop <= `PRF_SZ; rat_loop=rat_loop+4) begin : RAT_LOOP
+  for(rat_loop=4;rat_loop <= `PRF_SZ; rat_loop=rat_loop+4) begin : RAT_LOOP0
     $fwrite(rat_fileno, "%3d|", rat_loop);
   end
   $fwrite(rat_fileno, "\n");
   $fdisplay(rat_fileno, "Retire Free List: %b", pipeline_0.rat0.rfl);
+  $fwrite(rat_fileno,   "                 0|");
+  for(rat_loop=4;rat_loop <= `PRF_SZ; rat_loop=rat_loop+4) begin : RAT_LOOP1
+    $fwrite(rat_fileno, "%3d|", rat_loop);
+  end
+  $fwrite(rat_fileno, "\n");
+  $fdisplay(rat_fileno, "Valid List:       %b", pipeline_0.rat0.valid_list);
  end
 end
 always @(pipeline_error_status) begin

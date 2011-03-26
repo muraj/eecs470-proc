@@ -195,7 +195,6 @@ module oo_pipeline (// Inputs
   // PRF
   wire  [`SCALAR-1:0]  prf_valid_prega;
   wire  [`SCALAR-1:0]  prf_valid_pregb;
-  reg   [`PRF_SZ-1:0] prf_valid;
 
   // Reservation Station wires
   wire  [`SCALAR-1:0]  rs_stall;
@@ -473,7 +472,10 @@ module oo_pipeline (// Inputs
 						.rega_idx_in(id_dp_rega_idx), .regb_idx_in(id_dp_regb_idx), 
 						.dest_idx_in(id_dp_dest_reg_idx), .retire_dest_idx_in(rob_commit_dest_idx),
 						// PRF i/o
-						.prega_idx_out(rat_prega_idx), .pregb_idx_out(rat_pregb_idx),
+						.prega_idx_out(rat_prega_idx), .prega_valid_out(prf_valid_prega),
+            .pregb_idx_out(rat_pregb_idx), .pregb_valid_out(prf_valid_pregb),
+            //CDB input
+            .cdb_en(cdb_valid), .cdb_tag(cdb_tag), //FIXME
 						.pdest_idx_out(rat_pdest_idx), .retire_pdest_idx_in(rob_commit_pdest_idx),
 						// enable signals for rat and rrat
 						.issue(id_dp_valid_inst), .retire(rob_valid_out)
@@ -508,41 +510,7 @@ module oo_pipeline (// Inputs
 						.branch_miss(rob_mispredict), .ba_out(rob_target_pc)
 						);
 
-    //prf valid update
-    generate
-    genvar prf_idx;
-    for(prf_idx=0;prf_idx<`PRF_SZ;prf_idx=prf_idx+1) begin : PRF_VALID_RST
-        always @(posedge clock) begin
-            if(reset) begin
-                prf_valid[prf_idx] <= `SD (prf_idx == `ZERO_REG ? 1 : 0);   // ZERO_REG is always valid
-            end
-        end
-    end
-    endgenerate
-    assign prf_valid_prega[0] = prf_valid[rat_prega_idx[`SEL(`PRF_IDX,1)]];
-    assign prf_valid_pregb[0] = prf_valid[rat_pregb_idx[`SEL(`PRF_IDX,1)]];
-`ifdef SUPERSCALAR
-    assign prf_valid_prega[1] = prf_valid[rat_prega_idx[`SEL(`PRF_IDX,2)]];
-    assign prf_valid_pregb[1] = prf_valid[rat_pregb_idx[`SEL(`PRF_IDX,2)]];
-`endif
-    always @(posedge clock) begin
-        if(cdb_valid[0]) begin
-            prf_valid[cdb_tag[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
-        end
-        if(if_id_valid_inst[0]) begin
-            prf_valid[rat_pdest_idx[`SEL(`PRF_IDX, 1)]] <= `SD 1'b0;
-        end
-    `ifdef SUPERSCALAR
-        if(cdb_valid[1]) begin
-            prf_valid[cdb_tag[`SEL(`PRF_IDX,2)]] <= `SD 1'b1;
-        end
-        if(if_id_valid_inst[1]) begin
-            prf_valid[rat_pdest_idx[`SEL(`PRF_IDX, 2)]] <= `SD 1'b0;
-        end
-    `endif
-    end
-
-  regfile #(.IDX_WIDTH(`PRF_IDX), .DATA_WIDTH(64))
+  regfile #(.IDX_WIDTH(`PRF_IDX), .DATA_WIDTH(64), .ZERO_REGISTER(`ZERO_PRF))
   PRF(.rda_idx(dp_prega_idx), .rda_out(dp_prega_value),
       .rdb_idx(dp_pregb_idx), .rdb_out(dp_pregb_value),
       .reg_vals_out(),
@@ -560,7 +528,7 @@ module oo_pipeline (// Inputs
 
                 //OUTPUT
                 .rs_stall(rs_stall), .rs_rdy(), //Hazard detect
-                .pdest_idx_out(dp_pdest_idx), .prega_idx_out(dp_preg_idx), .pregb_idx_out(dp_pregb_idx), 
+                .pdest_idx_out(dp_pdest_idx), .prega_idx_out(dp_prega_idx), .pregb_idx_out(dp_pregb_idx), 
 								.ALUop_out(dp_ALUop), .rd_mem_out(dp_rd_mem), //FU
                 .wr_mem_out(dp_wr_mem), .rs_IR_out(dp_rs_IR), .npc_out(dp_npc), 
 								.rob_idx_out(dp_rob_idx), .en_out(dp_en_out), //FU

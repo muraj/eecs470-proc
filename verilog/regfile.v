@@ -18,6 +18,7 @@ module regfile(rda_idx, rda_out,                // read port A
   //synopsys template
   parameter IDX_WIDTH = `PRF_IDX;
   parameter DATA_WIDTH  = 64;
+  parameter ZERO_REGISTER = `ZERO_REG;
   parameter ZERO_REG_VAL = 0;
   parameter RESET_TO = 0;
   parameter REG_SZ  = 1<<IDX_WIDTH;
@@ -41,7 +42,7 @@ module regfile(rda_idx, rda_out,                // read port A
   // Read port A
   //
   always @* begin
-    if (rda_idx[`SEL(IDX_WIDTH,1)] == `ZERO_REG)
+    if (rda_idx[`SEL(IDX_WIDTH,1)] == ZERO_REGISTER)
       rda_out[`SEL(DATA_WIDTH,1)] = ZERO_REG_VAL;
 /*    else if (wr_en[0] && (wr_idx[`SEL(IDX_WIDTH,1)] == rda_idx[`SEL(IDX_WIDTH, 1)]))
       rda_out[`SEL(DATA_WIDTH,1)] = wr_data[`SEL(DATA_WIDTH,1)];  // internal forwarding
@@ -52,7 +53,7 @@ module regfile(rda_idx, rda_out,                // read port A
   */  else
       rda_out[`SEL(DATA_WIDTH,1)] = rda_reg[`SEL(DATA_WIDTH,1)];
   `ifdef SUPERSCALAR
-    if (rda_idx[`SEL(IDX_WIDTH,2)] == `ZERO_REG)
+    if (rda_idx[`SEL(IDX_WIDTH,2)] == ZERO_REGISTER)
       rda_out[`SEL(DATA_WIDTH,2)] = ZERO_REG_VAL;
 /*    else if (wr_en[0] && (wr_idx[`SEL(IDX_WIDTH,1)] == rda_idx[`SEL(IDX_WIDTH, 2)]))
       rda_out[`SEL(DATA_WIDTH,2)] = wr_data[`SEL(DATA_WIDTH,1)];  // internal forwarding
@@ -67,7 +68,7 @@ module regfile(rda_idx, rda_out,                // read port A
   // Read port B
   //
   always @* begin
-    if (rdb_idx[`SEL(IDX_WIDTH,1)] == `ZERO_REG)
+    if (rdb_idx[`SEL(IDX_WIDTH,1)] == ZERO_REGISTER)
       rdb_out[`SEL(DATA_WIDTH,1)] = ZERO_REG_VAL;
 /*    else if (wr_en[0] && (wr_idx[`SEL(IDX_WIDTH,1)] == rdb_idx[`SEL(IDX_WIDTH, 1)]))
       rdb_out[`SEL(DATA_WIDTH,1)] = wr_data[`SEL(DATA_WIDTH,1)];  // internal forwarding
@@ -78,7 +79,7 @@ module regfile(rda_idx, rda_out,                // read port A
 */    else
       rdb_out[`SEL(DATA_WIDTH,1)] = rdb_reg[`SEL(DATA_WIDTH,1)];
   `ifdef SUPERSCALAR
-    if (rdb_idx[`SEL(IDX_WIDTH,2)] == `ZERO_REG)
+    if (rdb_idx[`SEL(IDX_WIDTH,2)] == ZERO_REGISTER)
       rdb_out[`SEL(DATA_WIDTH,2)] = ZERO_REG_VAL;
 /*    else if (wr_en[0] && (wr_idx[`SEL(IDX_WIDTH,1)] == rdb_idx[`SEL(IDX_WIDTH, 2)]))
       rdb_out[`SEL(DATA_WIDTH,2)] = wr_data[`SEL(DATA_WIDTH,1)];  // internal forwarding
@@ -94,7 +95,7 @@ module regfile(rda_idx, rda_out,                // read port A
   for(i=0;i<REG_SZ;i=i+1) begin : REG_RESET
       assign reg_vals_out[`SEL(DATA_WIDTH, i+1)] = registers[i];
       always @(posedge wr_clk) begin
-        if (i == `ZERO_REG)
+        if (i == ZERO_REGISTER)
             registers[i] <= `SD ZERO_REG_VAL;
         else if (reset)
             registers[i] <= `SD RESET_TO;
