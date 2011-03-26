@@ -1,9 +1,9 @@
 `timescale 1ns/100ps
 
-//FIXME : (Solved) ZERO REGISTER FOR ARF
-//FIXME : (Solved) ERROR: When it commits, REG 0 becomes free both in RAT and RRAT [check Test case2:in then out] (see free list)
-//FIXME : ERROR: Unlike RAT, when two PRFs commit to same ARF, only the PRFs that are mapped to ARF should be not free in RRAT. [check Test case4: mapped to same ARF]
-//FIXME : ERROR: PRF 6, 8 doesn't work in RAT [check Test case5 : issue & commit same time] 
+//FIXME : (Resolved) ZERO REGISTER FOR ARF
+//FIXME : (Resolved) ERROR: When it commits, REG 0 becomes free both in RAT and RRAT [check Test case2:in then out] (see free list)
+//FIXME : (Resolved) ERROR: Unlike RAT, when two PRFs commit to same ARF, only the PRFs that are mapped to ARF should be not free in RRAT. [check Test case4: mapped to same ARF]
+//FIXME : (Resolved) ERROR: PRF 6, 8 doesn't work in RAT [check Test case5 : issue & commit same time] 
 
 module testbench;
 
@@ -136,22 +136,9 @@ rat  #(.ARF_IDX(`RAT_IDX)) rat0 (clk, reset, flush,
     $display("==================");
     $display(" IDX | RAT | RRAT   ");
     $display("==================");
-    `DISPLAY_ENTRY_RAT(15)
-    `DISPLAY_ENTRY_RAT(14) 
-    `DISPLAY_ENTRY_RAT(13) 
-    `DISPLAY_ENTRY_RAT(12) 
-    `DISPLAY_ENTRY_RAT(11) 
-    `DISPLAY_ENTRY_RAT(10) 
-    `DISPLAY_ENTRY_RAT(09)
-    `DISPLAY_ENTRY_RAT(08)
-    `DISPLAY_ENTRY_RAT(07)
-    `DISPLAY_ENTRY_RAT(06)
-    `DISPLAY_ENTRY_RAT(05)
-    `DISPLAY_ENTRY_RAT(04)
-    `DISPLAY_ENTRY_RAT(03)
-    `DISPLAY_ENTRY_RAT(02)
-    `DISPLAY_ENTRY_RAT(01)
-    `DISPLAY_ENTRY_RAT(00)
+		for(idx=0; idx<`RAT_SZ; idx=idx+1) begin
+			`DISPLAY_ENTRY_RAT(idx)
+		end
     $display("==================\n"); 
     
 	  end
@@ -159,20 +146,40 @@ rat  #(.ARF_IDX(`RAT_IDX)) rat0 (clk, reset, flush,
 	
 	task show_freelist;
 	  begin
-		 `define DISPLAY_FREE(i) \
+		 `define DISPLAY_FREE_RAT(i) \
     $display(" %2d  |  %2d  |  %2d", i, rat0.fl[i], rat0.rfl[i]);
 
-    $display("======FREE========");
+    $display("====FREE LIST=====");
     $display(" IDX | RAT | RRAT   ");
     $display("==================");
 		for(idx=0; idx<`PRF_SZ; idx=idx+1)
 			begin    
-				`DISPLAY_FREE(idx)
+				`DISPLAY_FREE_RAT(idx)
 			end
     $display("==================\n"); 
     
 	  end
 	endtask
+
+	task check;
+  input [`ARF_IDX-1:0] rat_address;
+  input [`PRF_IDX-1:0] rat_value;
+  input [`ARF_IDX-1:0] rrat_address;
+  input [`PRF_IDX-1:0] rrat_value;
+	begin
+		if (rat0.file_rat.registers[rat_address] != rat_value) begin
+			$display("### Check failed: \nRAT[%2d]=%2d expected, but is instead %2d", rat_address, rat_value, rat0.file_rat.registers[rat_address]);
+			$finish;
+		end
+
+		if (rat0.file_rrat.registers[rrat_address] != rrat_value) begin
+			$display("### Check failed: \nRRAT[%2d]=%2d expected, but is instead %2d", rrat_address, rrat_value, rat0.file_rrat.registers[rrat_address]);
+			$finish;
+		end
+
+	end
+	endtask
+
 
 task reset_all;
 begin
@@ -180,6 +187,8 @@ begin
   rega_idx_in=0; regb_idx_in=0; dest_idx_in=0; retire_dest_idx_in=0;
   issue=2'b00; retire=2'b00;
 	retire_pdest_idx_in=0;
+	reset = 1'b1; @(negedge clk); reset = 1'b0; @(negedge clk);
+	$display("\n### RESETTING ALL...\n");
 end
 endtask
 	
@@ -187,18 +196,17 @@ always
   begin
     #(`VERILOG_CLOCK_PERIOD/2.0);
     clk = ~clk;
+		// always check for zero PRF mapping
+		check(`ZERO_REG,`ZERO_PRF,`ZERO_REG,`ZERO_PRF);
   end
 
 initial begin
-
+	clk = 1'b0;
 	reset_all();
-	reset = 1'b1; @(negedge clk); reset = 1'b0;
 	show_RAT();@(negedge clk);
 	$display("============================================================================================ ");
   $display(" TEST1: RANDOM INSERT  ");
   $display("============================================================================================ ");
-
- 
 
 	new_inst(2,4,5);show_io();@(negedge clk);show_RAT();
 	new_inst(2,12,2);show_io();@(negedge clk);show_RAT();
@@ -206,12 +214,11 @@ initial begin
 	new_inst(2,7,8);show_io();@(negedge clk);show_RAT();
 	new_inst(0,9,2);show_io();@(negedge clk);show_RAT();
 //	show_freelist();
-	reset_all();
-	reset = 1'b1; @(negedge clk); reset = 1'b0;show_freelist();
 
 	$display("============================================================================================ ");
   $display(" TEST2: In-order INSERT & REMOVE   ");
   $display("============================================================================================ ");
+	reset_all();
 	show_RAT();@(negedge clk);
 //	show_freelist();
 	
@@ -227,23 +234,27 @@ initial begin
 	retire_inst(2,5,61,6,3);show_io();@(negedge clk);show_RAT();
 	retire_inst(2,7,60,8,4);show_io();@(negedge clk);show_RAT();
 	retire_inst(2,9,59,10,5);show_io();@(negedge clk);show_RAT();
-	
-	reset_all();
-	reset = 1'b1; @(negedge clk); reset = 1'b0;show_freelist();
 
 	$display("============================================================================================ ");
   $display(" TEST3: ZERO REGISTER HANDLE");
   $display("============================================================================================ ");
-	show_RAT();@(negedge clk);
-	new_inst(2,0,1);show_io();@(negedge clk);show_RAT(); // PRF 63 != ARF 0, PRF 1 to ARF 1
-	new_inst(2,0,0);show_io();@(negedge clk);show_RAT(); // PRF 63 != ARF 0, PRF 2 != ARF 0
+	reset_all();
+
+	new_inst(2,31,1);show_io();@(negedge clk);show_RAT(); // PRF 63 != ARF 0, PRF 1 to ARF 1
+	check(1,1,31,0);
+	new_inst(2,31,31);show_io();@(negedge clk);show_RAT(); // PRF 63 != ARF 0, PRF 2 != ARF 0
+	check(1,1,31,0);
 	new_inst(2,2,3);show_io();@(negedge clk);show_RAT(); // PRF 63 to ARF 2, PRF 2 to ARF 3
+	check(2,63,31,0);
+	check(3,2,31,0);
 	issue = 2'd0;
-	retire_inst(2,0,63,1,1);show_io();@(negedge clk);show_RAT();  
-	retire_inst(2,2,62,0,2);show_io();@(negedge clk);show_RAT();  
+	retire_inst(2,31,63,1,1);show_io();@(negedge clk);show_RAT();  
+	check(31,0,1,1);
+	retire_inst(2,2,63,31,2);show_io();@(negedge clk);show_RAT();  
+	check(2,63,2,63);
 
 	reset_all();
-	reset = 1'b1; @(negedge clk); reset = 1'b0;show_freelist();
+	show_freelist();
 
 	$display("============================================================================================ ");
   $display(" TEST4: MAPPED TO SAME ARF");
@@ -251,18 +262,20 @@ initial begin
 	show_RAT();@(negedge clk);
   //Way 2 should overwrite Way 1 
 	new_inst(2,1,1);show_io();@(negedge clk);show_RAT(); // PRF 63 != ARF 1, PRF 1 to ARF 1
+	check(1,1,31,0);
 	new_inst(2,2,2);show_io();@(negedge clk);show_RAT(); // PRF 62 != ARF 2, PRF 2 to ARF 2
+	check(2,2,31,0);
 	new_inst(2,3,3);show_io();@(negedge clk);show_RAT(); // PRF 61 != ARF 3, PRF 3 to ARF 3
+	check(3,3,31,0);
 	show_freelist(); //should show Way1 registers are not free althought they are not mapped
-	issue[0] = 1'b0;
-  issue[1] = 1'b0;
-	retire_inst(2,1,63,1,1);show_io();@(negedge clk);show_RAT();  
-	retire_inst(2,2,62,2,2);show_io();@(negedge clk);show_RAT();
+	issue = 2'd0;
+	retire_inst(1,1,63,1,1);show_io();@(negedge clk);show_RAT();show_freelist(); 
+	retire_inst(1,1,1,1,1);show_io();@(negedge clk);show_RAT();show_freelist();
+	retire_inst(2,2,62,2,2);show_io();@(negedge clk);show_RAT();show_freelist();
 	retire_inst(2,3,61,3,3);show_io();@(negedge clk);show_RAT();
-	show_freelist(); // ERROR: Those are not mapped to ARF are not free RRAT
+	show_freelist(); // (resolved) ERROR: Those are not mapped to ARF are not free RRAT
 
-	reset_all();
-	reset = 1'b1; @(negedge clk); reset = 1'b0;show_freelist();
+	reset_all();	show_freelist();
 
 	$display("============================================================================================ ");
   $display(" TEST5: ISSUE and RETIRE @ sametime");
@@ -271,14 +284,17 @@ initial begin
 	new_inst(2,1,2);show_io();@(negedge clk);show_RAT();
   retire_inst(2,1,63,2,1);//show_io();@(negedge clk);show_RAT();
 	new_inst(2,3,4);show_io();@(negedge clk);show_RAT();show_freelist(); 
+	check(3,62,1,63);
+	check(4,2,2,1);
 	retire_inst(2,3,62,4,2);//show_io();//@(negedge clk);show_RAT();
 	new_inst(2,5,6);show_io();@(negedge clk);show_RAT();show_freelist(); 
+	check(5,61,3,62);
+	check(6,3,4,2);
 	retire_inst(2,5,61,6,3);//show_io();//@(negedge clk);show_RAT();
 	new_inst(2,7,8);show_io();@(negedge clk);show_RAT();show_freelist(); //ERROR: PRF 6, 8 doesn't work in RAT. 
 	retire_inst(2,7,60,8,4);//show_io();//@(negedge clk);show_RAT();	
 	new_inst(2,9,10);show_io();@(negedge clk);show_RAT();
-	issue[0] = 1'b0;
-  issue[1] = 1'b0;
+	issue = 2'd0;
 	retire_inst(2,9,59,10,5);show_io();//@(negedge clk);show_RAT();
 
 	reset_all();
@@ -292,15 +308,13 @@ initial begin
 	new_inst(2,5,6);show_io();@(negedge clk);show_RAT();
 	new_inst(2,7,8);show_io();@(negedge clk);show_RAT();
 	new_inst(2,9,10);show_io();@(negedge clk);show_RAT();
-	issue[0] = 1'b0;
-  issue[1] = 1'b0;
+	issue = 2'd0;
 	retire_inst(2,1,63,2,1);show_io();@(negedge clk);show_RAT();
 	retire_inst(2,3,62,4,2);show_io();@(negedge clk);show_RAT();
 	retire_inst(2,5,61,6,3);show_io();@(negedge clk);show_RAT();
 	retire_inst(2,7,60,8,4);show_io();@(negedge clk);show_RAT();
 	retire_inst(2,9,59,10,5);show_io();@(negedge clk);show_RAT();
-	retire[0] = 1'b0;
-	retire[1] = 1'b0;
+	retire = 2'd0;
 	new_inst(2,1,2);show_io();@(negedge clk);show_RAT();
 	new_inst(2,3,4);show_io();@(negedge clk);show_RAT();
 	new_inst(2,5,6);show_io();@(negedge clk);show_RAT();
@@ -311,6 +325,9 @@ initial begin
 	show_freelist();
 	flush=0;
 
+
+	
+  $display("@@@ Success: All Testcases Passed!\n"); 
 	$finish;
 end
 

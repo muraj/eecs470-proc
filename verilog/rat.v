@@ -8,7 +8,7 @@ module rat (clk, reset, flush,
 						issue, retire
 				 	 );
 	//synopsys template		
-  parameter ARF_IDX = 5;
+  parameter ARF_IDX = `ARF_IDX;
   parameter RAT_SZ  = 1<<ARF_IDX;
 						
   input   clk, reset, flush;
@@ -60,7 +60,7 @@ module rat (clk, reset, flush,
   
 	regfile #(.IDX_WIDTH(ARF_IDX), .DATA_WIDTH(`PRF_IDX), .ZERO_REG_VAL(`ZERO_PRF), .RESET_TO(`ZERO_PRF))
        file_rrat (.wr_clk(clk), .reset(reset), .copy(1'b0),
-				 					.rda_idx(retire_dest_idx_in), .rda_out(retire_prev_prf), // not needed
+				 					.rda_idx(retire_dest_idx_in), .rda_out(retire_prev_prf),
                   .rdb_idx(10'b0), .rdb_out(), // not needed
          	  	    .wr_idx(retire_dest_idx_in), .wr_data(retire_pdest_idx_in), .wr_en(retire_file), 
         	        .reg_vals_in(rrat_data),
@@ -86,7 +86,7 @@ module rat (clk, reset, flush,
 	always @(posedge clk) begin
 		
 		if (reset) begin
-			// free list for zero register should always be 0
+			// free list for zero PRF should always be 0
 			fl  <= `SD {{`PRF_SZ-1{1'b1}},1'b0};
 			rfl <= `SD {{`PRF_SZ-1{1'b1}},1'b0};
 		end else if (flush) begin
@@ -107,6 +107,13 @@ module rat (clk, reset, flush,
 					// in the regular free list as well
 					fl[retire_prev_prf[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
 				end
+				// if way1 overwrites way2, then need to free up way1
+				if (retire_dest_idx_in[`SEL(ARF_IDX,1)] == retire_dest_idx_in[`SEL(ARF_IDX,2)]) begin
+					rfl[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
+					// in the regular free list as well
+					fl[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
+				end
+
 			end
 			if (retire_file[1]) begin
 				rfl[retire_pdest_idx_in[`SEL(`PRF_IDX,2)]] <= `SD 1'b0; // new prf retired
