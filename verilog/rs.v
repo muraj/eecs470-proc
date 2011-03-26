@@ -176,9 +176,18 @@ module rs_entry(clk, reset,
 
   wire rdy = !entry_free & (prega_rdy | next_prega_rdy) & (pregb_rdy | next_pregb_rdy ); 
 
+  wor cdb_prega_valid;
+  wor cdb_pregb_valid;
+  assign cdb_prega_valid = cdb_valid[0] && (cdb_tag[`SEL(`PRF_IDX,1)] == prega_idx_out);
+  assign cdb_pregb_valid = cdb_valid[0] && (cdb_tag[`SEL(`PRF_IDX,1)] == pregb_idx_out);
+  `ifdef SUPERSCALAR
+  assign cdb_prega_valid = cdb_valid[1] && (cdb_tag[`SEL(`PRF_IDX,2)] == prega_idx_out);
+  assign cdb_pregb_valid = cdb_valid[1] && (cdb_tag[`SEL(`PRF_IDX,2)] == pregb_idx_out);
+  `endif
+
   always@*
   begin
-    next_entry_free = entry_free | entry_sel;
+    next_entry_free = (entry_free | entry_sel);
     next_pdest_idx_out = pdest_idx_out;
     next_prega_idx_out = prega_idx_out; 
     next_pregb_idx_out = pregb_idx_out; 
@@ -188,6 +197,11 @@ module rs_entry(clk, reset,
     next_rs_IR_out = rs_IR_out;
     next_npc_out = npc_out;
     next_rob_idx_out = rob_idx_out;
+    next_prega_rdy = 0;
+    next_pregb_rdy = 0;
+	  mem_rdy =  rdy & (rd_mem_out | wr_mem_out);
+  	mult_rdy = rdy && ALUop_out == `ALU_MULQ;
+  	ALU_rdy = rdy & !mem_rdy & !mult_rdy; 
 
     if(entry_en) begin  //Newly allocated entry
       next_entry_free = 1'b0;
@@ -200,33 +214,13 @@ module rs_entry(clk, reset,
       next_rs_IR_out = rs_IR;
       next_npc_out = npc;
       next_rob_idx_out = rob_idx;
+      next_prega_rdy = prega_valid;
+      next_pregb_rdy = pregb_valid;
     end
-  
-  `ifdef SUPERSCALAR
-    next_prega_rdy = entry_free ? 0 :
-                        prega_rdy ? prega_rdy :
-                         ((entry_en & prega_valid) | 
-                          (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==(entry_en ? next_prega_idx_out : prega_idx_out))) | 
-                          (cdb_valid[1] & (cdb_tag[`SCALAR*`PRF_IDX-1:`PRF_IDX]==(entry_en ? next_prega_idx_out : prega_idx_out))));
-    next_pregb_rdy = entry_free ? 0 :
-                        pregb_rdy ? pregb_rdy :
-                         ((entry_en & pregb_valid) | 
-                          (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==(entry_en ? next_pregb_idx_out : pregb_idx_out))) | 
-                          (cdb_valid[1] & (cdb_tag[`SCALAR*`PRF_IDX-1:`PRF_IDX]==(entry_en ? next_pregb_idx_out : pregb_idx_out))));
-  `else
-    next_prega_rdy = entry_free ? 0 :
-                        prega_rdy ? prega_rdy :
-                         ((entry_en & prega_valid) | 
-                          (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==(entry_en ? next_prega_idx_out : prega_idx_out)));
-    next_pregb_rdy = entry_free ? 0 :
-                        pregb_rdy ? pregb_rdy :
-                         ((entry_en & pregb_valid) | 
-                          (cdb_valid[0] & (cdb_tag[`PRF_IDX-1:0]==(entry_en ? next_pregb_idx_out : pregb_idx_out)));
-  `endif
-
-	mem_rdy =  rdy & (rd_mem_out | wr_mem_out);
-	mult_rdy = rdy && ALUop_out == `ALU_MULQ;
-	ALU_rdy = rdy & !mem_rdy & !mult_rdy; 
+    else if(!entry_free) begin
+      next_prega_rdy = prega_rdy | cdb_prega_valid;
+      next_pregb_rdy = pregb_rdy | cdb_pregb_valid;
+    end
   end
    
   always @(posedge clk)

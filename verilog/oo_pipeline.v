@@ -1,4 +1,4 @@
-/////////////////////////////////////////////////////////////////////////
+
 //                                                                     //
 //   Modulename :  oo_pipeline.v                                       //
 //                                                                     //
@@ -524,6 +524,7 @@ module oo_pipeline (// Inputs
                 .inst_valid(id_dp_valid_inst), .prega_idx(rat_prega_idx), .pregb_idx(rat_pregb_idx), .pdest_idx(rat_pdest_idx), .prega_valid(prf_valid_prega), .pregb_valid(prf_valid_pregb), //RAT
                 .ALUop(id_dp_alu_func), .rd_mem(id_dp_rd_mem), .wr_mem(id_dp_wr_mem), .rs_IR(id_dp_IR), . npc(id_dp_NPC), .cond_branch(id_dp_cond_branch), .uncond_branch(id_dp_uncond_branch),     //Issue Stage
                 .multfu_free(ex_MULT_free), .exfu_free(ex_ALU_free), .memfu_free(2'b11), .cdb_valid(cdb_valid), .cdb_tag(cdb_tag), .entry_flush({`RS_SZ{0}}),   //Pipeline communication
+//                .multfu_free(2'b0), .exfu_free(2'b0), .memfu_free(2'b11), .cdb_valid(cdb_valid), .cdb_tag(cdb_tag), .entry_flush({`RS_SZ{0}}),   //Pipeline communication - Disable ex_stage
                 .rob_idx(rob_idx_out), //ROB
 
                 //OUTPUT
