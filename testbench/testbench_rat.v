@@ -1,9 +1,9 @@
 `timescale 1ns/100ps
 
-//FIX ME : ZERO REGISTER FOR ARF (Solved)
-//FIX ME : ERROR: When it commits, REG 0 becomes free both in RAT and RRAT [check Test case2:in then out] (see free list)
-//FIX ME : ERROR: Unlike RAT, when two PRFs commit to same ARF, only the PRFs that are mapped to ARF should be not free in RRAT. [check Test case4: mapped to same ARF]
-//FIX ME : ERROR: PRF 6, 8 doesn't work in RAT [check Test case5 : issue & commit same time] 
+//FIXME : (Solved) ZERO REGISTER FOR ARF
+//FIXME : (Solved) ERROR: When it commits, REG 0 becomes free both in RAT and RRAT [check Test case2:in then out] (see free list)
+//FIXME : ERROR: Unlike RAT, when two PRFs commit to same ARF, only the PRFs that are mapped to ARF should be not free in RRAT. [check Test case4: mapped to same ARF]
+//FIXME : ERROR: PRF 6, 8 doesn't work in RAT [check Test case5 : issue & commit same time] 
 
 module testbench;
 
@@ -176,7 +176,7 @@ rat  #(.ARF_IDX(`RAT_IDX)) rat0 (clk, reset, flush,
 
 task reset_all;
 begin
-  clk=0; reset=0; flush=0;
+  reset=0; flush=0;
   rega_idx_in=0; regb_idx_in=0; dest_idx_in=0; retire_dest_idx_in=0;
   issue=2'b00; retire=2'b00;
 	retire_pdest_idx_in=0;
@@ -220,11 +220,9 @@ initial begin
 	new_inst(2,5,6);show_io();@(negedge clk);show_RAT();
 	new_inst(2,7,8);show_io();@(negedge clk);show_RAT();
 	new_inst(2,9,10);show_io();@(negedge clk);show_RAT();
-	issue[0] = 1'b0;
-  issue[1] = 1'b0;
+	issue = 2'd0;
 //show_freelist(); ERROR When it commits, REG 0 becomes free both in RAT and RRAT
 	retire_inst(2,1,63,2,1);show_io();@(negedge clk);show_RAT();
-//show_freelist();
 	retire_inst(2,3,62,4,2);show_io();@(negedge clk);show_RAT();
 	retire_inst(2,5,61,6,3);show_io();@(negedge clk);show_RAT();
 	retire_inst(2,7,60,8,4);show_io();@(negedge clk);show_RAT();
@@ -240,8 +238,7 @@ initial begin
 	new_inst(2,0,1);show_io();@(negedge clk);show_RAT(); // PRF 63 != ARF 0, PRF 1 to ARF 1
 	new_inst(2,0,0);show_io();@(negedge clk);show_RAT(); // PRF 63 != ARF 0, PRF 2 != ARF 0
 	new_inst(2,2,3);show_io();@(negedge clk);show_RAT(); // PRF 63 to ARF 2, PRF 2 to ARF 3
-	issue[0] = 1'b0;
-  issue[1] = 1'b0;
+	issue = 2'd0;
 	retire_inst(2,0,63,1,1);show_io();@(negedge clk);show_RAT();  
 	retire_inst(2,2,62,0,2);show_io();@(negedge clk);show_RAT();  
 

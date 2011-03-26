@@ -33,19 +33,21 @@ module rat (clk, reset, flush,
 	wire    [`SCALAR*`PRF_IDX-1:0] retire_prev_prf;	// for freeing up PRF
 	wire    [`SCALAR*`PRF_IDX-1:0] free_prf;	// output of priority encoder
   wire    [`SCALAR*`PRF_IDX-1:0] prega_idx_out_file, pregb_idx_out_file; // output of rat regfile
-  wire    [`SCALAR-1:0] issue_file;
+  wire    [`SCALAR-1:0] issue_file, retire_file;
 
 	// Deal with zero register reads
-	assign prega_idx_out[`SEL(`PRF_IDX,1)] = (rega_idx_in[`SEL(5,1)] == `ZERO_REG)? `ZERO_PRF : prega_idx_out_file[`SEL(`PRF_IDX,1)];
-	assign prega_idx_out[`SEL(`PRF_IDX,2)] = (rega_idx_in[`SEL(5,2)] == `ZERO_REG)? `ZERO_PRF : prega_idx_out_file[`SEL(`PRF_IDX,2)];
-	assign pregb_idx_out[`SEL(`PRF_IDX,1)] = (regb_idx_in[`SEL(5,1)] == `ZERO_REG)? `ZERO_PRF : pregb_idx_out_file[`SEL(`PRF_IDX,1)];
-	assign pregb_idx_out[`SEL(`PRF_IDX,2)] = (regb_idx_in[`SEL(5,2)] == `ZERO_REG)? `ZERO_PRF : pregb_idx_out_file[`SEL(`PRF_IDX,2)];
+	assign prega_idx_out[`SEL(`PRF_IDX,1)] = (rega_idx_in[`SEL(ARF_IDX,1)] == `ZERO_REG)? `ZERO_PRF : prega_idx_out_file[`SEL(`PRF_IDX,1)];
+	assign prega_idx_out[`SEL(`PRF_IDX,2)] = (rega_idx_in[`SEL(ARF_IDX,2)] == `ZERO_REG)? `ZERO_PRF : prega_idx_out_file[`SEL(`PRF_IDX,2)];
+	assign pregb_idx_out[`SEL(`PRF_IDX,1)] = (regb_idx_in[`SEL(ARF_IDX,1)] == `ZERO_REG)? `ZERO_PRF : pregb_idx_out_file[`SEL(`PRF_IDX,1)];
+	assign pregb_idx_out[`SEL(`PRF_IDX,2)] = (regb_idx_in[`SEL(ARF_IDX,2)] == `ZERO_REG)? `ZERO_PRF : pregb_idx_out_file[`SEL(`PRF_IDX,2)];
 
 	// Deal with zero register writes
-	assign issue_file[0] = (dest_idx_in[`SEL(5,1)] == `ZERO_REG)? 1'b0 : issue[0];
-	assign issue_file[1] = (dest_idx_in[`SEL(5,2)] == `ZERO_REG)? 1'b0 : issue[1];
-	assign pdest_idx_out[`SEL(`PRF_IDX,1)] = (dest_idx_in[`SEL(5,1)] == `ZERO_REG)? `ZERO_PRF: free_prf[`SEL(`PRF_IDX,1)];
-	assign pdest_idx_out[`SEL(`PRF_IDX,2)] = (dest_idx_in[`SEL(5,2)] == `ZERO_REG)? `ZERO_PRF: free_prf[`SEL(`PRF_IDX,2)];
+	assign issue_file[0] = (dest_idx_in[`SEL(ARF_IDX,1)] == `ZERO_REG)? 1'b0 : issue[0];
+	assign issue_file[1] = (dest_idx_in[`SEL(ARF_IDX,2)] == `ZERO_REG)? 1'b0 : issue[1];
+	assign retire_file[0] = (retire_dest_idx_in[`SEL(ARF_IDX,1)] == `ZERO_REG)? 1'b0 : retire[0];
+	assign retire_file[1] = (retire_dest_idx_in[`SEL(ARF_IDX,2)] == `ZERO_REG)? 1'b0 : retire[1];
+	assign pdest_idx_out[`SEL(`PRF_IDX,1)] = (dest_idx_in[`SEL(ARF_IDX,1)] == `ZERO_REG)? `ZERO_PRF: free_prf[`SEL(`PRF_IDX,1)];
+	assign pdest_idx_out[`SEL(`PRF_IDX,2)] = (dest_idx_in[`SEL(ARF_IDX,2)] == `ZERO_REG)? `ZERO_PRF: free_prf[`SEL(`PRF_IDX,2)];
 
 	regfile #(.IDX_WIDTH(ARF_IDX), .DATA_WIDTH(`PRF_IDX), .ZERO_REG_VAL(`ZERO_PRF), .RESET_TO(`ZERO_PRF))
         file_rat (.wr_clk(clk), .reset(reset), .copy(flush),
@@ -60,7 +62,7 @@ module rat (clk, reset, flush,
        file_rrat (.wr_clk(clk), .reset(reset), .copy(1'b0),
 				 					.rda_idx(retire_dest_idx_in), .rda_out(retire_prev_prf), // not needed
                   .rdb_idx(10'b0), .rdb_out(), // not needed
-         	  	    .wr_idx(retire_dest_idx_in), .wr_data(retire_pdest_idx_in), .wr_en(retire), 
+         	  	    .wr_idx(retire_dest_idx_in), .wr_data(retire_pdest_idx_in), .wr_en(retire_file), 
         	        .reg_vals_in(rrat_data),
         	        .reg_vals_out(rrat_data)
 								  ); // write port
@@ -97,19 +99,23 @@ module rat (clk, reset, flush,
 			if (issue_file[1])
 				fl[free_prf[`SEL(`PRF_IDX,2)]] <= `SD 1'b0; // new prf allocated
 
-			if (retire[0] && (retire_pdest_idx_in[`SEL(`PRF_IDX,1)] != `ZERO_PRF)) begin
+			if (retire_file[0]) begin
 				rfl[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b0; // new prf retired
-				// need to free up the overwritten prf, if it weren't free already
-				rfl[retire_prev_prf[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
-				// in the regular free list as well
-				fl[retire_prev_prf[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
+				// need to free up the overwritten prf, if it weren't free already; unless it's zero PRF
+				if (retire_prev_prf[`SEL(`PRF_IDX,1)] != `ZERO_PRF) begin
+					rfl[retire_prev_prf[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
+					// in the regular free list as well
+					fl[retire_prev_prf[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
+				end
 			end
-			if (retire[1] && (retire_pdest_idx_in[`SEL(`PRF_IDX,2)] != `ZERO_PRF)) begin
+			if (retire_file[1]) begin
 				rfl[retire_pdest_idx_in[`SEL(`PRF_IDX,2)]] <= `SD 1'b0; // new prf retired
 				// need to free up the overwritten prf, if it weren't free already
-				rfl[retire_prev_prf[`SEL(`PRF_IDX,2)]] <= `SD 1'b1;
-				// in the regular free list as well
-				fl[retire_prev_prf[`SEL(`PRF_IDX,2)]] <= `SD 1'b1;
+				if (retire_prev_prf[`SEL(`PRF_IDX,2)] != `ZERO_PRF) begin
+					rfl[retire_prev_prf[`SEL(`PRF_IDX,2)]] <= `SD 1'b1;
+					// in the regular free list as well
+					fl[retire_prev_prf[`SEL(`PRF_IDX,2)]] <= `SD 1'b1;
+				end
 			end
 
 		end
