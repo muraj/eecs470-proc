@@ -400,8 +400,8 @@ module oo_pipeline (// Inputs
 	assign stall_id[1] = ^rs_stall | rob_full_almost;
 	`endif
     
-    // isbranch generation
-    assign id_dp_isbranch = id_dp_cond_branch | id_dp_uncond_branch;
+  // isbranch generation
+  assign id_dp_isbranch = id_dp_cond_branch | id_dp_uncond_branch;
 
   assign id_dp_enable = !stall_id;
 
@@ -411,9 +411,9 @@ module oo_pipeline (// Inputs
     begin
       id_dp_NPC           <= `SD 0;
       id_dp_IR            <= `SD `NOOP_INST;
-      id_dp_rega_idx      <= `SD 0;
-      id_dp_regb_idx      <= `SD 0;
-      id_dp_dest_reg_idx  <= `SD `ZERO_REG;
+      id_dp_rega_idx      <= `SD {`ZERO_REG, `ZERO_REG};
+      id_dp_regb_idx      <= `SD {`ZERO_REG, `ZERO_REG};
+      id_dp_dest_reg_idx  <= `SD {`ZERO_REG, `ZERO_REG};
       id_dp_alu_func      <= `SD 0;
       id_dp_rd_mem        <= `SD 0;
       id_dp_wr_mem        <= `SD 0;
@@ -444,8 +444,8 @@ module oo_pipeline (// Inputs
 			// need to move ir2 to ir1
         id_dp_NPC           [`SEL(64,1)] <= `SD id_dp_NPC					   [`SEL(64,2)];
         id_dp_IR            [`SEL(32,1)] <= `SD id_dp_IR					   [`SEL(32,2)];
-        id_dp_rega_idx      [`SEL(5,1)]  <= `SD id_dp_rega_idx				   [`SEL(5,2)];
-        id_dp_regb_idx      [`SEL(5,1)]  <= `SD id_dp_regb_idx           [`SEL(5,2)];
+        id_dp_rega_idx      [`SEL(5,1)]  <= `SD id_dp_rega_idx		   [`SEL(5,2)];
+        id_dp_regb_idx      [`SEL(5,1)]  <= `SD id_dp_regb_idx       [`SEL(5,2)];
         id_dp_dest_reg_idx  [`SEL(5,1)]  <= `SD id_dp_dest_reg_idx   [`SEL(5,2)];
         id_dp_alu_func      [`SEL(5,1)]  <= `SD id_dp_alu_func		   [`SEL(5,2)];
         id_dp_rd_mem        [`SEL(1,1)]  <= `SD id_dp_rd_mem			   [`SEL(1,2)];
@@ -617,7 +617,7 @@ ex_stage ex_stage0 (.clk(clock), .reset(reset),
 										.rs_IR(dp_ex_rs_IR), .npc(dp_ex_npc), .rob_idx(dp_ex_rob_idx), .EX_en(dp_ex_EX_en), 
 		
 										// Inputs (from LSQ)
-										.LSQ_rob_idx(), .LSQ_pdest_idx(), .LSQ_mem_value(), .LSQ_done(), .LSQ_rd_mem(), .LSQ_wr_mem(), 
+										.LSQ_rob_idx(0), .LSQ_pdest_idx(0), .LSQ_mem_value(0), .LSQ_done(0), .LSQ_rd_mem(0), .LSQ_wr_mem(0), 
 		
 										// Outputs
 										.cdb_tag_out(ex_cdb_tag_out), .cdb_valid_out(ex_cdb_valid_out), .cdb_value_out(ex_cdb_value_out),				 	// to CDB

@@ -101,6 +101,7 @@ always @(posedge clock) begin
  if(~reset) begin
   $fdisplay(rs_fileno, "|======================================== Cycle: %10d ====================================================|", clock_count);
   $fdisplay(rs_fileno, "inst_valid: %b rs1_sel: %b npc: %h IR: %h", pipeline_0.rs0.inst_valid, pipeline_0.rs0.rs1_sel, pipeline_0.rs0.npc, pipeline_0.rs0.rs_IR);
+  $fdisplay(rs_fileno, "rega_idx: %h, regb_idx: %h", pipeline_0.id_stage_0.id_ra_idx_out, pipeline_0.id_stage_0.id_rb_idx_out);
   $fdisplay(rs_fileno, "|                            RS0                           |                           RS1                      |");
   $fdisplay(rs_fileno, "| IDX |   IR   |       NPC      | ROB | RA | RB | RD | R/F |   IR   |       NPC      | ROB | RA | RB | RD | R/F |");
   $fdisplay(rs_fileno, "|===============================================================================================================|");

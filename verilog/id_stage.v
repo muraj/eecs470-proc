@@ -252,8 +252,8 @@ module id_stage(
   input  [32*`SCALAR-1:0]  if_id_IR;             // incoming instruction
   input  [`SCALAR-1:0]     if_id_valid_inst;
 
-  output  [5*`SCALAR-1:0]  id_opa_select_out;      // reg A value
-  output  [5*`SCALAR-1:0]  id_opb_select_out;      // reg B value
+  output  [2*`SCALAR-1:0]  id_opa_select_out;      // reg A value
+  output  [2*`SCALAR-1:0]  id_opb_select_out;      // reg B value
   output  [5*`SCALAR-1:0]  id_ra_idx_out;      // reg A value
   output  [5*`SCALAR-1:0]  id_rb_idx_out;      // reg B value
   output  [5*`SCALAR-1:0]  id_dest_reg_idx_out;  // destination (writeback) register index
@@ -276,21 +276,19 @@ module id_stage(
   reg     [5*`SCALAR-1:0] id_dest_reg_idx_out;     // not state: behavioral mux output
 
 	wire [31:0] if_id_IR1 = if_id_IR[`SEL(32,1)];
-   
-    // instruction fields read from IF/ID pipeline register
   wire    [4:0] ra_idx1 = if_id_IR1[25:21];   // inst operand A register index
   wire    [4:0] rb_idx1 = if_id_IR1[20:16];   // inst operand B register index
   wire    [4:0] rc_idx1 = if_id_IR1[4:0];     // inst operand C register index
 	
-	assign id_ra_idx_out[`SEL(5,1)] = ra_idx1;
-	assign id_rb_idx_out[`SEL(5,1)] = rb_idx1;
+	assign id_ra_idx_out[`SEL(5,1)] = id_opa_select_out[`SEL(2,1)] == `ALU_OPA_IS_REGA ? ra_idx1 : `ZERO_REG;
+	assign id_rb_idx_out[`SEL(5,1)] = id_opb_select_out[`SEL(2,1)] == `ALU_OPB_IS_REGB ? rb_idx1 : `ZERO_REG;
 	`ifdef SUPERSCALAR
 	wire   [31:0] if_id_IR2 = if_id_IR[`SEL(32,2)];
   wire    [4:0] ra_idx2 = if_id_IR2[25:21];   // inst operand A register index
   wire    [4:0] rb_idx2 = if_id_IR2[20:16];   // inst operand B register index
   wire    [4:0] rc_idx2 = if_id_IR2[4:0];     // inst operand C register index
-	assign id_ra_idx_out[`SEL(5,2)] = ra_idx2;
-	assign id_rb_idx_out[`SEL(5,2)] = rb_idx2;
+	assign id_ra_idx_out[`SEL(5,2)] = id_opa_select_out[`SEL(2,2)] == `ALU_OPA_IS_REGA ? ra_idx2 : `ZERO_REG;
+	assign id_rb_idx_out[`SEL(5,2)] = id_opb_select_out[`SEL(2,2)] == `ALU_OPB_IS_REGB ? rb_idx2 : `ZERO_REG;
 	`endif
 
 
