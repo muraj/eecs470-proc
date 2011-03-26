@@ -16,9 +16,9 @@ module testbench;
 
 rat  #(.ARF_IDX(`RAT_IDX)) rat0 (clk, reset, flush,
 						// ARF inputs
-						rega_idx_in, regb_idx_in, dest_idx_in, retire_dest_idx_in,
+						rega_idx_in, regb_idx_in, dest_idx_in, retire_dest_idx_in, cdb_en, cdb_tag,
 						// PRF i/o
-						prega_idx_out, pregb_idx_out, pdest_idx_out, retire_pdest_idx_in,
+						prega_idx_out, prega_valid_out, pregb_idx_out, pregb_valid_out, pdest_idx_out, retire_pdest_idx_in,
 						// enable signals for rat and rrat
 						issue, retire
 				 	 );

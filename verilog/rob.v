@@ -16,7 +16,9 @@ module rob (clk, reset,
 						// output values at retirement
 						ir_out1, ir_out2, npc_out1, npc_out2, pdest_out1, pdest_out2, adest_out1, adest_out2,
 						// branch miss signal
-						branch_miss, ba_out
+						branch_miss, correct_target,
+						// for updating branch predictor
+						isbranch_out, bt_out, ba_out
 						);
 
   input clk, reset, din1_req, din2_req, dup1_req, dup2_req;
@@ -38,8 +40,11 @@ module rob (clk, reset,
 	output [31:0] ir_out1, ir_out2;
 	output [63:0] npc_out1, npc_out2;
 	output reg branch_miss;
-	output reg [63:0] ba_out;
+	output [64*`SCALAR-1:0] ba_out;
+	output reg [63:0] correct_target;
 	output reg full, full_almost;
+	output [`SCALAR-1:0] isbranch_out;
+	output [`SCALAR-1:0] bt_out;
 
 	reg [63-1:0] 			data_ba_ex [`ROB_SZ-1:0];
 	reg [`ROB_SZ-1:0] data_bt_ex;
@@ -73,7 +78,10 @@ module rob (clk, reset,
 
 	assign rob_idx_out1 = tail;
 	assign rob_idx_out2 = tail_p1;
-
+	assign isbranch_out = {isbranch_out1, isbranch_out2};
+	// branch outputs
+	assign ba_out = {data_ba_ex[head],data_ba_ex[head_p1]};
+	assign bt_out = {data_bt_ex[head],data_bt_ex[head_p1]};
 
 	// Retiring decision
 	assign retire1 = !empty && data_rdy[head];
@@ -113,19 +121,20 @@ module rob (clk, reset,
 		dout2_valid = retire2;
 		branch_miss = 0;
 		move_tail = 0;
+		correct_target = 64'd0;
 
 		// deal with branch misses
 		if (retire1 && isbranch_out1) begin
 			if ((data_bt_ex[head] != bt_pd_out1) || (data_ba_ex[head] != ba_pd_out1)) begin
 				branch_miss = 1;
-				ba_out = data_ba_ex[head];
+				correct_target = data_ba_ex[head];
 				dout2_valid = 0;	
 				move_tail = 1;
 				tail_new = next_head;
 			end else if (retire2 && isbranch_out2) begin
 				if ((data_bt_ex[head_p1] != bt_pd_out2) || (data_ba_ex[head_p1] != ba_pd_out2)) begin
 					branch_miss = 1;
-					ba_out = data_ba_ex[head_p1];
+				  correct_target = data_ba_ex[head_p1];
 					move_tail = 1;
 					tail_new = next_head;
 				end 

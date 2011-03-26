@@ -218,7 +218,7 @@ module oo_pipeline (// Inputs
 	// Added declarations
   wire [`SCALAR-1:0] stall_id;
   wire rob_mispredict, bp_taken;
-  wire [63:0] rob_target_pc, bp_pc;
+  wire [63:0] bp_pc;
   wire [`SCALAR-1:0] id_dp_isbranch;
 
   // For ROB
@@ -230,6 +230,11 @@ module oo_pipeline (// Inputs
   wire [`SCALAR-1:0]          rob_valid_out;
   wire [64*`SCALAR-1:0]       rob_commit_NPC;
   wire [32*`SCALAR-1:0]       rob_commit_IR;
+	wire rob_full, rob_full_almost;
+  wire [`SCALAR*64-1:0] rob_ba_out;
+  wire [63:0] rob_target_pc;
+  wire [`SCALAR-1:0] rob_bt_out;
+  wire [`SCALAR-1:0] rob_commit_isbranch;
 
   // From the original version
   assign pipeline_completed_insts = rob_valid_out[0] + rob_valid_out[1];
@@ -387,12 +392,6 @@ module oo_pipeline (// Inputs
   //                                              //
   //////////////////////////////////////////////////
 
-	// needs to be removed
-	assign rob_full = 0;
-	assign rob_full_almost = 0;
-
-
-
     // structural hazard
 	assign stall_id[0] = &rs_stall | rob_full;
 	`ifdef SUPERSCALAR
@@ -507,7 +506,9 @@ module oo_pipeline (// Inputs
             .pdest_out1(rob_commit_pdest_idx[`SEL(`PRF_IDX,1)]), .pdest_out2(rob_commit_pdest_idx[`SEL(`PRF_IDX,2)]),
 						.adest_out1(rob_commit_dest_idx[`SEL(`ARF_IDX,1)]), .adest_out2(rob_commit_dest_idx[`SEL(`ARF_IDX,1)]),
 						// Branch Miss
-						.branch_miss(rob_mispredict), .ba_out(rob_target_pc)
+						.branch_miss(rob_mispredict), .correct_target(rob_target_pc),
+						// for updating branch predictor
+						.isbranch_out(rob_commit_isbranch), .bt_out(rob_bt_out), .ba_out(rob_ba_out)
 						);
 
   regfile #(.IDX_WIDTH(`PRF_IDX), .DATA_WIDTH(64), .ZERO_REGISTER(`ZERO_PRF))

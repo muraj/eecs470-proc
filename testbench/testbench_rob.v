@@ -13,6 +13,7 @@ module testbench;
 	reg [31:0] ir_in1, ir_in2;
 	reg [63:0] npc_in1, npc_in2;
 	reg [`PRF_IDX-1:0] pdest_in1, pdest_in2;
+	reg [`ARF_IDX-1:0] adest_in1, adest_in2;
 	reg bt_pd_in1, bt_pd_in2;
 	reg [63:0] ba_pd_in1, ba_pd_in2;
 	reg isbranch_in1, isbranch_in2;
@@ -20,25 +21,31 @@ module testbench;
 	reg [63:0] ba_ex_in1, ba_ex_in2;
 	reg [`ROB_IDX-1:0] rob_idx_in1, rob_idx_in2;
 	
-	wire din1_rdy, din2_rdy;
+	wire full, full_almost;
 	wire dout1_valid, dout2_valid;
 	wire [`ROB_IDX-1:0] rob_idx_out1, rob_idx_out2;
 	wire [`PRF_IDX-1:0] pdest_out1, pdest_out2;
+	wire [`ARF_IDX-1:0] adest_out1, adest_out2;
 	wire [31:0] ir_out1, ir_out2;
 	wire [63:0] npc_out1, npc_out2;
 	wire branch_miss;
-	wire [`ROB_IDX-1:0] ba_out;
+	wire [64-1:0] correct_target;
+	wire [`SCALAR-1:0] isbranch_out;
+	wire [`SCALAR-1:0] bt_out;
+	wire [`SCALAR*64-1:0] ba_out;
 
 	rob rob0 (clk, reset, 
-						din1_rdy, din2_rdy, dout1_valid, dout2_valid,  
+						full, full_almost,
+						dout1_valid, dout2_valid,
 						din1_req, din2_req,
 						dup1_req, dup2_req,
-						ir_in1, ir_in2, npc_in1, npc_in2, pdest_in1, pdest_in2, ba_pd_in1, ba_pd_in2, bt_pd_in1, bt_pd_in2, isbranch_in1, isbranch_in2,
+						ir_in1, ir_in2, npc_in1, npc_in2, pdest_in1, pdest_in2, adest_in1, adest_in2, ba_pd_in1, ba_pd_in2, bt_pd_in1, bt_pd_in2, isbranch_in1, isbranch_in2,
 						ba_ex_in1, ba_ex_in2, bt_ex_in1, bt_ex_in2, 
 						rob_idx_in1, rob_idx_in2,
 						rob_idx_out1, rob_idx_out2,
-						ir_out1, ir_out2, npc_out1, npc_out2, pdest_out1, pdest_out2,
-						branch_miss, ba_out
+						ir_out1, ir_out2, npc_out1, npc_out2, pdest_out1, pdest_out2, adest_out1, adest_out2,
+						branch_miss, correct_target, 
+						isbranch_out, bt_out, ba_out
 						);
 						
 	always
@@ -71,7 +78,7 @@ module testbench;
 		
     $display("==OUTPUTS====================================================");
    	$display("RDY1\tRDY2\tROB1\tROB2\tVAL1\tVAL2\tMISS\tBA");
-		$display("%b\t%b\t%0d\t%0d\t%b\t%b\t%b\t%0d", din1_rdy, din2_rdy, rob_idx_out1, rob_idx_out2, dout1_valid, dout2_valid, branch_miss, ba_out);
+		$display("%b\t%b\t%0d\t%0d\t%b\t%b\t%b\t%0d", !full, !full_almost, rob_idx_out1, rob_idx_out2, dout1_valid, dout2_valid, branch_miss, ba_out);
     $display("=============================================================\n");
 
 	  end
