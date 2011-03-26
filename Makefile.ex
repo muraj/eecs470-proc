@@ -29,14 +29,15 @@ all:    simv
 TESTBENCH = 	sys_defs.vh	    \
 		testbench/testbench_ex.v verilog/ps.v verilog/LSQ.v 
 SIMFILES =	verilog/ex_stage.v
+SYNFILES = synth/ex_stage.vg
 
 
+synth/ex_stage.vg:        $(SIMFILES) synth/ex_stage.tcl
+	cd synth && dc_shell-t -f ./ex_stage.tcl | tee ex_stage_synth.out 
+ 
 #####
 # Should be no need to modify after here
 #####
-check:
-	perl check_ex
-
 simv:	$(SIMFILES) $(TESTBENCH)
 	$(VCS) $(TESTBENCH) $(SIMFILES)	-o simv
 

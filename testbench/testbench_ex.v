@@ -194,7 +194,7 @@ module testbench;
 			if(new_line == 1) $fdisplay(fout1, "\n");
 		end
 	endtask
-
+/*
 	task show_input;
 		begin
 	    $display("Cycle: %4.1f ==< INPUTS >===========================================================================================================", cycle);
@@ -205,8 +205,8 @@ module testbench;
  	    $display("===================================================================================================================================\n");
 		end
 	endtask
-
-	task show_fu_output;
+*/
+/*	task show_fu_output;
 		begin
 	    $display("Cycle: %4.1f ==< FU OUTPUTS >====================================================================================================================================================", cycle);
   	  $display("    ||                               ALU                              ||                             MULT                     ||                        MEM                     ");
@@ -217,7 +217,7 @@ module testbench;
  	    $display("================================================================================================================================================================================\n");
 		end
 	endtask
-
+*/
 	task show_cdb_output;
 		begin
 	 /*   $display("Cycle: %4.1f ==< CDB OUTPUTS >=========================================================", cycle);
@@ -228,14 +228,14 @@ module testbench;
  	    $display("======================================================================================\n");
 		*/
 			new_line = 0;
-			if(ex_stage0.cdb_valid_out[`SEL(1,1)]==1'b1) begin
+			if(EX_cdb_valid[`SEL(1,1)]==1'b1) begin
 				cdb_ID = cdb_ID + 1;
-				$fdisplay(fout2, "@ %4.1f CDB1 - ID: %6d    rob_idx: %2d    pdest_idx: %2d    value: 0x%16h", cycle, cdb_ID, ex_stage0.rob_idx_out[`SEL(`ROB_IDX,1)], ex_stage0.cdb_tag_out[`SEL(`PRF_IDX,1)], ex_stage0.cdb_value_out[`SEL(64,1)]);
+				$fdisplay(fout2, "@ %4.1f CDB1 - ID: %6d    rob_idx: %2d    pdest_idx: %2d    value: 0x%16h", cycle, cdb_ID, EX_rob_idx[`SEL(`ROB_IDX,1)], EX_cdb_tag[`SEL(`PRF_IDX,1)], EX_cdb_value[`SEL(64,1)]);
 				new_line = 1;
 			end
-			if(ex_stage0.cdb_valid_out[`SEL(1,2)]==1'b1) begin
+			if(EX_cdb_valid[`SEL(1,2)]==1'b1) begin
 				cdb_ID = cdb_ID + 1;
-				$fdisplay(fout2, "@ %4.1f CDB2 - ID: %6d    rob_idx: %2d    pdest_idx: %2d    value: 0x%16h", cycle, cdb_ID, ex_stage0.rob_idx_out[`SEL(`ROB_IDX,2)], ex_stage0.cdb_tag_out[`SEL(`PRF_IDX,2)], ex_stage0.cdb_value_out[`SEL(64,2)]);
+				$fdisplay(fout2, "@ %4.1f CDB2 - ID: %6d    rob_idx: %2d    pdest_idx: %2d    value: 0x%16h", cycle, cdb_ID, EX_rob_idx[`SEL(`ROB_IDX,2)], EX_cdb_tag[`SEL(`PRF_IDX,2)], EX_cdb_value[`SEL(64,2)]);
 				new_line = 1;
 			end
 			if(new_line == 1) $fdisplay(fout2, "\n");
@@ -553,7 +553,7 @@ initial begin
 	$fclose(fout1);
 	$fclose(fout2);
 
-	$display("@@@ Testbench Finished!! ==============================\n");
+	$display("@@@ Testbench Finished at Cycle %4d ==================\n", full_cycle);
 	$display("@@@ Run 'perl check_ex' to check the result.\n\n\n");
 
   $finish; 

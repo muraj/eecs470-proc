@@ -21,7 +21,7 @@ read_file -f verilog [list "../sys_defs.vh" "../verilog/ex_stage.v" "../verilog/
 set design_name ex_stage
 set clock_name clk
 set reset_name reset
-set CLK_PERIOD 30
+set CLK_PERIOD 10
 
 
 #/***********************************************************/
@@ -120,8 +120,8 @@ if {  $dc_shell_status != [list] } {
   uniquify
   ungroup -all -flatten
   redirect $chk_file { check_design }
-  compile -map_effort medium
-#	compile_ultra
+# compile -map_effort medium
+	compile_ultra
   write -hier -format verilog -output $netlist_file $design_name
   write -hier -format ddc -output $ddc_file $design_name
   redirect $rep_file { report_design -nosplit }
