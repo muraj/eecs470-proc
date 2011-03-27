@@ -482,10 +482,10 @@ module oo_pipeline (// Inputs
 						// For retire
             .dout1_valid(rob_retire_valid_inst[0]), .dout2_valid(rob_retire_valid_inst[1]), 
 						.rob_idx_out1(rob_idx_out[`SEL(`ROB_IDX,1)]), .rob_idx_out2(rob_idx_out[`SEL(`ROB_IDX,2)]),
-						.ir_out1(rob_retire_IR[`SEL(32,1)]), .ir_out2(rob_retire_IR[`SEL(32,1)]), 
+						.ir_out1(rob_retire_IR[`SEL(32,1)]), .ir_out2(rob_retire_IR[`SEL(32,2)]), 
             .npc_out1(rob_retire_NPC[`SEL(64,1)]), .npc_out2(rob_retire_NPC[`SEL(64,2)]),
             .pdest_out1(rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]), .pdest_out2(rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]),
-						.adest_out1(rob_retire_dest_idx[`SEL(`ARF_IDX,1)]), .adest_out2(rob_retire_dest_idx[`SEL(`ARF_IDX,1)]),
+						.adest_out1(rob_retire_dest_idx[`SEL(`ARF_IDX,1)]), .adest_out2(rob_retire_dest_idx[`SEL(`ARF_IDX,2)]),
 						// Branch Miss
 						.branch_miss(rob_mispredict), .correct_target(rob_target_pc),
 						// for updating branch predictor

@@ -36,7 +36,7 @@ module rob (clk, reset,
 	output reg dout1_valid, dout2_valid;
 	output [`ROB_IDX-1:0] rob_idx_out1, rob_idx_out2;
 	output [`PRF_IDX-1:0] pdest_out1, pdest_out2;
-	output [4:0] adest_out1, adest_out2;
+	output [`ARF_IDX-1:0] adest_out1, adest_out2;
 	output [31:0] ir_out1, ir_out2;
 	output [63:0] npc_out1, npc_out2;
 	output reg branch_miss;
@@ -253,8 +253,8 @@ module rob (clk, reset,
 	// Circular buffer for PDEST_IDX
 	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(`PRF_IDX)) cb_pdest (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(pdest_in1), .din2(pdest_in2), .dout1(pdest_out1), .dout2(pdest_out2), .full(), .full_almost(), .head(), .tail());
 
-	// Circular buffer for PDEST_IDX
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(5)) cb_adest (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(adest_in1), .din2(adest_in2), .dout1(adest_out1), .dout2(adest_out2), .full(), .full_almost(), .head(), .tail());
+	// Circular buffer for ADEST_IDX
+	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(`ARF_IDX)) cb_adest (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(adest_in1), .din2(adest_in2), .dout1(adest_out1), .dout2(adest_out2), .full(), .full_almost(), .head(), .tail());
 
 	// Circular buffer for Predicted Branch Address
 	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(64)) cb_ba_pd (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(ba_pd_in1), .din2(ba_pd_in2), .dout1(ba_pd_out1), .dout2(ba_pd_out2), .full(), .full_almost(), .head(), .tail());
