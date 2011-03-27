@@ -141,7 +141,6 @@ module rob (clk, reset,
 			end
 		end
 
-
 		// deal with tail and data in (allocate)
 		if (move_tail) begin
 			next_tail = tail_new;
@@ -225,6 +224,20 @@ module rob (clk, reset,
 			empty_almost	<= `SD next_empty_almost;
 		end
 	end
+
+  generate
+  genvar i;
+  for(i=0;i<`ROB_SZ;i=i+1) begin : REG_RESET
+      always @(posedge clk) begin
+            data_ba_ex[i] <= `SD {64{1'b0}};
+            data_bt_ex[i] <= `SD 1'b0;
+            data_rdy[i] <= `SD 1'b0;
+      end
+  end
+  endgenerate
+
+
+
 
 	// ===================================================
 	// Circular buffers for entries not awaiting updates
