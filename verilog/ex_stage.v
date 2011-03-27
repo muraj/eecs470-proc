@@ -1166,10 +1166,7 @@ module ex_stage(clk, reset,
 								EX_LSQ_idx, EX_MEM_ADDR, EX_MEM_reg_value,
 
 								// Outputs (for DEBUGGING)
-								ex_cdb_NPC, ex_cdb_IR, ex_cdb_valid_inst,
-								ex_cdb_ALU_NPC, ex_cdb_ALU_IR, ex_cdb_ALU_valid_inst,
-								ex_cdb_MULT_NPC, ex_cdb_MULT_IR, ex_cdb_MULT_valid_inst,
-								ex_cdb_MEM_NPC, ex_cdb_MEM_IR, ex_cdb_MEM_valid_inst
+								ex_co_NPC, ex_co_IR, ex_co_valid_inst
                );
 
   input clk;  
@@ -1312,29 +1309,11 @@ module ex_stage(clk, reset,
 // END OF Outputs from the EX/CDB registers
 
 // Only for Debugging
-	output [64*`SCALAR-1:0]				ex_cdb_NPC;
-	output [32*`SCALAR-1:0]				ex_cdb_IR;
-	output [`SCALAR-1:0]					ex_cdb_valid_inst;
-	output [64*`SCALAR-1:0]				ex_cdb_ALU_NPC;
-	output [32*`SCALAR-1:0]				ex_cdb_ALU_IR;
-	output [`SCALAR-1:0]					ex_cdb_ALU_valid_inst;
-	output [64*`SCALAR-1:0]				ex_cdb_MULT_NPC;
-	output [32*`SCALAR-1:0]				ex_cdb_MULT_IR;
-	output [`SCALAR-1:0]					ex_cdb_MULT_valid_inst;
-	output [64*`SCALAR-1:0]				ex_cdb_MEM_NPC;
-	output [32*`SCALAR-1:0]				ex_cdb_MEM_IR;
-	output [`SCALAR-1:0]					ex_cdb_MEM_valid_inst;
+	output [64*`SCALAR-1:0]				ex_co_NPC;
+	output [32*`SCALAR-1:0]				ex_co_IR;
+	output [`SCALAR-1:0]					ex_co_valid_inst;
 
-	wire [`SCALAR-1:0]						ex_cdb_valid_inst 			= cdb_valid_out;
-	wire [64*`SCALAR-1:0]					ex_cdb_ALU_NPC 					= ALU_npc_reg;
-	wire [32*`SCALAR-1:0]					ex_cdb_ALU_IR 					= ALU_rs_IR_reg;
-	wire [`SCALAR-1:0]						ex_cdb_ALU_valid_inst 	= ALU_EX_en_reg;
-	wire [64*`SCALAR-1:0]					ex_cdb_MULT_NPC 				= MULT_npc_reg;
-	wire [32*`SCALAR-1:0]					ex_cdb_MULT_IR 					= MULT_rs_IR_reg;
-	wire [`SCALAR-1:0]						ex_cdb_MULT_valid_inst 	= MULT_EX_en_reg;
-	wire [64*`SCALAR-1:0]					ex_cdb_MEM_NPC 					= MEM_npc_reg;
-	wire [32*`SCALAR-1:0]					ex_cdb_MEM_IR 					= MEM_rs_IR_reg;
-	wire [`SCALAR-1:0]						ex_cdb_MEM_valid_inst 	= MEM_done_reg;
+	wire [`SCALAR-1:0]						ex_co_valid_inst 			= cdb_valid_out;
 
 
 
@@ -1715,8 +1694,8 @@ EX_CDB_Mux EX_CDB_Mux0	(
 													.MULT_IR(MULT_rs_IR_reg),
 													.MEM_NPC(MEM_npc_reg),
 													.MEM_IR(MEM_rs_IR_reg),
-													.cdb_NPC_out(ex_cdb_NPC),
-													.cdb_IR_out(ex_cdb_IR)
+													.cdb_NPC_out(ex_co_NPC),
+													.cdb_IR_out(ex_co_IR)
 													);
 
 
