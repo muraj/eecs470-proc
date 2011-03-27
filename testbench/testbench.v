@@ -157,7 +157,8 @@ always @(posedge clock) begin
     $fdisplay(rob_fileno, "| %1s %1s | %3d | %7s | %h | %3d | %3d |  %b / %b  | %h |",  \
               i === head ? "H" : " ",                         \
               i === tail ? "T" : " ", i,                      \
-              get_instr_string(rob_ir[i], 1'b1), rob_npc[i], rob_pdest[i], rob_adest[i],                    \
+              get_instr_string(rob_ir[i], 1'b1),              \
+              rob_npc[i], rob_pdest[i], rob_adest[i],         \
               cb_isbranch[i], cb_bt_pd[i], cb_ba_pd[i]);
   `DISPLAY_ROB(0)
   `DISPLAY_ROB(1)
@@ -321,9 +322,9 @@ end
                        .dp_ex_NPC(dp_ex_NPC),
                        .dp_ex_IR(dp_ex_IR),
                        .dp_ex_valid_inst(dp_ex_valid_inst),
-                       .ex_cdb_NPC(ex_co_NPC),
-                       .ex_cdb_IR(ex_co_IR),
-                       .ex_cdb_valid_inst(ex_co_valid_inst),
+                       .ex_co_NPC(ex_co_NPC),
+                       .ex_co_IR(ex_co_IR),
+                       .ex_co_valid_inst(ex_co_valid_inst),
                        .rob_retire_NPC(rob_retire_NPC),
                        .rob_retire_IR(rob_retire_IR),
                        .rob_retire_valid_inst(rob_retire_valid_inst)

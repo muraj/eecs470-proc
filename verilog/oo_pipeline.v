@@ -47,9 +47,9 @@ module oo_pipeline (// Inputs
                  dp_ex_NPC,
                  dp_ex_IR,
                  dp_ex_valid_inst,
-								 ex_cdb_NPC, 
-								 ex_cdb_IR, 
-								 ex_cdb_valid_inst,
+								 ex_co_NPC, 
+								 ex_co_IR, 
+								 ex_co_valid_inst,
 								 rob_retire_NPC, 
 								 rob_retire_IR, 
 								 rob_retire_valid_inst
@@ -155,19 +155,9 @@ module oo_pipeline (// Inputs
 	reg	[`ROB_IDX*`SCALAR-1:0] 	dp_ex_rob_idx;
 
 		// only for DEBUGGING
-	output [64*`SCALAR-1:0]				ex_cdb_NPC;
-	output [32*`SCALAR-1:0]				ex_cdb_IR;
-	output [`SCALAR-1:0]					ex_cdb_valid_inst;
-	wire [64*`SCALAR-1:0]				ex_cdb_ALU_NPC;
-	wire [32*`SCALAR-1:0]				ex_cdb_ALU_IR;
-	wire [`SCALAR-1:0]					ex_cdb_ALU_valid_inst;
-	wire [64*`SCALAR-1:0]				ex_cdb_MULT_NPC;
-	wire [32*`SCALAR-1:0]				ex_cdb_MULT_IR;
-	wire [`SCALAR-1:0]					ex_cdb_MULT_valid_inst;
-	wire [64*`SCALAR-1:0]				ex_cdb_MEM_NPC;
-	wire [32*`SCALAR-1:0]				ex_cdb_MEM_IR;
-	wire [`SCALAR-1:0]					ex_cdb_MEM_valid_inst;
-
+	output [64*`SCALAR-1:0]				ex_co_NPC;
+	output [32*`SCALAR-1:0]				ex_co_IR;
+	output [`SCALAR-1:0]					ex_co_valid_inst;
    
   // CDB FIXME
   wire [`SCALAR*`PRF_IDX-1:0] cdb_tag = 0;
@@ -593,10 +583,7 @@ ex_stage ex_stage0 (.clk(clock), .reset(reset),
 										// Outputs (to LSQ)
 										.EX_LSQ_idx(), .EX_MEM_ADDR(), .EX_MEM_reg_value(),
 
-										.ex_cdb_NPC(ex_cdb_NPC), .ex_cdb_IR(ex_cdb_IR), .ex_cdb_valid_inst(ex_cdb_valid_inst),
-										.ex_cdb_ALU_NPC(ex_cdb_ALU_NPC), .ex_cdb_ALU_IR(ex_cdb_ALU_IR), .ex_cdb_ALU_valid_inst(ex_cdb_ALU_valid_inst),
-										.ex_cdb_MULT_NPC(ex_cdb_MULT_NPC), .ex_cdb_MULT_IR(ex_cdb_MULT_IR), .ex_cdb_MULT_valid_inst(ex_cdb_MULT_valid_inst),
-										.ex_cdb_MEM_NPC(ex_cdb_MEM_NPC), .ex_cdb_MEM_IR(ex_cdb_MEM_IR), .ex_cdb_MEM_valid_inst(ex_cdb_MEM_valid_inst)
+										.ex_co_NPC(ex_co_NPC), .ex_co_IR(ex_co_IR), .ex_co_valid_inst(ex_co_valid_inst)
 		               );
 /*
 // Should connect the below signals to EX-Stage
