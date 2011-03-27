@@ -44,9 +44,12 @@ module oo_pipeline (// Inputs
                  id_dp_NPC,
                  id_dp_IR,
                  id_dp_valid_inst,
-                 dp_ex_NPC,
-                 dp_ex_IR,
-                 dp_ex_valid_inst,
+                 dp_is_NPC,
+                 dp_is_IR,
+                 dp_is_valid_inst,
+                 is_ex_NPC,
+                 is_ex_IR,
+                 is_ex_valid_inst,
 								 ex_co_NPC, 
 								 ex_co_IR, 
 								 ex_co_valid_inst,
@@ -73,6 +76,14 @@ module oo_pipeline (// Inputs
   output [`SCALAR-1:0]    pipeline_commit_wr_en;
   output [64*`SCALAR-1:0] pipeline_commit_NPC;
   output [32*`SCALAR-1:0] pipeline_commit_IR;
+  wire   [64*`PRF_SZ-1:0] prf_regs;
+  wire   [63:0] prf_regs_out [`PRF_SZ:0];
+  generate
+  genvar prf_reg_idx;
+  for(prf_reg_idx=0; prf_reg_idx < `PRF_SZ; prf_reg_idx = prf_reg_idx + 1) begin : WB_REG_2D
+    assign prf_regs_out[prf_reg_idx] = prf_regs[`SEL(64,prf_reg_idx)];
+  end
+  endgenerate
 
   output [64*`SCALAR-1:0] if_NPC_out;
   output [32*`SCALAR-1:0] if_IR_out;
@@ -136,23 +147,23 @@ module oo_pipeline (// Inputs
 	wire	[5*`SCALAR-1:0] 				dp_ALUop;
 	wire	[`SCALAR-1:0] 					dp_rd_mem;
 	wire	[`SCALAR-1:0] 					dp_wr_mem;
-	wire	[32*`SCALAR-1:0] 				dp_rs_IR;
-	wire	[64*`SCALAR-1:0] 				dp_npc;
+	output wire	[32*`SCALAR-1:0] 				dp_is_IR;
+	output wire	[64*`SCALAR-1:0] 				dp_is_NPC;
 	wire	[`ROB_IDX*`SCALAR-1:0] 	dp_rob_idx;
-	wire	[`SCALAR-1:0] 					dp_en_out;
+	output wire	[`SCALAR-1:0] 					dp_is_valid_inst;
 
 	// Outputs from DISPATCH/EX Pipeline Register
-	reg [`LSQ_IDX*`SCALAR-1:0]	dp_ex_LSQ_idx;
-	reg	[`PRF_IDX*`SCALAR-1:0]	dp_ex_pdest_idx;
-	reg	[64*`SCALAR-1:0] 				dp_ex_prega_value;
-	reg	[64*`SCALAR-1:0] 				dp_ex_pregb_value;
-	reg	[5*`SCALAR-1:0] 				dp_ex_ALUop;
-	reg	[`SCALAR-1:0] 					dp_ex_rd_mem;
-	reg	[`SCALAR-1:0] 					dp_ex_wr_mem;
-	output reg	[32*`SCALAR-1:0] 				dp_ex_IR;
-	output reg	[64*`SCALAR-1:0] 				dp_ex_NPC;
-	output reg	[`SCALAR-1:0] 					dp_ex_valid_inst;
-	reg	[`ROB_IDX*`SCALAR-1:0] 	dp_ex_rob_idx;
+	reg [`LSQ_IDX*`SCALAR-1:0]	is_ex_LSQ_idx;
+	reg	[`PRF_IDX*`SCALAR-1:0]	is_ex_pdest_idx;
+	reg	[64*`SCALAR-1:0] 				is_ex_prega_value;
+	reg	[64*`SCALAR-1:0] 				is_ex_pregb_value;
+	reg	[5*`SCALAR-1:0] 				is_ex_ALUop;
+	reg	[`SCALAR-1:0] 					is_ex_rd_mem;
+	reg	[`SCALAR-1:0] 					is_ex_wr_mem;
+	output reg	[32*`SCALAR-1:0] 				is_ex_IR;
+	output reg	[64*`SCALAR-1:0] 				is_ex_NPC;
+	output reg	[`SCALAR-1:0] 					is_ex_valid_inst;
+	reg	[`ROB_IDX*`SCALAR-1:0] 	is_ex_rob_idx;
 
 		// only for DEBUGGING
 	output [64*`SCALAR-1:0]				ex_co_NPC;
@@ -207,7 +218,6 @@ module oo_pipeline (// Inputs
   wire [`SCALAR*`ROB_IDX-1:0] rob_idx_out;
   wire [`SCALAR*`ARF_IDX-1:0] rob_retire_dest_idx;
   wire [`SCALAR*`PRF_IDX-1:0] rob_retire_pdest_idx;
-  wire [64*`SCALAR-1:0]       rob_retire_wr_data;
   output wire [`SCALAR-1:0]          rob_retire_valid_inst;
   output wire [64*`SCALAR-1:0]       rob_retire_NPC;
   output wire [32*`SCALAR-1:0]       rob_retire_IR;
@@ -225,11 +235,12 @@ module oo_pipeline (// Inputs
                    : (id_dp_halt ? `HALTED_ON_HALT
                                  : `NO_ERROR);
 
-  assign pipeline_commit_wr_idx = rob_retire_pdest_idx;
-  assign pipeline_commit_wr_data = rob_retire_wr_data;
-  assign pipeline_commit_wr_en[0] = rob_retire_pdest_idx[`SEL(`PRF_IDX,1)] != `ZERO_REG;
+  assign pipeline_commit_wr_idx = rob_retire_dest_idx;
+  assign pipeline_commit_wr_data[`SEL(64,1)] = prf_regs_out[rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]];
+  assign pipeline_commit_wr_en[0] = rob_retire_valid_inst[0] && (rob_retire_pdest_idx[`SEL(`PRF_IDX,1)] != `ZERO_REG);
   `ifdef SUPERSCALAR
-  assign pipeline_commit_wr_en[1] = rob_retire_pdest_idx[`SEL(`PRF_IDX,2)] != `ZERO_REG;
+  assign pipeline_commit_wr_en[1] = rob_retire_valid_inst[1] && (rob_retire_pdest_idx[`SEL(`PRF_IDX,2)] != `ZERO_REG);
+  assign pipeline_commit_wr_data[`SEL(64,2)] = prf_regs_out[rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]];
   `endif
   assign pipeline_commit_NPC = rob_retire_NPC;
 
@@ -495,7 +506,7 @@ module oo_pipeline (// Inputs
   regfile #(.IDX_WIDTH(`PRF_IDX), .DATA_WIDTH(64), .ZERO_REGISTER(`ZERO_PRF))
   PRF(.rda_idx(dp_prega_idx), .rda_out(dp_prega_value),
       .rdb_idx(dp_pregb_idx), .rdb_out(dp_pregb_value),
-      .reg_vals_out(),
+      .reg_vals_out(prf_regs),
       .wr_idx(ex_cdb_tag_out), .wr_data(ex_cdb_value_out),
       .wr_en(ex_cdb_valid_out), .wr_clk(clock), .reset(reset),
       .copy(1'b0), .reg_vals_in({`PRF_SZ*64{1'b0}})
@@ -513,8 +524,8 @@ module oo_pipeline (// Inputs
                 .rs_stall(rs_stall), .rs_rdy(), //Hazard detect
                 .pdest_idx_out(dp_pdest_idx), .prega_idx_out(dp_prega_idx), .pregb_idx_out(dp_pregb_idx), 
 								.ALUop_out(dp_ALUop), .rd_mem_out(dp_rd_mem), //FU
-                .wr_mem_out(dp_wr_mem), .rs_IR_out(dp_rs_IR), .npc_out(dp_npc), 
-								.rob_idx_out(dp_rob_idx), .en_out(dp_en_out), //FU
+                .wr_mem_out(dp_wr_mem), .rs_IR_out(dp_is_IR), .npc_out(dp_is_NPC), 
+								.rob_idx_out(dp_rob_idx), .en_out(dp_is_valid_inst), //FU
                 .rs_idx_out() //ROB
          			 );
 
@@ -528,30 +539,30 @@ module oo_pipeline (// Inputs
   begin
     if (reset)
     begin
-			dp_ex_LSQ_idx			<= `SD 0;
-			dp_ex_pdest_idx		<= `SD {`SCALAR{`ZERO_REG}};
-			dp_ex_prega_value	<= `SD 0;
-			dp_ex_pregb_value	<= `SD 0;
-			dp_ex_ALUop				<= `SD 0;
-			dp_ex_rd_mem			<= `SD 0;
-			dp_ex_wr_mem			<= `SD 0;
-			dp_ex_IR				<= `SD {`SCALAR{`NOOP_INST}};
-			dp_ex_NPC					<= `SD 0;
-			dp_ex_rob_idx			<= `SD 0;
-			dp_ex_valid_inst				<= `SD 0;
+			is_ex_LSQ_idx			<= `SD 0;
+			is_ex_pdest_idx		<= `SD {`SCALAR{`ZERO_REG}};
+			is_ex_prega_value	<= `SD 0;
+			is_ex_pregb_value	<= `SD 0;
+			is_ex_ALUop				<= `SD 0;
+			is_ex_rd_mem			<= `SD 0;
+			is_ex_wr_mem			<= `SD 0;
+			is_ex_IR				<= `SD {`SCALAR{`NOOP_INST}};
+			is_ex_NPC					<= `SD 0;
+			is_ex_rob_idx			<= `SD 0;
+			is_ex_valid_inst				<= `SD 0;
     end // if (reset)
     else begin
-			dp_ex_LSQ_idx			<= `SD 0;	// FIXME
-			dp_ex_pdest_idx		<= `SD dp_pdest_idx;
-			dp_ex_prega_value	<= `SD dp_prega_value;
-			dp_ex_pregb_value	<= `SD dp_pregb_value;
-			dp_ex_ALUop				<= `SD dp_ALUop;
-			dp_ex_rd_mem			<= `SD dp_rd_mem;
-			dp_ex_wr_mem			<= `SD dp_wr_mem;
-			dp_ex_IR				<= `SD dp_rs_IR;
-			dp_ex_NPC					<= `SD dp_npc;
-			dp_ex_rob_idx			<= `SD dp_rob_idx;
-			dp_ex_valid_inst				<= `SD dp_en_out;
+			is_ex_LSQ_idx			<= `SD 0;	// FIXME
+			is_ex_pdest_idx		<= `SD dp_pdest_idx;
+			is_ex_prega_value	<= `SD dp_prega_value;
+			is_ex_pregb_value	<= `SD dp_pregb_value;
+			is_ex_ALUop				<= `SD dp_ALUop;
+			is_ex_rd_mem			<= `SD dp_rd_mem;
+			is_ex_wr_mem			<= `SD dp_wr_mem;
+			is_ex_IR				<= `SD dp_is_IR;
+			is_ex_NPC					<= `SD dp_is_NPC;
+			is_ex_rob_idx			<= `SD dp_rob_idx;
+			is_ex_valid_inst				<= `SD dp_is_valid_inst;
     end // else: !if(reset)
   end // always
 
@@ -562,10 +573,10 @@ module oo_pipeline (// Inputs
   //////////////////////////////////////////////////
 ex_stage ex_stage0 (.clk(clock), .reset(reset),
 										// Inputs
-										.LSQ_idx(dp_ex_LSQ_idx), .pdest_idx(dp_ex_pdest_idx), 
-										.prega_value(dp_ex_prega_value), .pregb_value(dp_ex_pregb_value),  
-										.ALUop(dp_ex_ALUop), .rd_mem(dp_ex_rd_mem), .wr_mem(dp_ex_wr_mem), 
-										.rs_IR(dp_ex_IR), .npc(dp_ex_NPC), .rob_idx(dp_ex_rob_idx), .EX_en(dp_ex_valid_inst), 
+										.LSQ_idx(is_ex_LSQ_idx), .pdest_idx(is_ex_pdest_idx), 
+										.prega_value(is_ex_prega_value), .pregb_value(is_ex_pregb_value),  
+										.ALUop(is_ex_ALUop), .rd_mem(is_ex_rd_mem), .wr_mem(is_ex_wr_mem), 
+										.rs_IR(is_ex_IR), .npc(is_ex_NPC), .rob_idx(is_ex_rob_idx), .EX_en(is_ex_valid_inst), 
 		
 										// Inputs (from LSQ)
 										.LSQ_rob_idx(0), .LSQ_pdest_idx(0), .LSQ_mem_value(0), .LSQ_done(0), .LSQ_rd_mem(0), .LSQ_wr_mem(0), 

@@ -47,9 +47,13 @@ module testbench;
   wire [`SCALAR*32-1:0] id_dp_IR;
   wire [`SCALAR-1:0]    id_dp_valid_inst;
 
-  wire [`SCALAR*64-1:0] dp_ex_NPC;
-  wire [`SCALAR*32-1:0] dp_ex_IR;
-  wire [`SCALAR-1:0]    dp_ex_valid_inst;
+  wire [`SCALAR*64-1:0] dp_is_NPC;
+  wire [`SCALAR*32-1:0] dp_is_IR;
+  wire [`SCALAR-1:0]    dp_is_valid_inst;
+
+  wire [`SCALAR*64-1:0] is_ex_NPC;
+  wire [`SCALAR*32-1:0] is_ex_IR;
+  wire [`SCALAR-1:0]    is_ex_valid_inst;
 
   wire [`SCALAR*64-1:0] ex_co_NPC;
   wire [`SCALAR*32-1:0] ex_co_IR;
@@ -250,12 +254,14 @@ always @(pipeline_error_status) begin
   if(pipeline_error_status != `NO_ERROR)
     $fclose(rat_fileno);
 end
+//*** REGISTER DEBUG ***//
+
 
 //*** PIPELINE DEBUG ***//
 integer pipe_fileno;
 initial begin
   pipe_fileno = $fopen("pipeline.out");
-  $fdisplay(pipe_fileno, "Cycle:       IF     |      ID      |      DP      |      EX      |      CO      |      RE      |     WB     | MEM  ADDR |");
+  $fdisplay(pipe_fileno, "Cycle:       IF     |      ID      |      DP      |      IS      |      EX      |      CO      |      RE      |            WB            | MEM  ADDR |");
 end
 always @(negedge clock) begin
  if(~reset) begin
@@ -265,16 +271,26 @@ always @(negedge clock) begin
    `DISPLAY_STAGE(if_NPC_out[`SEL(64,1)],if_IR_out[`SEL(32,1)], if_valid_inst_out[0])
    `DISPLAY_STAGE(if_id_NPC[`SEL(64,1)], if_id_IR[`SEL(32,1)], if_id_valid_inst[0])
    `DISPLAY_STAGE(id_dp_NPC[`SEL(64,1)], id_dp_IR[`SEL(32,1)], id_dp_valid_inst[0])
-   `DISPLAY_STAGE(dp_ex_NPC[`SEL(64,1)], dp_ex_IR[`SEL(32,1)], dp_ex_valid_inst[0])
+   `DISPLAY_STAGE(dp_is_NPC[`SEL(64,1)], dp_is_IR[`SEL(32,1)], dp_is_valid_inst[0])
+   `DISPLAY_STAGE(is_ex_NPC[`SEL(64,1)], is_ex_IR[`SEL(32,1)], is_ex_valid_inst[0])
    `DISPLAY_STAGE(ex_co_NPC[`SEL(64,1)], ex_co_IR[`SEL(32,1)], ex_co_valid_inst[0])
    `DISPLAY_STAGE(rob_retire_NPC[`SEL(64,1)], rob_retire_IR[`SEL(32,1)], rob_retire_valid_inst[0])
+   if(pipeline_commit_wr_en[0])
+     $fwrite(pipe_fileno, " REG[%2d]=%8x |", pipeline_commit_wr_idx[`SEL(5,1)], pipeline_commit_wr_data[`SEL(64,1)]);
+   else
+     $fwrite(pipe_fileno, "                          |");
    $fwrite(pipe_fileno, "\n      ");
    `DISPLAY_STAGE(if_NPC_out[`SEL(64,2)],if_IR_out[`SEL(32,2)], if_valid_inst_out[1])
    `DISPLAY_STAGE(if_id_NPC[`SEL(64,2)], if_id_IR[`SEL(32,2)], if_id_valid_inst[1])
    `DISPLAY_STAGE(id_dp_NPC[`SEL(64,2)], id_dp_IR[`SEL(32,2)], id_dp_valid_inst[1])
-   `DISPLAY_STAGE(dp_ex_NPC[`SEL(64,2)], dp_ex_IR[`SEL(32,2)], dp_ex_valid_inst[1])
+   `DISPLAY_STAGE(dp_is_NPC[`SEL(64,2)], dp_is_IR[`SEL(32,2)], dp_is_valid_inst[1])
+   `DISPLAY_STAGE(is_ex_NPC[`SEL(64,2)], is_ex_IR[`SEL(32,2)], is_ex_valid_inst[1])
    `DISPLAY_STAGE(ex_co_NPC[`SEL(64,2)], ex_co_IR[`SEL(32,2)], ex_co_valid_inst[1])
    `DISPLAY_STAGE(rob_retire_NPC[`SEL(64,2)], rob_retire_IR[`SEL(32,2)], rob_retire_valid_inst[1])
+   if(pipeline_commit_wr_en[1])
+     $fwrite(pipe_fileno, " REG[%2d]=%8x |", pipeline_commit_wr_idx[`SEL(5,2)], pipeline_commit_wr_data[`SEL(64,2)]);
+   else
+     $fwrite(pipe_fileno, "                          |");
    $fwrite(pipe_fileno, "\n");
  end
 end
@@ -321,9 +337,12 @@ end
                        .id_dp_NPC(id_dp_NPC),
                        .id_dp_IR(id_dp_IR),
                        .id_dp_valid_inst(id_dp_valid_inst),
-                       .dp_ex_NPC(dp_ex_NPC),
-                       .dp_ex_IR(dp_ex_IR),
-                       .dp_ex_valid_inst(dp_ex_valid_inst),
+                       .dp_is_NPC(dp_is_NPC),
+                       .dp_is_IR(dp_is_IR),
+                       .dp_is_valid_inst(dp_is_valid_inst),
+                       .is_ex_NPC(is_ex_NPC),
+                       .is_ex_IR(is_ex_IR),
+                       .is_ex_valid_inst(is_ex_valid_inst),
                        .ex_co_NPC(ex_co_NPC),
                        .ex_co_IR(ex_co_IR),
                        .ex_co_valid_inst(ex_co_valid_inst),
