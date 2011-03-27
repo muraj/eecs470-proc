@@ -230,14 +230,14 @@ module rob (clk, reset,
   genvar i;
   for(i=0;i<`ROB_SZ;i=i+1) begin : REG_RESET
       always @(posedge clk) begin
+				if (reset) begin
             data_ba_ex[i] <= `SD {64{1'b0}};
             data_bt_ex[i] <= `SD 1'b0;
             data_rdy[i] <= `SD 1'b0;
+				end
       end
   end
   endgenerate
-
-
 
 
 	// ===================================================

@@ -466,8 +466,8 @@ module oo_pipeline (// Inputs
 						// Dispatch request
 						.din1_req(id_dp_valid_inst[0]), .din2_req(id_dp_valid_inst[1]),
 						// Update request
-						.dup1_req(1'b0), .dup2_req(1'b0),
-						.rob_idx_in1({`ROB_IDX{1'b0}}), .rob_idx_in2({`ROB_IDX{1'b0}}),//FIXME
+						.dup1_req(ex_cdb_valid_out[0]), .dup2_req(ex_cdb_valid_out[1]),
+						.rob_idx_in1(ex_rob_idx_out[`SEL(`ROB_IDX,1)]), .rob_idx_in2(ex_rob_idx_out[`SEL(`ROB_IDX,2)]),
 						// Inputs @ dispatch
 						.ir_in1(id_dp_IR[`SEL(32,1)]), .ir_in2(id_dp_IR[`SEL(32,2)]), 
             .npc_in1(id_dp_NPC[`SEL(64,1)]), .npc_in2(id_dp_NPC[`SEL(64,2)]),
@@ -478,7 +478,7 @@ module oo_pipeline (// Inputs
             .bt_pd_in1(1'b0), .bt_pd_in2(1'b0), //FIXME
             .isbranch_in1(id_dp_isbranch[0]), .isbranch_in2(id_dp_isbranch[1]),
 						// Real branch results
-						.ba_ex_in1(64'b0), .ba_ex_in2(64'b0), .bt_ex_in1(1'b0), .bt_ex_in2(1'b0),//FIXME
+						.ba_ex_in1(ex_cdb_value_out[`SEL(64,1)]), .ba_ex_in2(ex_cdb_value_out[`SEL(64,2)]), .bt_ex_in1(!ex_branch_NT_out[0]), .bt_ex_in2(!ex_branch_NT_out[1]),
 						// For retire
             .dout1_valid(rob_retire_valid_inst[0]), .dout2_valid(rob_retire_valid_inst[1]), 
 						.rob_idx_out1(rob_idx_out[`SEL(`ROB_IDX,1)]), .rob_idx_out2(rob_idx_out[`SEL(`ROB_IDX,2)]),
