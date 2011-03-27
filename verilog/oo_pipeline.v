@@ -81,7 +81,7 @@ module oo_pipeline (// Inputs
   generate
   genvar prf_reg_idx;
   for(prf_reg_idx=0; prf_reg_idx < `PRF_SZ; prf_reg_idx = prf_reg_idx + 1) begin : WB_REG_2D
-    assign prf_regs_out[prf_reg_idx] = prf_regs[`SEL(64,prf_reg_idx)];
+    assign prf_regs_out[prf_reg_idx] = prf_regs[`SEL(64,prf_reg_idx+1)];
   end
   endgenerate
 
@@ -236,10 +236,11 @@ module oo_pipeline (// Inputs
                                  : `NO_ERROR);
 
   assign pipeline_commit_wr_idx = rob_retire_dest_idx;
+  assign pipeline_commit_IR = rob_retire_IR;
   assign pipeline_commit_wr_data[`SEL(64,1)] = prf_regs_out[rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]];
-  assign pipeline_commit_wr_en[0] = rob_retire_valid_inst[0] && (rob_retire_pdest_idx[`SEL(`PRF_IDX,1)] != `ZERO_REG);
+  assign pipeline_commit_wr_en[0] = rob_retire_valid_inst[0] && (rob_retire_pdest_idx[`SEL(`PRF_IDX,1)] != `ZERO_PRF);
   `ifdef SUPERSCALAR
-  assign pipeline_commit_wr_en[1] = rob_retire_valid_inst[1] && (rob_retire_pdest_idx[`SEL(`PRF_IDX,2)] != `ZERO_REG);
+  assign pipeline_commit_wr_en[1] = rob_retire_valid_inst[1] && (rob_retire_pdest_idx[`SEL(`PRF_IDX,2)] != `ZERO_PRF);
   assign pipeline_commit_wr_data[`SEL(64,2)] = prf_regs_out[rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]];
   `endif
   assign pipeline_commit_NPC = rob_retire_NPC;

@@ -151,7 +151,6 @@ end
  wire [`ROB_IDX-1:0] tail = pipeline_0.rob0.tail; 
  initial begin                
   rob_fileno = $fopen("reorderbuf.out");
-  rob_idx=0;                  
  end                          
 always @(posedge clock) begin 
  if(~reset) begin
@@ -165,14 +164,38 @@ always @(posedge clock) begin
               get_instr_string(rob_ir[i], 1'b1),              \
               rob_npc[i], rob_rdy[i], rob_pdest[i], rob_adest[i],  \
               cb_isbranch[i], cb_bt_pd[i], cb_ba_pd[i]);
-  `DISPLAY_ROB(0)
-  `DISPLAY_ROB(1)
-  `DISPLAY_ROB(2)
-  `DISPLAY_ROB(3)
-  `DISPLAY_ROB(4)
-  `DISPLAY_ROB(5)
-  `DISPLAY_ROB(6)
-  `DISPLAY_ROB(7)
+   `DISPLAY_ROB(0)
+   `DISPLAY_ROB(1)
+   `DISPLAY_ROB(2)
+   `DISPLAY_ROB(3)
+   `DISPLAY_ROB(4)
+   `DISPLAY_ROB(5)
+   `DISPLAY_ROB(6)
+   `DISPLAY_ROB(7)
+   `DISPLAY_ROB(8)
+   `DISPLAY_ROB(9)
+   `DISPLAY_ROB(10)
+   `DISPLAY_ROB(11)
+   `DISPLAY_ROB(12)
+   `DISPLAY_ROB(13)
+   `DISPLAY_ROB(14)
+   `DISPLAY_ROB(15)
+   `DISPLAY_ROB(16)
+   `DISPLAY_ROB(17)
+   `DISPLAY_ROB(18)
+   `DISPLAY_ROB(19)
+   `DISPLAY_ROB(20)
+   `DISPLAY_ROB(21)
+   `DISPLAY_ROB(22)
+   `DISPLAY_ROB(23)
+   `DISPLAY_ROB(24)
+   `DISPLAY_ROB(25)
+   `DISPLAY_ROB(26)
+   `DISPLAY_ROB(27)
+   `DISPLAY_ROB(28)
+   `DISPLAY_ROB(29)
+   `DISPLAY_ROB(30)
+   `DISPLAY_ROB(31)
  end
 end
 always @(pipeline_error_status) begin
@@ -254,8 +277,32 @@ always @(pipeline_error_status) begin
   if(pipeline_error_status != `NO_ERROR)
     $fclose(rat_fileno);
 end
-//*** REGISTER DEBUG ***//
 
+//*** REGISTER DEBUG ***//
+integer reg_fileno, reg_iter;
+initial begin
+  reg_fileno = $fopen("register.out");
+end
+always @(pipeline_error_status) begin
+  if(pipeline_error_status != `NO_ERROR)
+    $fclose(reg_fileno);
+end
+always @(negedge clock) begin
+  if(~reset) begin
+    $fdisplay(reg_fileno, "\n|=============================================== Cycle: %10d =========================================|", clock_count);
+    if(pipeline_0.ex_cdb_valid_out[0])
+      $fwrite(reg_fileno, "CDB1: %2d | %8h ", pipeline_0.ex_cdb_tag_out[`SEL(`PRF_IDX, 1)], pipeline_0.ex_cdb_value_out[`SEL(64, 1)]);
+    else
+      $fwrite(reg_fileno, "CDB1: -- | -------- ");
+    if(pipeline_0.ex_cdb_valid_out[1])
+      $fwrite(reg_fileno, "CDB2: %2d | %8h\n", pipeline_0.ex_cdb_tag_out[`SEL(`PRF_IDX, 2)], pipeline_0.ex_cdb_value_out[`SEL(64, 2)]);
+    else
+      $fwrite(reg_fileno, "CDB2: -- | -------- \n");
+    for(reg_iter = 0; reg_iter < `PRF_SZ; reg_iter=reg_iter+1) begin : REG_ITER
+      $fdisplay(reg_fileno, "%2d | %h", reg_iter, pipeline_0.PRF.registers[reg_iter]);
+    end
+  end
+end
 
 //*** PIPELINE DEBUG ***//
 integer pipe_fileno;
@@ -460,7 +507,7 @@ end
     begin
       clock_count <= `SD (clock_count + 1);
       instr_count <= `SD (instr_count + pipeline_completed_insts);
-      if(clock_count > 20) begin
+      if(clock_count > 500) begin
           $display("Debug quit");
           $fclose(wb_fileno);
           $finish;
@@ -476,28 +523,22 @@ end
                $realtime);
     else
     begin
-      if(pipeline_completed_insts>0) begin
+      if(pipeline_completed_insts>0) begin  //FIXME
         if(pipeline_commit_wr_en[0])
-          $fdisplay(wb_fileno, "# SCALAR 1, IR=%s cycle=%0d\nPC=%x, REG[%d]=%x",
-                    co_instr_str[0], clock_count,
+          $fdisplay(wb_fileno, "# SCALAR 1, IR=%s %h cycle=%0d rob_pdest_idx: %2d \nPC=%x, REG[%d]=%x",
+                    co_instr_str[0], pipeline_commit_IR[`SEL(32,1)], clock_count,
+                    pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,1)],
                     pipeline_commit_NPC[`SEL(64, 1)]-4,
                     pipeline_commit_wr_idx[`SEL(5,1)],
                     pipeline_commit_wr_data[`SEL(64,1)]);
-        else
-          $fdisplay(wb_fileno, "# SCALAR 1, IR=%s cycle=%0d\nPC=%x, ---",
-                    co_instr_str[0], clock_count,
-                    pipeline_commit_NPC[`SEL(64, 1)]-4);
        `ifdef SUPERSCALAR
         if(pipeline_commit_wr_en[1])
-          $fdisplay(wb_fileno, "# SCALAR 2, IR=%s cycle=%0d\nPC=%x, REG[%d]=%x",
-                    co_instr_str[1], clock_count,
+          $fdisplay(wb_fileno, "# SCALAR 2, IR=%s %h cycle=%0d rob_pdest_idx: %2d \nPC=%x, REG[%d]=%x",
+                    co_instr_str[1], pipeline_commit_IR[`SEL(32,2)], clock_count,
+                    pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,2)],
                     pipeline_commit_NPC[`SEL(64, 2)]-4,
                     pipeline_commit_wr_idx[`SEL(5,2)],
                     pipeline_commit_wr_data[`SEL(64,2)]);
-        else
-          $fdisplay(wb_fileno, "# SCALAR 2, IR=%s cycle=%0d\nPC=%x, ---",
-                    co_instr_str[1], clock_count,
-                    pipeline_commit_NPC[`SEL(64, 2)]-4);
        `endif //SUPERSCALAR
 
       end
