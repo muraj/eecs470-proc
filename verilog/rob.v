@@ -115,6 +115,7 @@ module rob (clk, reset,
 		// other default cases
 		next_head = head;
 		next_tail = tail;
+		tail_new = tail;
 		incount = 2'd0;
 		outcount = 2'd0;
 		dout1_valid = retire1;
@@ -191,7 +192,7 @@ module rob (clk, reset,
 			iocount 			<= `SD {`ROB_IDX+1{1'b0}};
 			full 					<= `SD 1'b0;
 			full_almost 	<= `SD 1'b0;
-			empty					<= `SD 1'b0;
+			empty					<= `SD 1'b1;
 			empty_almost	<= `SD 1'b0;
 
 		end else begin
