@@ -58,6 +58,8 @@ module cb (clk, reset,
 		next_tail = tail;
 		incount = 2'd0;
 		outcount = 2'd0;
+		dout1 = data[head];
+		dout2 = data[head_p1];
 
 		// deal with tail and data in
 		if (move_tail) begin
@@ -78,11 +80,9 @@ module cb (clk, reset,
 		// deal with head and data out
 		if (dout1_req && !empty) begin
 			next_head = head_p1;
-			dout1 = data[head];
 			outcount = 2'd1;
 			if (dout2_req && !empty_almost) begin
 				next_head = head_p2;
-				dout2 = data[head_p1];
 				outcount = 2'd2;
 			end
 		end
