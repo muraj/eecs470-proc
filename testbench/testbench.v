@@ -140,6 +140,7 @@ end
  wire [`PRF_IDX-1:0] rob_pdest[`ROB_SZ-1:0];
  wire [4:0] rob_adest[`ROB_SZ-1:0];
  wire [63:0] cb_ba_pd[`ROB_SZ-1:0];
+ wire rob_rdy[`ROB_SZ-1:0];
  wire [`ROB_SZ-1:0] cb_bt_pd;
  wire [`ROB_SZ-1:0] cb_isbranch;
  wire [`ROB_IDX-1:0] head = pipeline_0.rob0.head;
@@ -151,14 +152,14 @@ end
 always @(posedge clock) begin 
  if(~reset) begin
   $fdisplay(rob_fileno, "\n|=============================== Cycle: %10d ================================|", clock_count);
-  $fdisplay(rob_fileno, "| H/T | IDX |    IR    |        NPC       | PDR | ADR | BRA/TKN |  Branch Address  |");
+  $fdisplay(rob_fileno, "| H/T | IDX |    IR    |        NPC       | RDY | PDR | ADR | BRA/TKN |  Branch Address  |");
   $fdisplay(rob_fileno, "|==================================================================================|");
   `define DISPLAY_ROB(i) \
-    $fdisplay(rob_fileno, "| %1s %1s | %3d | %7s | %h | %3d | %3d |  %b / %b  | %h |",  \
+    $fdisplay(rob_fileno, "| %1s %1s | %3d | %7s | %h |  %b  | %3d | %3d |  %b / %b  | %h |",  \
               i === head ? "H" : " ",                         \
               i === tail ? "T" : " ", i,                      \
               get_instr_string(rob_ir[i], 1'b1),              \
-              rob_npc[i], rob_pdest[i], rob_adest[i],         \
+              rob_npc[i], rob_rdy[i], rob_pdest[i], rob_adest[i],  \
               cb_isbranch[i], cb_bt_pd[i], cb_ba_pd[i]);
   `DISPLAY_ROB(0)
   `DISPLAY_ROB(1)
@@ -184,6 +185,7 @@ genvar rob_iter;
   assign cb_ba_pd   [rob_iter] = pipeline_0.rob0.cb_ba_pd.data[rob_iter];
   assign cb_bt_pd   [rob_iter] = pipeline_0.rob0.cb_bt_pd.data[rob_iter];
   assign cb_isbranch[rob_iter] = pipeline_0.rob0.cb_isbranch.data[rob_iter];
+  assign rob_rdy    [rob_iter] = pipeline_0.rob0.data_rdy[rob_iter];
   end
 endgenerate
 

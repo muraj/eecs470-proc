@@ -159,11 +159,6 @@ module oo_pipeline (// Inputs
 	output [32*`SCALAR-1:0]				ex_co_IR;
 	output [`SCALAR-1:0]					ex_co_valid_inst;
    
-  // CDB FIXME
-  wire [`SCALAR*`PRF_IDX-1:0] cdb_tag = 0;
-  wire [`SCALAR*64-1:0]       cdb_data = 0;
-  wire [`SCALAR-1:0]          cdb_valid = 0;
-
   // EX wires
 	wire [`PRF_IDX*`SCALAR-1:0]	ex_cdb_tag_out;
 	wire [`SCALAR-1:0] 					ex_cdb_valid_out;
@@ -460,7 +455,7 @@ module oo_pipeline (// Inputs
 						.prega_idx_out(rat_prega_idx), .prega_valid_out(prf_valid_prega),
             .pregb_idx_out(rat_pregb_idx), .pregb_valid_out(prf_valid_pregb),
             //CDB input
-            .cdb_en(cdb_valid), .cdb_tag(cdb_tag), //FIXME
+            .cdb_en(ex_cdb_valid_out), .cdb_tag(ex_cdb_tag_out), //FIXME
 						.pdest_idx_out(rat_pdest_idx), .retire_pdest_idx_in(rob_retire_pdest_idx),
 						// enable signals for rat and rrat
 						.issue(id_dp_valid_inst), .retire(rob_retire_valid_inst)
@@ -501,8 +496,8 @@ module oo_pipeline (// Inputs
   PRF(.rda_idx(dp_prega_idx), .rda_out(dp_prega_value),
       .rdb_idx(dp_pregb_idx), .rdb_out(dp_pregb_value),
       .reg_vals_out(),
-      .wr_idx(cdb_tag), .wr_data(cdb_data),
-      .wr_en(cdb_valid), .wr_clk(clock), .reset(reset),
+      .wr_idx(ex_cdb_tag_out), .wr_data(ex_cdb_value_out),
+      .wr_en(ex_cdb_valid_out), .wr_clk(clock), .reset(reset),
       .copy(1'b0), .reg_vals_in({`PRF_SZ*64{1'b0}})
       );
 
@@ -510,7 +505,7 @@ module oo_pipeline (// Inputs
                 //INPUTS
                 .inst_valid(id_dp_valid_inst), .prega_idx(rat_prega_idx), .pregb_idx(rat_pregb_idx), .pdest_idx(rat_pdest_idx), .prega_valid(prf_valid_prega), .pregb_valid(prf_valid_pregb), //RAT
                 .ALUop(id_dp_alu_func), .rd_mem(id_dp_rd_mem), .wr_mem(id_dp_wr_mem), .rs_IR(id_dp_IR), . npc(id_dp_NPC), .cond_branch(id_dp_cond_branch), .uncond_branch(id_dp_uncond_branch),     //Issue Stage
-                .multfu_free(ex_MULT_free), .exfu_free(ex_ALU_free), .memfu_free(2'b11), .cdb_valid(cdb_valid), .cdb_tag(cdb_tag), .entry_flush({`RS_SZ{0}}),   //Pipeline communication
+                .multfu_free(ex_MULT_free), .exfu_free(ex_ALU_free), .memfu_free(2'b11), .cdb_valid(ex_cdb_valid_out), .cdb_tag(ex_cdb_tag_out), .entry_flush({`RS_SZ{0}}),   //Pipeline communication
 //                .multfu_free(2'b0), .exfu_free(2'b0), .memfu_free(2'b11), .cdb_valid(cdb_valid), .cdb_tag(cdb_tag), .entry_flush({`RS_SZ{0}}),   //Pipeline communication - Disable ex_stage
                 .rob_idx(rob_idx_out), //ROB
 
