@@ -1,52 +1,59 @@
 module lsq (clk, reset, 
-						// ready/valid indicators for data in/out
-						full, full_almost, dout1_valid, dout2_valid,  
-						// allocate requests
-						din1_req, din2_req,
-						// update requests
-						dup1_req, dup2_req,
-						// incoming values
-						ir_in1, ir_in2, npc_in1, npc_in2, pdest_in1, pdest_in2, adest_in1, adest_in2, ba_pd_in1, ba_pd_in2, bt_pd_in1, bt_pd_in2, isbranch_in1, isbranch_in2,
-						// values that gets updated
-						ba_ex_in1, ba_ex_in2, bt_ex_in1, bt_ex_in2, 
-						// rob indices for updates
-						rob_idx_in1, rob_idx_in2,
-						// allocated rob indices
-						rob_idx_out1, rob_idx_out2,
-						// output values at retirement
-						ir_out1, ir_out2, npc_out1, npc_out2, pdest_out1, pdest_out2, adest_out1, adest_out2,
-						// branch miss signal
-						branch_miss, correct_target,
+						full, full_almost, 
+						// Inputs at Dispatch
+						in_req, rob_idx_in, pdest_idx_in, rd_mem_in, wr_mem_in,
+						// Inputs from EX
+						up_req, lsq_idx_in, addr_in, reg_value_in,
+						// Inputs from MEM
+						mem2lsq_response, mem2lsq_data, mem2lsq_tag
+						// Output at Dispatch
+						lsq_idx_out,
+						// Outputs to EX
+						out_valid, rob_idx_out, pdest_idx_out, mem_value_out, done_out, rd_mem_out, wr_mem_out,
+						// Outputs to MEM
+						lsq2mem_command, lsq2mem_addr, lsq2mem_data,
 						);
 
-  input clk, reset, din1_req, din2_req, dup1_req, dup2_req;
-	input [31:0] ir_in1, ir_in2;
-	input [63:0] npc_in1, npc_in2;
-	input [`PRF_IDX-1:0] pdest_in1, pdest_in2;
-	input [4:0] adest_in1, adest_in2;
-	input bt_pd_in1, bt_pd_in2;
-	input [63:0] ba_pd_in1, ba_pd_in2;
-	input bt_ex_in1, bt_ex_in2;
-	input isbranch_in1, isbranch_in2;
-	input [63:0] ba_ex_in1, ba_ex_in2;
-	input [`ROB_IDX-1:0] rob_idx_in1, rob_idx_in2;
-	
-	output reg dout1_valid, dout2_valid;
-	output [`ROB_IDX-1:0] rob_idx_out1, rob_idx_out2;
-	output [`PRF_IDX-1:0] pdest_out1, pdest_out2;
-	output [`ARF_IDX-1:0] adest_out1, adest_out2;
-	output [31:0] ir_out1, ir_out2;
-	output [63:0] npc_out1, npc_out2;
-	output reg branch_miss;
-	output [64*`SCALAR-1:0] ba_out;
-	output reg [63:0] correct_target;
-	output reg full, full_almost;
-	output [`SCALAR-1:0] isbranch_out;
-	output [`SCALAR-1:0] bt_out;
+// Input Definitions
 
-	reg [63-1:0] 			data_ba_ex [`ROB_SZ-1:0];
-	reg [`ROB_SZ-1:0] data_bt_ex;
-	reg [`ROB_SZ-1:0] data_rdy;
+  input clk, reset;
+	input [`SCALAR-1:0]						in_req; 	    // allocation requests at dispatch
+	input [`ROB_IDX*`SCALAR-1:0]	rob_idx_in;   // rob index assigned at dispatch
+	input [`PRF_IDX*`SCALAR-1:0]	pdest_idx_in; // destination PRF index
+	input [`SCALAR-1:0]						rd_mem_in;    // loads
+	input [`SCALAR-1:0]						wr_mem_in;		// stores
+
+	input [`SCALAR-1:0]					  up_req;				// address updates from EX stage
+	input [`LSQ_IDX*`SCALAR-1:0]	lsq_idx_in;   // LSQ index to update
+	input [64*`SCALAR-1:0]				addr_in;	    // result of EX stage
+	input [64*`SCALAR-1:0]				reg_value_in; // data for store
+
+	input [3:0]	 mem2lsq_response;
+	input [63:0] mem2lsq_data;
+	input [3:0]  mem2lsq_tag;
+
+// Output Definitions
+
+	output reg full, full_almost;
+	output [`LSQ_IDX*`SCALAR-1:0]	lsq_idx_out;	 // output assigned LSQ index at dispatch
+
+	output [`SCALAR-1:0]					out_valid;		 // output valid signals
+	output [`ROB_IDX*`SCALAR-1:0]	rob_idx_out;   // output rob index at commit
+	output [`PRF_IDX*`SCALAR-1:0]	pdest_idx_out; // destination PRF index at commit
+	output [64*`SCALAR-1:0]				mem_value_out; // data for load
+	output [`SCALAR-1:0]					rd_mem_out;		 // loads
+	output [`SCALAR-1:0]					wr_mem_out;		 // stores
+	
+	output [1:0]	lsq2mem_command;
+	output [63:0] lsq2mem_addr;
+	output [63:0] lsq2mem_data;
+
+// FIXME start from here
+// Internal Data Storage
+
+	reg [`LSQ_IDX-1:0] 	data_ [`LSQ_SZ-1:0];
+	reg [`LSQ_SZ-1:0] 	data_bt_ex;
+	reg [`LSQ_SZ-1:0] 	data_done;
 
 	reg [63-1:0] next_data_ba_ex1, next_data_ba_ex2;
 	reg next_data_bt_ex1, next_data_bt_ex2;
