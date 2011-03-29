@@ -301,7 +301,7 @@
 `define SEL(WIDTH, WHICH) WIDTH*(WHICH)-1:WIDTH*(WHICH - 1)
 `define IF_ID_IDX (3)
 `define IF_ID_SZ (1<<`IF_ID_IDX)
-`define LSQ_IDX (5)
+`define LSQ_IDX (3)
 `define LSQ_SZ (1<<`LSQ_IDX)
 `define RAT_IDX (`ARF_IDX)
 `define RAT_SZ (1<<`RAT_IDX)
