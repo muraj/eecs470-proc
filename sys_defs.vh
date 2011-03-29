@@ -81,7 +81,7 @@
 `define ALU_ORNOT       5'h05
 `define ALU_XOR         5'h06
 `define ALU_EQV         5'h07
-`define ALU_SRL         5'h08
+`define ALU_SRL   		  5'h08
 `define ALU_SLL         5'h09
 `define ALU_SRA         5'h0a
 `define ALU_MULQ        5'h0b
@@ -308,4 +308,8 @@
 `define	BR_IDX (4)
 `define BR_SZ (1<<`BR_IDX)
 
+`define EX_NOOP	2'b00
+`define EX_MEM	2'b01
+`define EX_MULT	2'b10
+`define EX_ALU	2'b11
 

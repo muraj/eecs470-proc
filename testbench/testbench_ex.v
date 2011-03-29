@@ -89,21 +89,27 @@ module testbench;
 						.done_out(LSQ_EX_done), .rd_mem_out(LSQ_EX_rd_mem), .wr_mem_out(LSQ_EX_wr_mem)
 						);
 
-	ex_stage ex_stage0 (.clk(clk), .reset(reset),
+	ex_co_stage ex_co_stage0 (.clk(clk), .reset(reset),
 
 											.LSQ_idx(LSQ_idx_reg), .pdest_idx(pdest_idx_reg), 
 											.prega_value(prega_value_reg), .pregb_value(pregb_value_reg), 
 											.ALUop(ALUop_reg), .rd_mem(rd_mem_reg), .wr_mem(wr_mem_reg),
-											.rs_IR(rs_IR_reg), .npc(npc_reg), .rob_idx(rob_idx_reg), .EX_en(EX_en_reg),
+											.IR(rs_IR_reg), .npc(npc_reg), .rob_idx(rob_idx_reg), .EX_en(EX_en_reg),
 
 											.LSQ_rob_idx(LSQ_EX_rob_idx), .LSQ_pdest_idx(LSQ_EX_pdest_idx), .LSQ_mem_value(LSQ_EX_mem_value), 
 											.LSQ_done(LSQ_EX_done), .LSQ_rd_mem(LSQ_EX_rd_mem), .LSQ_wr_mem(LSQ_EX_wr_mem),
 
-											.cdb_tag_out(EX_cdb_tag), .cdb_valid_out(EX_cdb_valid), .cdb_value_out(EX_cdb_value),	
-											.rob_idx_out(EX_rob_idx), .branch_NT_out(EX_branch_NT), 							
+											.cdb_tag(EX_cdb_tag), .cdb_valid(EX_cdb_valid), .cdb_value(EX_cdb_value),	
+											.cdb_MEM_result_valid(), .cdb_rob_idx(EX_rob_idx), .cdb_BR_result(EX_branch_NT), 							
+											.cdb_npc(), .cdb_IR(),
 											.ALU_free(EX_ALU_free), .MULT_free(EX_MULT_free), 										
 
-											.EX_LSQ_idx(EX_LSQ_idx), .EX_MEM_ADDR(EX_LSQ_ADDR), .EX_MEM_reg_value(EX_LSQ_reg_value)
+											.EX_LSQ_idx(EX_LSQ_idx), .EX_MEM_ADDR(EX_LSQ_ADDR), .EX_MEM_reg_value(EX_LSQ_reg_value),
+
+											.ALU_result_out(), .ALU_pdest_idx_out(), .ALU_done_reg(),
+											.MULT_result_out(), .MULT_pdest_idx_out(), .MULT_done_reg(),
+											.MEM_result_out(), .MEM_pdest_idx_out(), .MEM_result_valid_out()
+
 					            );
 						
 	always
@@ -534,7 +540,7 @@ initial begin
 
 	@(negedge clk); insert_inst();
 
-	NUM_CYCLES = 1000;
+	NUM_CYCLES = 10;
 	while(i<NUM_CYCLES-1) begin
 		@(posedge clk); //show_fu_output();
 		@(negedge clk); show_cdb_output(); insert_inst();
