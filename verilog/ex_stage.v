@@ -55,6 +55,8 @@ module MEM_CONT ( clk, reset,
 	output reg								result_valid_reg, done_reg, gnt_reg;
 	output										done;
 
+	assign done = LSQ_done;
+
 	wire [63:0]	mem_disp 	= { {48{IR_in[15]}}, IR_in[15:0]};
 	assign	MEM_LSQ_IDX		= LSQ_idx;
 	assign	MEM_ADDR 			= mem_disp + pregb_in;
@@ -552,33 +554,31 @@ module EX_CO_Mux (	//Inputs
 	output [32*`SCALAR-1:0]				cdb_IR;
 
 	`ifdef SUPERSCALAR
-		reg [63:0] 					result 		[7:0];
-		reg [`PRF_IDX-1:0]	pdest_idx	[7:0];
-		reg [31:0] 					IR 				[7:0];
-		reg [63:0] 					npc 			[7:0];
-		reg [`ROB_IDX-1:0]	rob_idx 	[7:0];
-		always @* begin
-			result[7]			= 64'b0; 														result[0] 		= 64'b0;
-			result[6]			= ALU_result[`SEL(64,2)];						result[5] 		= ALU_result[`SEL(64,1)];
-			result[4]			= MULT_result[`SEL(64,2)];					result[3] 		= MULT_result[`SEL(64,1)];
-			result[2]			= MEM_result[`SEL(64,2)];						result[1]			= MEM_result[`SEL(64,1)];
-			pdest_idx[7]	= `ZERO_PRF;												pdest_idx[0]	= `ZERO_PRF;
-			pdest_idx[6]	= ALU_pdest_idx[`SEL(`PRF_IDX,2)];	pdest_idx[5]	= ALU_pdest_idx[`SEL(`PRF_IDX,1)];
-			pdest_idx[4]	= MULT_pdest_idx[`SEL(`PRF_IDX,2)];	pdest_idx[3]	= MULT_pdest_idx[`SEL(`PRF_IDX,1)];
-			pdest_idx[2]	= MEM_pdest_idx[`SEL(`PRF_IDX,2)];	pdest_idx[1]	= MEM_pdest_idx[`SEL(`PRF_IDX,1)];
-			IR[7]					= `NOOP_INST; 											IR[0] 				= `NOOP_INST;
-			IR[6]					= ALU_IR[`SEL(32,2)];								IR[5]					= ALU_IR[`SEL(32,1)];
-			IR[4]					= MULT_IR[`SEL(32,2)];							IR[3]					= MULT_IR[`SEL(32,1)];
-			IR[2]					= MEM_IR[`SEL(32,2)];								IR[1]					= MEM_IR[`SEL(32,1)];
-			npc[7]				= 64'b0; 														npc[0] 				= 64'b0;
-			npc[6]				= ALU_npc[`SEL(64,2)];							npc[5]				= ALU_npc[`SEL(64,1)];
-			npc[4]				= MULT_npc[`SEL(64,2)];							npc[3]				= MULT_npc[`SEL(64,1)];
-			npc[2]				= MEM_npc[`SEL(64,2)];							npc[1]				= MEM_npc[`SEL(64,1)];
-			rob_idx[7]		= {`ROB_IDX{1'b0}};									rob_idx[0]		= {`ROB_IDX{1'b0}};
-			rob_idx[6] 		= ALU_rob_idx[`SEL(`ROB_IDX,2)];		rob_idx[5] 		= ALU_rob_idx[`SEL(`ROB_IDX,1)];
-			rob_idx[4] 		= MULT_rob_idx[`SEL(`ROB_IDX,2)];		rob_idx[3] 		= MULT_rob_idx[`SEL(`ROB_IDX,1)];
-			rob_idx[2] 		= MEM_rob_idx[`SEL(`ROB_IDX,2)];		rob_idx[1] 		= MEM_rob_idx[`SEL(`ROB_IDX,1)];
-		end
+		wire [63:0] 				result 		[7:0];
+		wire [`PRF_IDX-1:0]	pdest_idx	[7:0];
+		wire [31:0] 				IR 				[7:0];
+		wire [63:0] 				npc 			[7:0];
+		wire [`ROB_IDX-1:0]	rob_idx 	[7:0];
+			assign result[7]		= 64'b0; 														assign result[6] 		= 64'b0;
+			assign result[5]		= ALU_result[`SEL(64,2)];						assign result[4] 		= ALU_result[`SEL(64,1)];
+			assign result[3]		= MULT_result[`SEL(64,2)];					assign result[2] 		= MULT_result[`SEL(64,1)];
+			assign result[1]		= MEM_result[`SEL(64,2)];						assign result[0]		= MEM_result[`SEL(64,1)];
+			assign pdest_idx[7]	= `ZERO_PRF;												assign pdest_idx[6]	= `ZERO_PRF;
+			assign pdest_idx[5]	= ALU_pdest_idx[`SEL(`PRF_IDX,2)];	assign pdest_idx[4]	= ALU_pdest_idx[`SEL(`PRF_IDX,1)];
+			assign pdest_idx[3]	= MULT_pdest_idx[`SEL(`PRF_IDX,2)];	assign pdest_idx[2]	= MULT_pdest_idx[`SEL(`PRF_IDX,1)];
+			assign pdest_idx[1]	= MEM_pdest_idx[`SEL(`PRF_IDX,2)];	assign pdest_idx[0]	= MEM_pdest_idx[`SEL(`PRF_IDX,1)];
+			assign IR[7]				= `NOOP_INST; 											assign IR[6] 				= `NOOP_INST;
+			assign IR[5]				= ALU_IR[`SEL(32,2)];								assign IR[4]				= ALU_IR[`SEL(32,1)];
+			assign IR[3]				= MULT_IR[`SEL(32,2)];							assign IR[2]				= MULT_IR[`SEL(32,1)];
+			assign IR[1]				= MEM_IR[`SEL(32,2)];								assign IR[0]				= MEM_IR[`SEL(32,1)];
+			assign npc[7]				= 64'b0; 														assign npc[6] 			= 64'b0;
+			assign npc[5]				= ALU_npc[`SEL(64,2)];							assign npc[4]				= ALU_npc[`SEL(64,1)];
+			assign npc[3]				= MULT_npc[`SEL(64,2)];							assign npc[2]				= MULT_npc[`SEL(64,1)];
+			assign npc[1]				= MEM_npc[`SEL(64,2)];							assign npc[0]				= MEM_npc[`SEL(64,1)];
+			assign rob_idx[7]		= {`ROB_IDX{1'b0}};									assign rob_idx[6]		= {`ROB_IDX{1'b0}};
+			assign rob_idx[5] 	= ALU_rob_idx[`SEL(`ROB_IDX,2)];		assign rob_idx[4] 	= ALU_rob_idx[`SEL(`ROB_IDX,1)];
+			assign rob_idx[3] 	= MULT_rob_idx[`SEL(`ROB_IDX,2)];		assign rob_idx[2] 	= MULT_rob_idx[`SEL(`ROB_IDX,1)];
+			assign rob_idx[1] 	= MEM_rob_idx[`SEL(`ROB_IDX,2)];		assign rob_idx[0] 	= MEM_rob_idx[`SEL(`ROB_IDX,1)];
 		wire [7:0]	result_valid_MEM				= {5'b0, MEM_result_valid, 1'b0};
 		wire [7:0]	BR_result								= {1'b0, ALU_BR_result, 5'b0};
 
@@ -600,23 +600,21 @@ module EX_CO_Mux (	//Inputs
 		assign cdb_npc							= {npc[cdb2_idx], npc[cdb1_idx]};
 		assign cdb_IR								= {IR[cdb2_idx], IR[cdb1_idx]};
 	`else
-		reg [63:0]					result		[3:0];
-		reg [`PRF_IDX-1:0]	pdest_idx	[3:0];
-		reg [31:0] 				IR 				[3:0];
-		reg [63:0] 				npc 			[3:0];
-		reg [`ROB_IDX-1:0]	rob_idx 	[3:0];
-		always @* begin
-			result[3] 		= ALU_result;			result[2] 		= MULT_result;
-			result[1] 		= MEM_result;			result[0] 		= 64'b0;
-			pdest_idx[3]	= ALU_pdest_idx;	pdest_idx[2]	= MULT_pdest_idx;
-			pdest_idx[1]	= MEM_pdest_idx;	pdest_idx[0]	= `ZERO_PRF;
-			IR[3]					= ALU_IR;					IR[2] 				= MULT_IR; 
-			IR[1] 				= MEM_IR; 				IR[0] 				= `NOOP_INST;
-			npc[3] 				= ALU_npc; 				npc[2] 				= MULT_npc; 
-			npc[1] 				= MEM_npc; 				npc[0] 				= 64'b0;
-			rob_idx[3] 		= ALU_rob_idx; 		rob_idx[2] 		= MULT_rob_idx; 
-			rob_idx[1] 		= MEM_rob_idx; 		rob_idx[0] 		= {`ROB_IDX{1'b0}};
-		end
+		wire [63:0]					result		[3:0];
+		wire [`PRF_IDX-1:0]	pdest_idx	[3:0];
+		wire [31:0] 				IR 				[3:0];
+		wire [63:0] 				npc 			[3:0];
+		wire [`ROB_IDX-1:0]	rob_idx 	[3:0];
+			assign result[3] 		= 64'b0;						assign result[2] 		= ALU_result;
+			assign result[1] 		= MULT_result;			assign result[0] 		= MEM_result;
+			assign pdest_idx[3]	= `ZERO_PRFi;				assign pdest_idx[2]	= ALU_pdest_idx;
+			assign pdest_idx[1]	= MULT_pdest_idx;		assign pdest_idx[0]	= MEM_pdest_idx;
+			assign IR[3]				= `NOOP_INST;				assign IR[2] 				= ALU_IR; 
+			assign IR[1] 				= MULT_IR; 					assign IR[0] 				= MEM_IR;
+			assign npc[3] 			= 64'b0; 						assign npc[2] 			= ALU_npc; 
+			assign npc[1] 			= MULT_npc; 				assign npc[0] 			= MEM_npc;
+			assign rob_idx[3] 	= {`ROB_IDX{1'b0}};	assign rob_idx[2] 	= ALU_rob_idx; 
+			assign rob_idx[1] 	= MULT_rob_idx;			assign rob_idx[0] 	= MEM_rob_idx;
 		wire [3:0]	result_valid_MEM				= {2'b0, MEM_result_valid, 1'b0};
 		wire [3:0]	BR_result								= {ALU_BR_result, 3'b0};
 		wire [2:0] 	granted = {ALU_gnt, MULT_gnt, MEM_gnt};
@@ -769,18 +767,6 @@ module EX_input_logic (//Inputs
 		`ifdef SUPERSCALAR
 		case (select1)
 			6'b100000	: begin
-										MEM_LSQ_idx_out[`SEL(`LSQ_IDX,1)]		= LSQ_idx[`SEL(`LSQ_IDX,1)]; 
-										MEM_prega_out[`SEL(64,1)]						= prega_value[`SEL(64,1)]; 
-										MEM_pregb_out[`SEL(64,1)]						= pregb_value[`SEL(64,1)];
-										MEM_rd_out[`SEL(1,1)]								= rd_mem[`SEL(1,1)];
-										MEM_wr_out[`SEL(1,1)]								= wr_mem[`SEL(1,1)];
-										MEM_pdest_idx_out[`SEL(`PRF_IDX,1)]	= pdest_idx[`SEL(`PRF_IDX,1)];
-										MEM_IR_out[`SEL(32,1)]							= IR[`SEL(32,1)];
-										MEM_npc_out[`SEL(64,1)]							= npc[`SEL(64,1)];
-										MEM_rob_idx_out[`SEL(`ROB_IDX,1)]		= rob_idx[`SEL(`ROB_IDX,1)];
-										MEM_EX_en_out[`SEL(1,1)]						= EX_en[`SEL(1,1)];
-									end
-			6'b010000	: begin
 										MEM_LSQ_idx_out[`SEL(`LSQ_IDX,2)]		= LSQ_idx[`SEL(`LSQ_IDX,1)]; 
 										MEM_prega_out[`SEL(64,2)]						= prega_value[`SEL(64,1)]; 
 										MEM_pregb_out[`SEL(64,2)]						= pregb_value[`SEL(64,1)];
@@ -792,16 +778,19 @@ module EX_input_logic (//Inputs
 										MEM_rob_idx_out[`SEL(`ROB_IDX,2)]		= rob_idx[`SEL(`ROB_IDX,1)];
 										MEM_EX_en_out[`SEL(1,2)]						= EX_en[`SEL(1,1)];
 									end
-			6'b001000	: begin
-										MULT_prega_out[`SEL(64,1)]					= prega_value[`SEL(64,1)]; 
-										MULT_pregb_out[`SEL(64,1)]					= pregb_value[`SEL(64,1)];
-										MULT_pdest_idx_out[`SEL(`PRF_IDX,1)]= pdest_idx[`SEL(`PRF_IDX,1)];
-										MULT_IR_out[`SEL(32,1)]							= IR[`SEL(32,1)];
-										MULT_npc_out[`SEL(64,1)]						= npc[`SEL(64,1)];
-										MULT_rob_idx_out[`SEL(`ROB_IDX,1)]	= rob_idx[`SEL(`ROB_IDX,1)];
-										MULT_EX_en_out[`SEL(1,1)]						= EX_en[`SEL(1,1)];
+			6'b010000	: begin
+										MEM_LSQ_idx_out[`SEL(`LSQ_IDX,1)]		= LSQ_idx[`SEL(`LSQ_IDX,1)]; 
+										MEM_prega_out[`SEL(64,1)]						= prega_value[`SEL(64,1)]; 
+										MEM_pregb_out[`SEL(64,1)]						= pregb_value[`SEL(64,1)];
+										MEM_rd_out[`SEL(1,1)]								= rd_mem[`SEL(1,1)];
+										MEM_wr_out[`SEL(1,1)]								= wr_mem[`SEL(1,1)];
+										MEM_pdest_idx_out[`SEL(`PRF_IDX,1)]	= pdest_idx[`SEL(`PRF_IDX,1)];
+										MEM_IR_out[`SEL(32,1)]							= IR[`SEL(32,1)];
+										MEM_npc_out[`SEL(64,1)]							= npc[`SEL(64,1)];
+										MEM_rob_idx_out[`SEL(`ROB_IDX,1)]		= rob_idx[`SEL(`ROB_IDX,1)];
+										MEM_EX_en_out[`SEL(1,1)]						= EX_en[`SEL(1,1)];
 									end
-			6'b000100	: begin
+			6'b001000	: begin
 										MULT_prega_out[`SEL(64,2)]					= prega_value[`SEL(64,1)]; 
 										MULT_pregb_out[`SEL(64,2)]					= pregb_value[`SEL(64,1)];
 										MULT_pdest_idx_out[`SEL(`PRF_IDX,2)]= pdest_idx[`SEL(`PRF_IDX,1)];
@@ -810,17 +799,16 @@ module EX_input_logic (//Inputs
 										MULT_rob_idx_out[`SEL(`ROB_IDX,2)]	= rob_idx[`SEL(`ROB_IDX,1)];
 										MULT_EX_en_out[`SEL(1,2)]						= EX_en[`SEL(1,1)];
 									end
-			6'b000010	: begin
-										ALU_prega_out[`SEL(64,1)]						= prega_value[`SEL(64,1)];
-										ALU_pregb_out[`SEL(64,1)]						= pregb_value[`SEL(64,1)];
-										ALU_func_out[`SEL(5,1)]							= ALUop[`SEL(5,1)]; 
-										ALU_pdest_idx_out[`SEL(`PRF_IDX,1)]	= pdest_idx[`SEL(`PRF_IDX,1)];
-										ALU_IR_out[`SEL(32,1)]							= IR[`SEL(32,1)];
-										ALU_npc_out[`SEL(64,1)]							= npc[`SEL(64,1)];
-										ALU_rob_idx_out[`SEL(`ROB_IDX,1)]		= rob_idx[`SEL(`ROB_IDX,1)];
-										ALU_EX_en_out[`SEL(1,1)]						= EX_en[`SEL(1,1)];
+			6'b000100	: begin
+										MULT_prega_out[`SEL(64,1)]					= prega_value[`SEL(64,1)]; 
+										MULT_pregb_out[`SEL(64,1)]					= pregb_value[`SEL(64,1)];
+										MULT_pdest_idx_out[`SEL(`PRF_IDX,1)]= pdest_idx[`SEL(`PRF_IDX,1)];
+										MULT_IR_out[`SEL(32,1)]							= IR[`SEL(32,1)];
+										MULT_npc_out[`SEL(64,1)]						= npc[`SEL(64,1)];
+										MULT_rob_idx_out[`SEL(`ROB_IDX,1)]	= rob_idx[`SEL(`ROB_IDX,1)];
+										MULT_EX_en_out[`SEL(1,1)]						= EX_en[`SEL(1,1)];
 									end
-			6'b000001	: begin
+			6'b000010	: begin
 										ALU_prega_out[`SEL(64,2)]						= prega_value[`SEL(64,1)];
 										ALU_pregb_out[`SEL(64,2)]						= pregb_value[`SEL(64,1)];
 										ALU_func_out[`SEL(5,2)]							= ALUop[`SEL(5,1)]; 
@@ -830,23 +818,21 @@ module EX_input_logic (//Inputs
 										ALU_rob_idx_out[`SEL(`ROB_IDX,2)]		= rob_idx[`SEL(`ROB_IDX,1)];
 										ALU_EX_en_out[`SEL(1,2)]						= EX_en[`SEL(1,1)];
 									end
+			6'b000001	: begin
+										ALU_prega_out[`SEL(64,1)]						= prega_value[`SEL(64,1)];
+										ALU_pregb_out[`SEL(64,1)]						= pregb_value[`SEL(64,1)];
+										ALU_func_out[`SEL(5,1)]							= ALUop[`SEL(5,1)]; 
+										ALU_pdest_idx_out[`SEL(`PRF_IDX,1)]	= pdest_idx[`SEL(`PRF_IDX,1)];
+										ALU_IR_out[`SEL(32,1)]							= IR[`SEL(32,1)];
+										ALU_npc_out[`SEL(64,1)]							= npc[`SEL(64,1)];
+										ALU_rob_idx_out[`SEL(`ROB_IDX,1)]		= rob_idx[`SEL(`ROB_IDX,1)];
+										ALU_EX_en_out[`SEL(1,1)]						= EX_en[`SEL(1,1)];
+									end
 		endcase
 
 		if(select2 != select1) begin
 			case (select2)
 				6'b100000	: begin
-											MEM_LSQ_idx_out[`SEL(`LSQ_IDX,1)]		= LSQ_idx[`SEL(`LSQ_IDX,2)]; 
-											MEM_prega_out[`SEL(64,1)]						= prega_value[`SEL(64,2)]; 
-											MEM_pregb_out[`SEL(64,1)]						= pregb_value[`SEL(64,2)];
-											MEM_rd_out[`SEL(1,1)]								= rd_mem[`SEL(1,2)];
-											MEM_wr_out[`SEL(1,1)]								= wr_mem[`SEL(1,2)];
-											MEM_pdest_idx_out[`SEL(`PRF_IDX,1)]	= pdest_idx[`SEL(`PRF_IDX,2)];
-											MEM_IR_out[`SEL(32,1)]							= IR[`SEL(32,2)];
-											MEM_npc_out[`SEL(64,1)]							= npc[`SEL(64,2)];
-											MEM_rob_idx_out[`SEL(`ROB_IDX,1)]		= rob_idx[`SEL(`ROB_IDX,2)];
-											MEM_EX_en_out[`SEL(1,1)]						= EX_en[`SEL(1,2)];
-										end
-				6'b010000	: begin
 											MEM_LSQ_idx_out[`SEL(`LSQ_IDX,2)]		= LSQ_idx[`SEL(`LSQ_IDX,2)]; 
 											MEM_prega_out[`SEL(64,2)]						= prega_value[`SEL(64,2)]; 
 											MEM_pregb_out[`SEL(64,2)]						= pregb_value[`SEL(64,2)];
@@ -858,16 +844,19 @@ module EX_input_logic (//Inputs
 											MEM_rob_idx_out[`SEL(`ROB_IDX,2)]		= rob_idx[`SEL(`ROB_IDX,2)];
 											MEM_EX_en_out[`SEL(1,2)]						= EX_en[`SEL(1,2)];
 										end
-				6'b001000	: begin
-											MULT_prega_out[`SEL(64,1)]					= prega_value[`SEL(64,2)]; 
-											MULT_pregb_out[`SEL(64,1)]					= pregb_value[`SEL(64,2)];
-											MULT_pdest_idx_out[`SEL(`PRF_IDX,1)]= pdest_idx[`SEL(`PRF_IDX,2)];
-											MULT_IR_out[`SEL(32,1)]							= IR[`SEL(32,2)];
-											MULT_npc_out[`SEL(64,1)]						= npc[`SEL(64,2)];
-											MULT_rob_idx_out[`SEL(`ROB_IDX,1)]	= rob_idx[`SEL(`ROB_IDX,2)];
-											MULT_EX_en_out[`SEL(1,1)]						= EX_en[`SEL(1,2)];
+				6'b010000	: begin
+											MEM_LSQ_idx_out[`SEL(`LSQ_IDX,1)]		= LSQ_idx[`SEL(`LSQ_IDX,2)]; 
+											MEM_prega_out[`SEL(64,1)]						= prega_value[`SEL(64,2)]; 
+											MEM_pregb_out[`SEL(64,1)]						= pregb_value[`SEL(64,2)];
+											MEM_rd_out[`SEL(1,1)]								= rd_mem[`SEL(1,2)];
+											MEM_wr_out[`SEL(1,1)]								= wr_mem[`SEL(1,2)];
+											MEM_pdest_idx_out[`SEL(`PRF_IDX,1)]	= pdest_idx[`SEL(`PRF_IDX,2)];
+											MEM_IR_out[`SEL(32,1)]							= IR[`SEL(32,2)];
+											MEM_npc_out[`SEL(64,1)]							= npc[`SEL(64,2)];
+											MEM_rob_idx_out[`SEL(`ROB_IDX,1)]		= rob_idx[`SEL(`ROB_IDX,2)];
+											MEM_EX_en_out[`SEL(1,1)]						= EX_en[`SEL(1,2)];
 										end
-				6'b000100	: begin
+				6'b001000	: begin
 											MULT_prega_out[`SEL(64,2)]					= prega_value[`SEL(64,2)]; 
 											MULT_pregb_out[`SEL(64,2)]					= pregb_value[`SEL(64,2)];
 											MULT_pdest_idx_out[`SEL(`PRF_IDX,2)]= pdest_idx[`SEL(`PRF_IDX,2)];
@@ -876,17 +865,16 @@ module EX_input_logic (//Inputs
 											MULT_rob_idx_out[`SEL(`ROB_IDX,2)]	= rob_idx[`SEL(`ROB_IDX,2)];
 											MULT_EX_en_out[`SEL(1,2)]						= EX_en[`SEL(1,2)];
 										end
-				6'b000010	: begin
-											ALU_prega_out[`SEL(64,1)]						= prega_value[`SEL(64,2)];
-											ALU_pregb_out[`SEL(64,1)]						= pregb_value[`SEL(64,2)];
-											ALU_func_out[`SEL(5,1)]							= ALUop[`SEL(5,2)]; 
-											ALU_pdest_idx_out[`SEL(`PRF_IDX,1)]	= pdest_idx[`SEL(`PRF_IDX,2)];
-											ALU_IR_out[`SEL(32,1)]							= IR[`SEL(32,2)];
-											ALU_npc_out[`SEL(64,1)]							= npc[`SEL(64,2)];
-											ALU_rob_idx_out[`SEL(`ROB_IDX,1)]		= rob_idx[`SEL(`ROB_IDX,2)];
-											ALU_EX_en_out[`SEL(1,1)]						= EX_en[`SEL(1,2)];
+				6'b000100	: begin
+											MULT_prega_out[`SEL(64,1)]					= prega_value[`SEL(64,2)]; 
+											MULT_pregb_out[`SEL(64,1)]					= pregb_value[`SEL(64,2)];
+											MULT_pdest_idx_out[`SEL(`PRF_IDX,1)]= pdest_idx[`SEL(`PRF_IDX,2)];
+											MULT_IR_out[`SEL(32,1)]							= IR[`SEL(32,2)];
+											MULT_npc_out[`SEL(64,1)]						= npc[`SEL(64,2)];
+											MULT_rob_idx_out[`SEL(`ROB_IDX,1)]	= rob_idx[`SEL(`ROB_IDX,2)];
+											MULT_EX_en_out[`SEL(1,1)]						= EX_en[`SEL(1,2)];
 										end
-				6'b000001	: begin
+				6'b000010	: begin
 											ALU_prega_out[`SEL(64,2)]						= prega_value[`SEL(64,2)];
 											ALU_pregb_out[`SEL(64,2)]						= pregb_value[`SEL(64,2)];
 											ALU_func_out[`SEL(5,2)]							= ALUop[`SEL(5,2)]; 
@@ -895,6 +883,16 @@ module EX_input_logic (//Inputs
 											ALU_npc_out[`SEL(64,2)]							= npc[`SEL(64,2)];
 											ALU_rob_idx_out[`SEL(`ROB_IDX,2)]		= rob_idx[`SEL(`ROB_IDX,2)];
 											ALU_EX_en_out[`SEL(1,2)]						= EX_en[`SEL(1,2)];
+										end
+				6'b000001	: begin
+											ALU_prega_out[`SEL(64,1)]						= prega_value[`SEL(64,2)];
+											ALU_pregb_out[`SEL(64,1)]						= pregb_value[`SEL(64,2)];
+											ALU_func_out[`SEL(5,1)]							= ALUop[`SEL(5,2)]; 
+											ALU_pdest_idx_out[`SEL(`PRF_IDX,1)]	= pdest_idx[`SEL(`PRF_IDX,2)];
+											ALU_IR_out[`SEL(32,1)]							= IR[`SEL(32,2)];
+											ALU_npc_out[`SEL(64,1)]							= npc[`SEL(64,2)];
+											ALU_rob_idx_out[`SEL(`ROB_IDX,1)]		= rob_idx[`SEL(`ROB_IDX,2)];
+											ALU_EX_en_out[`SEL(1,1)]						= EX_en[`SEL(1,2)];
 										end
 			endcase
 		end	// if(select2 != select1)

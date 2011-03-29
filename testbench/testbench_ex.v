@@ -1,5 +1,6 @@
 `timescale 1ns/100ps
-
+//`define	DEBUG_EX	
+`define NUM_CYCLES 10
 // testbench works with length
 
 module testbench;
@@ -10,7 +11,7 @@ module testbench;
 	integer sscanfResult;
 	integer seed;
 	reg [8*10:1] str;
-	integer NPC, NUM_CYCLES, i, inst_ID, cdb_ID;
+	integer NPC, i, inst_ID, cdb_ID;
 	integer full_cycle;
 	integer fout1, fout2;
 	integer new_line;
@@ -185,16 +186,16 @@ module testbench;
 			new_line = 0;
 			if(EX_en_in[`SEL(1,1)]==1'b1) begin
 				inst_ID = inst_ID + 1;
-				if(rd_mem_in[0] | wr_mem_in[0]) 				$fdisplay(fout1, "@ %4.1f MEM  - ID: %6d    rob_idx: %2d    pdest_idx: %2d    prega_value: 0x%16h    pregb_value: 0x%16h", cycle, inst_ID, rob_idx_in[`SEL(`ROB_IDX,1)], pdest_idx_in[`SEL(`PRF_IDX,1)], prega_value_in[`SEL(64,1)], pregb_value_in[`SEL(64,1)]);
-				else if(ALUop_in[`SEL(5,1)]==5'b01011)	$fdisplay(fout1, "@ %4.1f MULT - ID: %6d    rob_idx: %2d    pdest_idx: %2d    prega_value: 0x%16h    pregb_value: 0x%16h", cycle, inst_ID, rob_idx_in[`SEL(`ROB_IDX,1)], pdest_idx_in[`SEL(`PRF_IDX,1)], prega_value_in[`SEL(64,1)], pregb_value_in[`SEL(64,1)]);
-				else																		$fdisplay(fout1, "@ %4.1f ALU  - ID: %6d    rob_idx: %2d    pdest_idx: %2d    prega_value: 0x%16h    pregb_value: 0x%16h", cycle, inst_ID, rob_idx_in[`SEL(`ROB_IDX,1)], pdest_idx_in[`SEL(`PRF_IDX,1)], prega_value_in[`SEL(64,1)], pregb_value_in[`SEL(64,1)]);
+				if(rd_mem_in[0] | wr_mem_in[0]) 				$fdisplay(fout1, "@ %4.1f MEM  - ID: %6d    rob_idx: %2d    pdest_idx: %2d    prega: %6d    pregb: %6d                        ", cycle, inst_ID, rob_idx_in[`SEL(`ROB_IDX,1)], pdest_idx_in[`SEL(`PRF_IDX,1)], prega_value_in[`SEL(64,1)], pregb_value_in[`SEL(64,1)]);
+				else if(ALUop_in[`SEL(5,1)]==5'b01011)	$fdisplay(fout1, "@ %4.1f MULT - ID: %6d    rob_idx: %2d    pdest_idx: %2d    prega: %6d    pregb: %6d    result_expected: %6d", cycle, inst_ID, rob_idx_in[`SEL(`ROB_IDX,1)], pdest_idx_in[`SEL(`PRF_IDX,1)], prega_value_in[`SEL(64,1)], pregb_value_in[`SEL(64,1)], prega_value_in[`SEL(64,1)]*pregb_value_in[`SEL(64,1)]);
+				else																		$fdisplay(fout1, "@ %4.1f ALU  - ID: %6d    rob_idx: %2d    pdest_idx: %2d    prega: %6d    pregb: %6d    result_expected: %6d", cycle, inst_ID, rob_idx_in[`SEL(`ROB_IDX,1)], pdest_idx_in[`SEL(`PRF_IDX,1)], prega_value_in[`SEL(64,1)], pregb_value_in[`SEL(64,1)], prega_value_in[`SEL(64,1)]+pregb_value_in[`SEL(64,1)]);
 				new_line = 1;
 			end
 			if(EX_en_in[`SEL(1,2)]==1'b1) begin
 				inst_ID = inst_ID + 1;
-				if(rd_mem_in[1] | wr_mem_in[1]) 				$fdisplay(fout1, "@ %4.1f MEM  - ID: %6d    rob_idx: %2d    pdest_idx: %2d    prega_value: 0x%16h    pregb_value: 0x%16h", cycle, inst_ID, rob_idx_in[`SEL(`ROB_IDX,2)], pdest_idx_in[`SEL(`PRF_IDX,2)], prega_value_in[`SEL(64,2)], pregb_value_in[`SEL(64,2)]);
-				else if(ALUop_in[`SEL(5,2)]==5'b01011)	$fdisplay(fout1, "@ %4.1f MULT - ID: %6d    rob_idx: %2d    pdest_idx: %2d    prega_value: 0x%16h    pregb_value: 0x%16h", cycle, inst_ID, rob_idx_in[`SEL(`ROB_IDX,2)], pdest_idx_in[`SEL(`PRF_IDX,2)], prega_value_in[`SEL(64,2)], pregb_value_in[`SEL(64,2)]);
-				else																		$fdisplay(fout1, "@ %4.1f ALU  - ID: %6d    rob_idx: %2d    pdest_idx: %2d    prega_value: 0x%16h    pregb_value: 0x%16h", cycle, inst_ID, rob_idx_in[`SEL(`ROB_IDX,2)], pdest_idx_in[`SEL(`PRF_IDX,2)], prega_value_in[`SEL(64,2)], pregb_value_in[`SEL(64,2)]);
+				if(rd_mem_in[1] | wr_mem_in[1]) 				$fdisplay(fout1, "@ %4.1f MEM  - ID: %6d    rob_idx: %2d    pdest_idx: %2d    prega: %6d    pregb: %6d                        ", cycle, inst_ID, rob_idx_in[`SEL(`ROB_IDX,2)], pdest_idx_in[`SEL(`PRF_IDX,2)], prega_value_in[`SEL(64,2)], pregb_value_in[`SEL(64,2)]);
+				else if(ALUop_in[`SEL(5,2)]==5'b01011)	$fdisplay(fout1, "@ %4.1f MULT - ID: %6d    rob_idx: %2d    pdest_idx: %2d    prega: %6d    pregb: %6d    result_expected: %6d", cycle, inst_ID, rob_idx_in[`SEL(`ROB_IDX,2)], pdest_idx_in[`SEL(`PRF_IDX,2)], prega_value_in[`SEL(64,2)], pregb_value_in[`SEL(64,2)], prega_value_in[`SEL(64,2)]*pregb_value_in[`SEL(64,2)]);
+				else																		$fdisplay(fout1, "@ %4.1f ALU  - ID: %6d    rob_idx: %2d    pdest_idx: %2d    prega: %6d    pregb: %6d    result_expected: %6d", cycle, inst_ID, rob_idx_in[`SEL(`ROB_IDX,2)], pdest_idx_in[`SEL(`PRF_IDX,2)], prega_value_in[`SEL(64,2)], pregb_value_in[`SEL(64,2)], prega_value_in[`SEL(64,1)]+pregb_value_in[`SEL(64,1)]);
 				new_line = 1;
 			end
 			if(new_line == 1) $fdisplay(fout1, "\n");
@@ -236,12 +237,12 @@ module testbench;
 			new_line = 0;
 			if(EX_cdb_valid[`SEL(1,1)]==1'b1) begin
 				cdb_ID = cdb_ID + 1;
-				$fdisplay(fout2, "@ %4.1f CDB1 - ID: %6d    rob_idx: %2d    pdest_idx: %2d    value: 0x%16h", cycle, cdb_ID, EX_rob_idx[`SEL(`ROB_IDX,1)], EX_cdb_tag[`SEL(`PRF_IDX,1)], EX_cdb_value[`SEL(64,1)]);
+				$fdisplay(fout2, "@ %4.1f CDB1 - ID: %6d    rob_idx: %2d    pdest_idx: %2d    value: %6d", cycle, cdb_ID, EX_rob_idx[`SEL(`ROB_IDX,1)], EX_cdb_tag[`SEL(`PRF_IDX,1)], EX_cdb_value[`SEL(64,1)]);
 				new_line = 1;
 			end
 			if(EX_cdb_valid[`SEL(1,2)]==1'b1) begin
 				cdb_ID = cdb_ID + 1;
-				$fdisplay(fout2, "@ %4.1f CDB2 - ID: %6d    rob_idx: %2d    pdest_idx: %2d    value: 0x%16h", cycle, cdb_ID, EX_rob_idx[`SEL(`ROB_IDX,2)], EX_cdb_tag[`SEL(`PRF_IDX,2)], EX_cdb_value[`SEL(64,2)]);
+				$fdisplay(fout2, "@ %4.1f CDB2 - ID: %6d    rob_idx: %2d    pdest_idx: %2d    value: %6d", cycle, cdb_ID, EX_rob_idx[`SEL(`ROB_IDX,2)], EX_cdb_tag[`SEL(`PRF_IDX,2)], EX_cdb_value[`SEL(64,2)]);
 				new_line = 1;
 			end
 			if(new_line == 1) $fdisplay(fout2, "\n");
@@ -394,13 +395,14 @@ module testbench;
 				prega_value_in[`SEL(64,1)] = temp64;
 				temp64 = {$random(seed)} % 100;
 				pregb_value_in[`SEL(64,1)] = temp64;
-				temp32 = {$random(seed)} % 16;
-				ALUop_in[4] = 1'b0;
-				ALUop_in[3:0] = temp32[3:0];
-				while(ALUop_in[3:0]==4'b1011) begin
-					temp32 = {$random(seed)} % 16;
-					ALUop_in[3:0] = temp32[3:0];
-				end
+				ALUop_in[`SEL(5,1)] = 5'b0;
+//				temp32 = {$random(seed)} % 16;
+//				ALUop_in[4] = 1'b0;
+//				ALUop_in[3:0] = temp32[3:0];
+//				while(ALUop_in[3:0]==4'b1011) begin
+//					temp32 = {$random(seed)} % 16;
+//					ALUop_in[3:0] = temp32[3:0];
+//				end
 				rd_mem_in[`SEL(1,1)] = 1'b0; 
 				wr_mem_in[`SEL(1,1)] = 1'b0;
 				rs_IR_in[31:21] = 11'b010_00000000;
@@ -422,13 +424,14 @@ module testbench;
 				prega_value_in[`SEL(64,2)] = temp64;
 				temp64 = {$random(seed)} % 100;
 				pregb_value_in[`SEL(64,2)] = temp64;
-				temp32 = {$random(seed)} % 16;
-				ALUop_in[9] = 1'b0;
-				ALUop_in[8:5] = temp32[3:0];
-				while(ALUop_in[8:5]==4'b1011) begin
-					temp32 = {$random(seed)} % 16;
-					ALUop_in[8:5] = temp32[3:0];
-				end
+				ALUop_in[`SEL(5,1)] = 5'b0;
+//				temp32 = {$random(seed)} % 16;
+//				ALUop_in[9] = 1'b0;
+//				ALUop_in[8:5] = temp32[3:0];
+//				while(ALUop_in[8:5]==4'b1011) begin
+//					temp32 = {$random(seed)} % 16;
+//					ALUop_in[8:5] = temp32[3:0];
+//				end
 				rd_mem_in[`SEL(1,2)] = 1'b0; 
 				wr_mem_in[`SEL(1,2)] = 1'b0;
 				rs_IR_in[63:53] = 11'b010_00000000;
@@ -517,13 +520,16 @@ initial begin
 	inst_ID = 0;
 	cdb_ID = 0;
 
-	$system("date +%s > now_in_seconds");
-	FP = $fopen ("now_in_seconds", "r");
-	fgetsResult = $fgets(str, FP);
-	sscanfResult = $sscanf(str, "%d", seed);
-	$fclose(FP);
+	`ifdef DEBUG_EX
+		seed = 1;
+	`else
+		$system("date +%s > now_in_seconds");
+		FP = $fopen ("now_in_seconds", "r");
+		fgetsResult = $fgets(str, FP);
+		sscanfResult = $sscanf(str, "%d", seed);
+		$fclose(FP);
+	`endif
 
-//	seed = 1;
 
 	fout1 = $fopen("./inst.txt", "wb");
 	fout2 = $fopen("./cdb.txt", "wb");
@@ -538,19 +544,47 @@ initial begin
 
 	@(negedge clk); 
 
-	@(negedge clk); insert_inst();
+	@(negedge clk); 
+	`ifdef DEBUG_EX
+	// insert an ALU instruction
+				make_NOOP(2);
+				LSQ_idx_in[`SEL(`LSQ_IDX,1)] = 0;
+				pdest_idx_in[`SEL(`PRF_IDX,1)] = 4;
+				prega_value_in[`SEL(64,1)] = 1;
+				pregb_value_in[`SEL(64,1)] = 2;
+				ALUop_in[4:0] = 0;	// ALU_ADDQ = 0; ALU_MULQ = 5'h0b
+				rd_mem_in[`SEL(1,1)] = 1'b0; 
+				wr_mem_in[`SEL(1,1)] = 1'b0;
+				rs_IR_in[31:21] = 11'b010_00000000;
+				rs_IR_in[20:13] = 7;	// Imm	
+				rs_IR_in[12] = 0;	// 1: RegA+Imm, 0: RegA+RegB
+				rs_IR_in[11:0] = 12'b0;
+				npc_in[`SEL(64,1)] = 9;
+				rob_idx_in[`SEL(`ROB_IDX,1)] = 5;
+				EX_en_in[`SEL(1,1)] = 1'b1;
+	`else	
+		insert_inst();
+	`endif
+	
 
-	NUM_CYCLES = 10;
-	while(i<NUM_CYCLES-1) begin
-		@(posedge clk); //show_fu_output();
-		@(negedge clk); show_cdb_output(); insert_inst();
-		i=i+1;
-	end
+	`ifdef DEBUG_EX
+		@(posedge clk); 
+		@(negedge clk); show_cdb_output(); 
+		make_NOOP(3);
+	`else
+		i=0;
+		while(i<`NUM_CYCLES-1) begin
+			@(posedge clk); 
+			@(negedge clk); show_cdb_output(); insert_inst();
+			i=i+1;
+		end
+	`endif
+
 	@(posedge clk);
 	@(negedge clk); make_NOOP(3); show_cdb_output();
 
 	i=0;
-	while(i<20*NUM_CYCLES) begin
+	while(i<20*`NUM_CYCLES) begin
 		@(posedge clk);
 		@(negedge clk); show_cdb_output();
 		i=i+1;
