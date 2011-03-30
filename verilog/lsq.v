@@ -28,9 +28,9 @@ module lsq (clk, reset,
 	input [64*`SCALAR-1:0]				addr_in;	    // result of EX stage
 	input [64*`SCALAR-1:0]				reg_value_in; // data for store
 
-	input [3:0]	 mem2lsq_response;
-	input [63:0] mem2lsq_data;
-	input [3:0]  mem2lsq_tag;
+	input [3:0]	 mem2lsq_response; // 0 = can't accept, other = tag of transaction
+	input [63:0] mem2lsq_data;		 // data from mem
+	input [3:0]  mem2lsq_tag;			 // tag of data
 
 // Output Definitions
 
@@ -44,9 +44,9 @@ module lsq (clk, reset,
 	output [`SCALAR-1:0]					rd_mem_out;		 // loads
 	output [`SCALAR-1:0]					wr_mem_out;		 // stores
 	
-	output [1:0]	lsq2mem_command;
-	output [63:0] lsq2mem_addr;
-	output [63:0] lsq2mem_data;
+	output [1:0]	lsq2mem_command;  // `BUS_NONE, `BUS_LOAD, `BUS_STORE
+	output [63:0] lsq2mem_addr;		  // address to mem
+	output [63:0] lsq2mem_data;			// data to mem
 
 // FIXME start from here
 // Internal Data Storage
@@ -54,6 +54,7 @@ module lsq (clk, reset,
 	reg [`LSQ_IDX-1:0] 	data_ [`LSQ_SZ-1:0];
 	reg [`LSQ_SZ-1:0] 	data_bt_ex;
 	reg [`LSQ_SZ-1:0] 	data_done;
+	reg [`LSQ_IDX-1:0]  lsq_idx [`NUM_MEM_TAGS:1];
 
 	reg [63-1:0] next_data_ba_ex1, next_data_ba_ex2;
 	reg next_data_bt_ex1, next_data_bt_ex2;
@@ -245,25 +246,9 @@ module lsq (clk, reset,
 	// Circular buffers for entries not awaiting updates
 	// ===================================================
 
-	// Circular buffer for IR
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(32)) cb_ir (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2), .din1(ir_in1), .din2(ir_in2), .dout1(ir_out1), .dout2(ir_out2), .full(), .full_almost(), .head(), .tail());
-
-	// Circular buffer for NPC
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(64)) cb_npc (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2), .din1(npc_in1), .din2(npc_in2), .dout1(npc_out1), .dout2(npc_out2), .full(), .full_almost(), .head(), .tail());
-
-	// Circular buffer for PDEST_IDX
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(`PRF_IDX)) cb_pdest (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(pdest_in1), .din2(pdest_in2), .dout1(pdest_out1), .dout2(pdest_out2), .full(), .full_almost(), .head(), .tail());
-
-	// Circular buffer for ADEST_IDX
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(`ARF_IDX)) cb_adest (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(adest_in1), .din2(adest_in2), .dout1(adest_out1), .dout2(adest_out2), .full(), .full_almost(), .head(), .tail());
-
-	// Circular buffer for Predicted Branch Address
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(64)) cb_ba_pd (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(ba_pd_in1), .din2(ba_pd_in2), .dout1(ba_pd_out1), .dout2(ba_pd_out2), .full(), .full_almost(), .head(), .tail());
-
-	// Circular buffer for Predicted Branch Direction
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(1)) cb_bt_pd (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(bt_pd_in1), .din2(bt_pd_in2), .dout1(bt_pd_out1), .dout2(bt_pd_out2), .full(), .full_almost(), .head(), .tail());
-
-	// Circular buffer for Branch Instruction Indicator
-	cb #(.CB_IDX(`ROB_IDX), .CB_WIDTH(1)) cb_isbranch (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(din1_req), .din2_en(din2_req), .dout1_req(retire1), .dout2_req(retire2),	.din1(isbranch_in1), .din2(isbranch_in2), .dout1(isbranch_out1), .dout2(isbranch_out2), .full(), .full_almost(), .head(), .tail());
+	// Circular buffer for ROB_IDX
+	cb #(.CB_IDX(`LSQ_IDX), .CB_WIDTH(`ROB_IDX)) cb_rob_idx (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(in_req[0]), .din2_en(in_req[1]), .dout1_req(commit[0]), .dout2_req(commit[1]), .din1(rob_idx_in[`SEL(`ROB_IDX,1)]), .din2(rob_idx_in[`SEL(`ROB_IDX,2)]), .dout1(rob_idx_out[`SEL(`ROB_IDX,1)]), .dout2(rob_idx_out[`SEL(`ROB_IDX,2)]), .full(), .full_almost(), .head(), .tail());
+	
+	cb #(.CB_IDX(`LSQ_IDX), .CB_WIDTH(32)) cb_pdest_idx (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(in_req[0]), .din2_en(in_req[1]), .dout1_req(commit[0]), .dout2_req(commit[1]), .din1(pdest_idx_in[`SEL(`PRF_IDX,1)]), .din2(pdest_idx_in[`SEL(`PRF_IDX,2)]), .dout1(pdest_idx_out[`SEL(`PRF_IDX,1)]), .dout2(pdest_idx_out[`SEL(`PRF_IDX,2)]), .full(), .full_almost(), .head(), .tail());
 
 endmodule
