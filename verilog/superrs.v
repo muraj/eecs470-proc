@@ -71,7 +71,7 @@ module SUPER_RS(clk, reset,
                     //INPUTS
                     rs0_en, prega_idx[`PRF_IDX-1:0], pregb_idx[`PRF_IDX-1:0], pdest_idx[`PRF_IDX-1:0], prega_valid[0], pregb_valid[0],
                     ALUop[4:0], rd_mem[0], wr_mem[0], rs_IR[31:0], npc[63:0], cond_branch[0], uncond_branch[0],
-                    rs0_mem_free, rs0_ex_free, rs0_mem_free, cdb_valid, cdb_tag, entry_flush[`RS_SZ-1:0], rob_idx[`ROB_IDX-1:0],
+                    rs0_mult_free, rs0_ex_free, rs0_mem_free, cdb_valid, cdb_tag, entry_flush[`RS_SZ-1:0], rob_idx[`ROB_IDX-1:0],
 
                     //OUTPUTS
                     rs_free[0], ALU_rdy[0], mem_rdy[0], mult_rdy[0],

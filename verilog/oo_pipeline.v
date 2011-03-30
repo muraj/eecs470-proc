@@ -532,7 +532,7 @@ module oo_pipeline (// Inputs
 
   //////////////////////////////////////////////////
   //                                              //
-  //            DP/EX Pipeline Register           //
+  //            IS/EX Pipeline Register           //
   //                                              //
   //////////////////////////////////////////////////
 
@@ -572,43 +572,34 @@ module oo_pipeline (// Inputs
   //                  EX-Stage                    //
   //                                              //
   //////////////////////////////////////////////////
-ex_stage ex_stage0 (.clk(clock), .reset(reset),
-										// Inputs
-										.LSQ_idx(is_ex_LSQ_idx), .pdest_idx(is_ex_pdest_idx), 
-										.prega_value(is_ex_prega_value), .pregb_value(is_ex_pregb_value),  
-										.ALUop(is_ex_ALUop), .rd_mem(is_ex_rd_mem), .wr_mem(is_ex_wr_mem), 
-										.rs_IR(is_ex_IR), .npc(is_ex_NPC), .rob_idx(is_ex_rob_idx), .EX_en(is_ex_valid_inst), 
-		
-										// Inputs (from LSQ)
-										.LSQ_rob_idx(0), .LSQ_pdest_idx(0), .LSQ_mem_value(0), .LSQ_done(0), .LSQ_rd_mem(0), .LSQ_wr_mem(0), 
-		
-										// Outputs
-										.cdb_tag_out(ex_cdb_tag_out), .cdb_valid_out(ex_cdb_valid_out), .cdb_value_out(ex_cdb_value_out),				 	// to CDB
-										.mem_value_valid_out(ex_mem_value_valid_out), .rob_idx_out(ex_rob_idx_out), .branch_NT_out(ex_branch_NT_out), 	// to ROB
-										.ALU_free(ex_ALU_free), .MULT_free(ex_MULT_free),  																// to RS
-		
-										// Outputs (to LSQ)
-										.EX_LSQ_idx(), .EX_MEM_ADDR(), .EX_MEM_reg_value(),
 
-										.ex_co_NPC(ex_co_NPC), .ex_co_IR(ex_co_IR), .ex_co_valid_inst(ex_co_valid_inst)
-		               );
-/*
-// Should connect the below signals to EX-Stage
+assign ex_co_valid_inst = ex_cdb_valid_out;	// These signals are redundant. Remove one of them.
 
-// Inputs from the LSQ
-	input [`ROB_IDX*`SCALAR-1:0]	LSQ_rob_idx;
-	input [`PRF_IDX*`SCALAR-1:0]	LSQ_pdest_idx;
-	input [64*`SCALAR-1:0]				LSQ_mem_value;
-	input [`SCALAR-1:0]						LSQ_done;
-	input [`SCALAR-1:0]						LSQ_rd_mem;
-	input [`SCALAR-1:0]						LSQ_wr_mem;
+ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset),
+													// Inputs
+													.LSQ_idx(is_ex_LSQ_idx), .pdest_idx(is_ex_pdest_idx), 
+													.prega_value(is_ex_prega_value), .pregb_value(is_ex_pregb_value), 
+													.ALUop(is_ex_ALUop), .rd_mem(is_ex_rd_mem), .wr_mem(is_ex_wr_mem),
+													.IR(is_ex_IR), .npc(is_ex_NPC), .rob_idx(is_ex_rob_idx), .EX_en(is_ex_valid_inst),
 
-// Outputs to the LSQ
-	output [`LSQ_IDX*`SCALAR-1:0]	EX_LSQ_idx;
-	output [64*`SCALAR-1:0]				EX_MEM_ADDR;
-	output [64*`SCALAR-1:0]				EX_MEM_reg_value;
+													// Inputs (from LSQ)
+													.LSQ_rob_idx(0), .LSQ_pdest_idx(0), .LSQ_mem_value(0), .LSQ_done(0), .LSQ_rd_mem(0), .LSQ_wr_mem(0),
 
-*/
+													// Outputs
+													.cdb_tag(ex_cdb_tag_out), .cdb_valid(ex_cdb_valid_out), .cdb_value(ex_cdb_value_out), 
+													.cdb_MEM_result_valid(ex_mem_value_valid_out), 	// to CDB
+													.cdb_rob_idx(ex_rob_idx_out), .cdb_BR_result(ex_branch_NT_out), 
+													.cdb_npc(ex_co_NPC), .cdb_IR(ex_co_IR),					// to CDB
+													.ALU_free(ex_ALU_free), .MULT_free(ex_MULT_free), 																	// to RS
 
-endmodule  // module verisimple
+													// Outputs (to LSQ)
+													.EX_LSQ_idx(), .EX_MEM_ADDR(), .EX_MEM_reg_value(),
+
+													// Outputs (to PRF)
+													.ALU_result_out(), .ALU_pdest_idx_out(), .ALU_done_reg(),
+													.MULT_result_out(), .MULT_pdest_idx_out(), .MULT_done_reg(),
+													.MEM_result_out(), .MEM_pdest_idx_out(), .MEM_result_valid_out()
+						              );
+
+endmodule  // module oo_pipeline
 

@@ -118,7 +118,7 @@ end
 always @(posedge clock) begin
  if(~reset) begin
   $fdisplay(rs_fileno, "|======================================== Cycle: %10d ====================================================|", clock_count);
-  $fdisplay(rs_fileno, "inst_valid: %b rs1_sel: %b npc: %h IR: %h", pipeline_0.rs0.inst_valid, pipeline_0.rs0.rs1_sel, pipeline_0.rs0.npc, pipeline_0.rs0.rs_IR);
+  $fdisplay(rs_fileno, "inst_valid: %b rs1_sel: %b npc: %h IR: %h", pipeline_0.rs0.en_out, pipeline_0.rs0.rs1_sel, pipeline_0.rs0.npc_out, pipeline_0.rs0.rs_IR_out);
   $fdisplay(rs_fileno, "rega_idx: %h, regb_idx: %h", pipeline_0.id_dp_rega_idx, pipeline_0.id_dp_regb_idx);
   $fdisplay(rs_fileno, "prega_v: %b, pregb_v: %b", pipeline_0.rs0.rs0.entries[15].entry.prega_valid, pipeline_0.rs0.rs0.entries[15].entry.pregb_valid, pipeline_0.rs0.rs0.entries[15].entry.rdy);
   $fdisplay(rs_fileno, "|                            RS0                           |                           RS1                      |");
@@ -302,6 +302,32 @@ always @(negedge clock) begin
       $fdisplay(reg_fileno, "%2d | %h", reg_iter, pipeline_0.PRF.registers[reg_iter]);
     end
   end
+end
+
+//*** CDB BROADCASTING ***//
+integer cdb_fileno;
+always @(posedge clock) begin
+	// CDB1
+	if(pipeline_0.ex_co_stage0.cdb_valid[`SEL(1,1)] == 1'b1) 
+		$fwrite(cdb_fileno, "@@CDB1 - NPC: %6d    INST: 0x%8h    ROB: %3d    PRF: %3d    VALUE: 0x%16h \n",
+													pipeline_0.ex_co_stage0.cdb_npc[`SEL(64,1)],
+													pipeline_0.ex_co_stage0.cdb_IR[`SEL(32,1)],
+													pipeline_0.ex_co_stage0.cdb_rob_idx[`SEL(`ROB_IDX,1)],
+													pipeline_0.ex_co_stage0.cdb_tag[`SEL(`PRF_IDX,1)],
+													pipeline_0.ex_co_stage0.cdb_value[`SEL(64,1)]);
+	`ifdef SUPERSCALAR
+	// CDB2
+	if(pipeline_0.ex_co_stage0.cdb_valid[`SEL(1,2)] == 1'b1) 
+		$fwrite(cdb_fileno, "@@CDB2 - NPC: %6d    INST: 0x%8h    ROB: %3d    PRF: %3d    VALUE: 0x%16h \n",
+													pipeline_0.ex_co_stage0.cdb_npc[`SEL(64,2)],
+													pipeline_0.ex_co_stage0.cdb_IR[`SEL(32,2)],
+													pipeline_0.ex_co_stage0.cdb_rob_idx[`SEL(`ROB_IDX,2)],
+													pipeline_0.ex_co_stage0.cdb_tag[`SEL(`PRF_IDX,2)],
+													pipeline_0.ex_co_stage0.cdb_value[`SEL(64,2)]);
+	`endif
+end
+initial begin
+	cdb_fileno = $fopen("cdb_broadcasting.out");
 end
 
 //*** PIPELINE DEBUG ***//

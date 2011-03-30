@@ -312,6 +312,10 @@ module ALU (clk, reset,
         				isBranch = 1'b1;
 								uncondBranch = 1'b1;
       				end
+			3'b001, 3'b100, 3'b101:	begin	// for 'lda' instruction
+																opa = {{48{IR_in[15]}}, IR_in[15:0]};
+																opb = pregb_in;
+															end
       3'b111, 3'b110: begin
         								opa = npc_in;
         								opb = {{41{IR_in[20]}}, IR_in[20:0], 2'b00};
