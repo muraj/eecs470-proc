@@ -12,7 +12,6 @@ open(INST, "$inst_file") || die "@@@ ERROR: cannot open the file $inst_file\n";
 open(CDB, "$cdb_file") || die "@@@ ERROR: cannot open the file $cdb_file\n";
 open(OUT, ">$outfile") || die "@@@ ERROR: cannot create the file $outfile\n";
 
-$incorrect = 0;
 $i = 0;
 while($inst_line = <INST>)
 {
@@ -53,14 +52,9 @@ for($i=0; $i<$num_inst; $i++)
 {
 	for($j=0; $j<$num_cdb; $j++)
 	{
-		if(($inst_rob[$i] == $cdb_rob[$j]) && ($inst_pdest[$i] == $cdb_pdest[$j]) && ($cdb_chk[$j] == 0))	
+		if(($inst_rob[$i] == $cdb_rob[$j]) && ($inst_pdest[$i] == $cdb_pdest[$j]) && ($inst_result[$i] == $cdb_result[$j]) && ($cdb_chk[$j] == 0))	
 		{
 			$inst_chk[$i] = 1; $cdb_chk[$j] = 1; $inst_cdb[$i]=$j+1;
-			if($inst_result[$i] != $cdb_result[$j])
-			{
-				printf "@@@ WARNING: The result is wrong (Inst_ID: %d mapped to CDB_ID: %d)\n", $inst_ID[$i], $cdb_ID[$j];
-				$incorrect = 1;
-			}
 			last;
 		}
 	}
@@ -77,14 +71,7 @@ for($i=0; $i<$num_inst; $i++)
 	printf OUT "@@@ MATCHED - inst_ID: %6d,		CDB_ID: %6d\n", $inst_ID[$i], $inst_cdb[$i];
 }
 
-if($incorrect)
-{
-	printf "@@@ FAILED: All instructions are mapped to CDBs, but some of the results are wrong. (Number of Instructions: $num_inst)\n";
-}
-else
-{
 	printf "@@@ PASSED: All Things are Matched!! (Number of Instructions: $num_inst)\n";
-}
 
 close(INST);
 close(CDB);
