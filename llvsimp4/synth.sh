@@ -26,7 +26,7 @@ SVN_REPO="/afs/umich.edu/user/<rest of SVN repository path here>"
 AFS_DIR="/afs/umich.edu/user/<rest of path here>"
 WORK_DIR="project"
 EMAIL="<uniqname>@umich.edu"
-ROOT_PROJ_DIR="vsimp4_f10"
+ROOT_PROJ_DIR="llvsimp4_f10"
 PROJ_TCL="pipeline.tcl"
 
 # Will have to guesstimate on runtime and memory requirements

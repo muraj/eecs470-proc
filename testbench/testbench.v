@@ -293,32 +293,59 @@ always @(negedge clock) begin
     $fclose(reg_fileno);
 end
 
-//*** CDB BROADCASTING ***//
-integer cdb_fileno;
-always @(posedge clock) begin
-	// CDB1
-	if(pipeline_0.ex_co_stage0.cdb_valid[`SEL(1,1)] == 1'b1) 
-		$fwrite(cdb_fileno, "@@CDB1 - NPC: %6d    INST: 0x%8h    ROB: %3d    PRF: %3d    VALUE: 0x%16h \n",
-													pipeline_0.ex_co_stage0.cdb_npc[`SEL(64,1)],
-													pipeline_0.ex_co_stage0.cdb_IR[`SEL(32,1)],
-													pipeline_0.ex_co_stage0.cdb_rob_idx[`SEL(`ROB_IDX,1)],
-													pipeline_0.ex_co_stage0.cdb_tag[`SEL(`PRF_IDX,1)],
-													pipeline_0.ex_co_stage0.cdb_value[`SEL(64,1)]);
-	`ifdef SUPERSCALAR
-	// CDB2
-	if(pipeline_0.ex_co_stage0.cdb_valid[`SEL(1,2)] == 1'b1) 
-		$fwrite(cdb_fileno, "@@CDB2 - NPC: %6d    INST: 0x%8h    ROB: %3d    PRF: %3d    VALUE: 0x%16h \n",
-													pipeline_0.ex_co_stage0.cdb_npc[`SEL(64,2)],
-													pipeline_0.ex_co_stage0.cdb_IR[`SEL(32,2)],
-													pipeline_0.ex_co_stage0.cdb_rob_idx[`SEL(`ROB_IDX,2)],
-													pipeline_0.ex_co_stage0.cdb_tag[`SEL(`PRF_IDX,2)],
-													pipeline_0.ex_co_stage0.cdb_value[`SEL(64,2)]);
-	`endif
-end
+//*** EX_STAGE DEBUG ***//
+integer ex_fileno;
 initial begin
-	cdb_fileno = $fopen("cdb_broadcasting.out");
+  ex_fileno = $fopen("ex_stage.out");
+  $fdisplay(ex_fileno, "Cycle | TAG | CDB Inst | CDB Value |      ALU     F/D |      MEM     F/D |     MULT0    F/D |     MULT1    F/D |     MULT2    F/D |     MULT3    F/D |     MULT4    F/D |     MULT5    F/D |     MULT6    F/D |     MULT7    F/D |");
 end
-
+always @(negedge clock) begin
+//  TODO: Finish this
+  if(~reset) begin
+    `define DISPLAY_MUX(x,y) ((x) ? (y) : "-")
+    `define DISPLAY_MULT1_STAGE(i) \
+      $fwrite(ex_fileno, "%5d:%7s %1s %1s |", pipeline_0.ex_co_stage0.MULT1.mstage[i].npc_out, \
+      get_instr_string(pipeline_0.ex_co_stage0.MULT1.mstage[i].IR_out, pipeline_0.ex_co_stage0.MULT1.mstage[i].done), \
+      `DISPLAY_MUX(!pipeline_0.ex_co_stage0.MULT1.mstage[i].stall, "F"), \
+      `DISPLAY_MUX(pipeline_0.ex_co_stage0.MULT1.mstage[i].done, "D"));
+    `define DISPLAY_MULT2_STAGE(i) \
+      $fwrite(ex_fileno, "%5d:%7s %1s %1s |", pipeline_0.ex_co_stage0.MULT2.mstage[i].npc_out, \
+      get_instr_string(pipeline_0.ex_co_stage0.MULT2.mstage[i].IR_out, pipeline_0.ex_co_stage0.MULT2.mstage[i].done), \
+      `DISPLAY_MUX(!pipeline_0.ex_co_stage0.MULT2.mstage[i].stall, "F"), \
+      `DISPLAY_MUX(pipeline_0.ex_co_stage0.MULT2.mstage[i].done, "D"));
+    $fwrite(ex_fileno, "%5d ", clock_count);
+/*    if(pipeline_0.ex_co_stage0.cdb_valid[0])
+      $fwrite(ex_fileno, "| %2d | %5d:%7s | %16h ");
+    else
+      $fwrite(ex_fileno, "| -- |   --:--     | ------------------");
+    $fwrite(ex_fileno, "| %5d:%7s %1s %1s");
+    $fwrite(ex_fileno, "| %5d:%7s %1s %1s");  */
+    `DISPLAY_MULT1_STAGE(0)
+    `DISPLAY_MULT1_STAGE(1)
+    `DISPLAY_MULT1_STAGE(2)
+    `DISPLAY_MULT1_STAGE(3)
+    `DISPLAY_MULT1_STAGE(4)
+    `DISPLAY_MULT1_STAGE(5)
+    `DISPLAY_MULT1_STAGE(6)
+    `DISPLAY_MULT1_STAGE(7)
+/*    if(pipeline_0.ex_co_stage0.cdb_valid[1])
+      $fwrite(ex_fileno, "| %2d | %5d:%7s | %16h ");
+    else
+      $fwrite(ex_fileno, "| -- |   --:--     | ------------------");
+    $fwrite(ex_fileno, "| %5d:%7s %1s %1s");
+    $fwrite(ex_fileno, "| %5d:%7s %1s %1s"); */
+    `DISPLAY_MULT2_STAGE(0)
+    `DISPLAY_MULT2_STAGE(1)
+    `DISPLAY_MULT2_STAGE(2)
+    `DISPLAY_MULT2_STAGE(3)
+    `DISPLAY_MULT2_STAGE(4)
+    `DISPLAY_MULT2_STAGE(5)
+    `DISPLAY_MULT2_STAGE(6)
+    `DISPLAY_MULT2_STAGE(7)
+  end
+  if(pipeline_error_status != `NO_ERROR)
+    $fclose(ex_fileno);
+end
 //*** PIPELINE DEBUG ***//
 integer pipe_fileno;
 initial begin

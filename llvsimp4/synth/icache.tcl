@@ -17,10 +17,11 @@ suppress_message {"VER-130"}
 #/* The following five lines must be updated for every      */
 #/* new design                                              */
 #/***********************************************************/
-read_file -f verilog [list "../sys_defs.vh" "../verilog/pipeline.v" "../verilog/if_stage.v" "../verilog/id_stage.v" "../verilog/ex_stage.v" "../verilog/mem_stage.v" "../verilog/wb_stage.v" "../verilog/regfile.v"]
-set design_name pipeline
+read_file -f verilog [list "../sys_defs.vh" "../verilog/cachemem.v"]
+set design_name cachemem128x64
 set clock_name clock
-set CLK_PERIOD 30
+set reset_name reset
+set CLK_PERIOD 20
 
 
 #/***********************************************************/
@@ -36,6 +37,9 @@ set SYN_DIR ./
 set compile_top_all_paths "true"
 set auto_wire_load_selection "false"
 set compile_seqmap_synchronous_extraction "true"
+
+# uncomment this and change number appropriately if on multi-core machine
+#set_host_options -max_cores 2
 
 #/***********************************************************/
 #/*  Clk Periods/uncertainty/transition                     */
@@ -106,6 +110,9 @@ if {  $dc_shell_status != [list] } {
   set_input_delay $AVG_INPUT_DELAY -clock $sys_clk [all_inputs]
   remove_input_delay -clock $sys_clk [find port $sys_clk]
   set_output_delay $AVG_OUTPUT_DELAY -clock $sys_clk [all_outputs]
+  set_dont_touch $reset_name
+  set_resistance 0 $reset_name
+  set_drive 0 $reset_name
   set_critical_range $CRIT_RANGE [current_design]
   set_max_delay $CLK_PERIOD [all_outputs]
   set MAX_FANOUT $MAX_FANOUT

@@ -66,12 +66,11 @@ module testbench();
                        .mem2proc_data     (mem2proc_data),
                        .mem2proc_tag      (mem2proc_tag),
                        
-       
                         // Outputs
                        .proc2mem_command  (proc2mem_command),
                        .proc2mem_addr     (proc2mem_addr),
                        .proc2mem_data     (proc2mem_data),
-       
+
                        .pipeline_completed_insts(pipeline_completed_insts),
                        .pipeline_error_status(pipeline_error_status),
                        .pipeline_commit_wr_data(pipeline_commit_wr_data),
@@ -142,7 +141,7 @@ module testbench();
     // *Note that after this, all stdout output goes to visual debugger*
     // each argument is number of registers/signals for the group
     // (IF, IF/ID, ID, ID/EX, EX, EX/MEM, MEM, MEM/WB, WB, Misc)
-    initcurses(6,4,13,16,4,12,5,9,3,2);
+    initcurses(6,4,13,16,4,12,5,9,3,9);
 
     // Pulse the reset signal
     reset = 1'b1;
@@ -305,9 +304,16 @@ module testbench();
     $display("wwr_idx 2:%h",        pipeline_0.wb_reg_wr_idx_out);
     $display("wwr_en 1:%h",         pipeline_0.wb_reg_wr_en_out);
 
-    // Misc signals(2) - prefix 'v'
+    // Misc signals (9) - prefix 'v'
     $display("vcompleted 1:%h",     pipeline_0.pipeline_completed_insts);
     $display("vpipe_err 1:%h",      pipeline_error_status);
+    $display("vI$_data 16:%h",      pipeline_0.Icache_data_out);
+    $display("vI$_valid 1:%h",      pipeline_0.Icache_valid_out);
+    $display("vI$_rd_idx 2:%h",     pipeline_0.Icache_rd_idx);
+    $display("vI$_rd_tag 6:%h",     pipeline_0.Icache_rd_tag);
+    $display("vI$_wr_idx 2:%h",     pipeline_0.Icache_wr_idx);
+    $display("vI$_wr_tag 6:%h",     pipeline_0.Icache_wr_tag);
+    $display("vI$_wr_en 1:%h",      pipeline_0.Icache_wr_en);
 
 
     // must come last

@@ -31,28 +31,23 @@ TESTBENCH = 	sys_defs.vh	    \
 		testbench/testbench.v	\
 		testbench/mem.v		    \
 		testbench/pipe_print.c
-SIMFILES =	verilog/oo_pipeline.v	\
+SIMFILES =	verilog/pipeline.v	\
+		verilog/regfile.v	\
 		verilog/icache.v	\
 		verilog/if_stage.v	\
 		verilog/id_stage.v	\
 		verilog/ex_stage.v	\
-		verilog/cachemem.v  \
-		verilog/rob.v			  \
-		verilog/cb.v				\
-		verilog/superrs.v   \
-		verilog/rs.v				\
-		verilog/rat.v				\
-		verilog/ps.v				\
-		verilog/pe.v				\
-		verilog/regfile.v
-SYNFILES = synth/oo_pipeline.vg
+		verilog/mem_stage.v	\
+		verilog/wb_stage.v	\
+		verilog/cachemem.v 
+SYNFILES = synth/pipeline.vg
 
 # For visual debugger
 VISTESTBENCH = $(TESTBENCH:testbench.v=visual_testbench.v) \
 		testbench/visual_c_hooks.c
 
-synth/pipeline.vg:        $(SIMFILES) synth/oo_pipeline.tcl synth/cachemem128x64.vg
-	cd synth && dc_shell-t -f ./oo_pipeline.tcl | tee pipeline_synth.out 
+synth/pipeline.vg:        $(SIMFILES) synth/pipeline.tcl synth/cachemem128x64.vg
+	cd synth && dc_shell-t -f ./pipeline.tcl | tee pipeline_synth.out 
 
 synth/cachemem128x64.vg:  verilog/cachemem.v
 	cd synth && dc_shell-t -f ./icache.tcl | tee cachemem128x64_synth.out
@@ -88,7 +83,6 @@ clean:
 	rm -rf synsimv synsimv.daidir csrc vcdplus.vpd vcs.key synprog.out pipeline.out writeback.out vc_hdrs.h
 
 nuke:	clean
-	rm -rf *.out results.txt
 	rm -f synth/*.vg synth/*.rep synth/*.db synth/*.chk synth/command.log
 	rm -f synth/*.out synth/*.ddc command.log
 

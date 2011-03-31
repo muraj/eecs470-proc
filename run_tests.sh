@@ -31,7 +31,7 @@ until [ $1 == -- ]; do
      shift;
 done
 shift;
-comp_dir=${comp_dir:-./vsimp4_w11}
+comp_dir=${comp_dir:-./llvsimp4}
 if ! [ -f $comp_dir/Makefile ]; then
   echo "In order processor makefile not found in $comp_dir";
   exit 1;

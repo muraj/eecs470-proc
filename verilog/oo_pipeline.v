@@ -431,6 +431,7 @@ module oo_pipeline (// Inputs
         id_dp_halt          <= `SD id_halt_out;
         id_dp_illegal       <= `SD id_illegal_out;
         id_dp_valid_inst    <= `SD id_valid_inst_out;
+      `ifdef SUPERSCALAR
       end else if (stall_id[1]) begin
 			// need to move ir2 to ir1
         id_dp_NPC           [`SEL(64,1)] <= `SD id_dp_NPC					   [`SEL(64,2)];
@@ -448,7 +449,7 @@ module oo_pipeline (// Inputs
         id_dp_valid_inst    [`SEL(1,1)]  <= `SD id_dp_valid_inst     [`SEL(1,2)];
 			// mark ir2 as invalid
         id_dp_valid_inst    [`SEL(1,2)]  <= `SD 1'b0;  
-
+        `endif //SUPERSCALAR
 			end
     end // else: !if(reset)
   end // always
