@@ -22,17 +22,19 @@
 # EMAIL: Your e-mail address, the batch system will e-mail updates to you
 # ROOT_PROJ_DIR: The root directory of your project (likely *vsimp4*)
 # PROJ_TCL: The synthesis .tcl script for your entire pipeline
-SVN_REPO="/afs/umich.edu/user/<rest of SVN repository path here>"
-AFS_DIR="/afs/umich.edu/user/<rest of path here>"
+USER=`whoami`
+SVN_REPO="svn checkout http://mountain-dew-proc.googlecode.com/svn/trunk/ mountain-dew-proc-read-only"
+AFS_DIR="/afs/umich.edu/user/${USER:0:1}/${USER:1:2}/${USER}"
 WORK_DIR="project"
-EMAIL="<uniqname>@umich.edu"
+EMAIL="${USER}@umich.edu"
 ROOT_PROJ_DIR="llvsimp4_f10"
 PROJ_TCL="pipeline.tcl"
 
 # Will have to guesstimate on runtime and memory requirements
 # WALLTIME: A limit on the amount of time your job will get to run
 # MEM: Amount of physical memory that your job will be allocated
-WALLTIME="00:10:00"
+PPN=1   # Processors-Per-Node
+WALLTIME="00:10:00"   #HH:MM:SS
 MEM="500mb"
 
 # Note: Probably shouldn't touch these unless told to by the GSI
@@ -45,7 +47,7 @@ PBS_FILE=`pwd`"/pbs.sh"
 cd
 if [ "$1" == "-s" ]; then
   echo "Checking out project from SVN repository..."
-  svn co file://$SVN_REPO ~/$WORK_DIR
+  svn co $SVN_REPO ~/$WORK_DIR
   if [ "$?" -ne '0' ]; then
     echo "Error: Could not check out copy of SVN repository"
     exit 1
@@ -78,7 +80,7 @@ module load vcs
 
 # Submit the batch job
 echo "Submitting batch job..."
-JOB_ID=`qsub -N 470synth -l nodes=1,walltime=$WALLTIME,pmem=$MEM -q $QUEUE -M $EMAIL -m abe -V $PBS_FILE`
+JOB_ID=`qsub -N 470synth -l nodes=1:${PPN},walltime=$WALLTIME,pmem=$MEM -q $QUEUE -M $EMAIL -m abe -V $PBS_FILE`
 if [ "$?" -ne '0' ]; then
   echo "Error: Could not submit job via qsub"
   exit 1
