@@ -14,6 +14,7 @@
 //
 //////////////////////////////////////////////
 
+`define DEBUG_QUIT 1800  //Quit after DEBUG_QUIT cycles
 
 `define NUM_MEM_TAGS           15
 
@@ -22,9 +23,9 @@
 
 // probably not a good idea to change this second one
 `define VIRTUAL_CLOCK_PERIOD   30.0 // Clock period from dc_shell
-`define VERILOG_CLOCK_PERIOD   10.0 // Clock period from test bench
+`define VERILOG_CLOCK_PERIOD   5.0 // Clock period from test bench
 
-`define MEM_LATENCY_IN_CYCLES (100.0/`VIRTUAL_CLOCK_PERIOD+0.49999)
+`define MEM_LATENCY_IN_CYCLES ($rtoi(100.0/`VIRTUAL_CLOCK_PERIOD+0.99999))
 // the 0.49999 is to force ceiling(100/period).  The default behavior for
 // float to integer conversion is rounding to nearest
 
@@ -81,7 +82,7 @@
 `define ALU_ORNOT       5'h05
 `define ALU_XOR         5'h06
 `define ALU_EQV         5'h07
-`define ALU_SRL         5'h08
+`define ALU_SRL   		  5'h08
 `define ALU_SLL         5'h09
 `define ALU_SRA         5'h0a
 `define ALU_MULQ        5'h0b
@@ -282,3 +283,34 @@
 `define JSR_INST	2'h1
 `define RET_INST	2'h2
 `define JSR_CO_INST	2'h3
+
+// Customized T3 Macros
+`define SUPERSCALAR /* Comment this out if non-superscalar */
+`ifdef SUPERSCALAR
+    `define SCALAR (2)
+`else
+    `define SCALAR (1)
+`endif
+`define ARF_IDX (5)
+`define PRF_IDX (6)
+`define PRF_SZ (1<<`PRF_IDX)
+`define ROB_IDX (5)
+`define ROB_SZ (1<<`ROB_IDX)
+`define RS_IDX (4)
+`define RS_SZ (1<<`RS_IDX)
+`define ZERO_PRF ({`PRF_IDX{1'b0}})
+`define SEL(WIDTH, WHICH) WIDTH*(WHICH)-1:WIDTH*(WHICH - 1)
+`define IF_ID_IDX (3)
+`define IF_ID_SZ (1<<`IF_ID_IDX)
+`define LSQ_IDX (3)
+`define LSQ_SZ (1<<`LSQ_IDX)
+`define RAT_IDX (`ARF_IDX)
+`define RAT_SZ (1<<`RAT_IDX)
+`define	BR_IDX (4)
+`define BR_SZ (1<<`BR_IDX)
+
+`define EX_NOOP	2'b00
+`define EX_MEM	2'b01
+`define EX_MULT	2'b10
+`define EX_ALU	2'b11
+
