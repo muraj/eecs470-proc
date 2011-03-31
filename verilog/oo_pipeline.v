@@ -536,6 +536,30 @@ module oo_pipeline (// Inputs
   //                                              //
   //////////////////////////////////////////////////
 
+  //Write forwarding for IS/EX stage
+  wire [63:0] prega_value[`SCALAR-1:0];
+  wire [63:0] pregb_value[`SCALAR-1:0];
+  assign prega_value[0] = (ex_cdb_valid_out[0] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 1)] == dp_prega_idx[`SEL(`PRF_IDX,1)])) ? ex_cdb_value_out[`SEL(64,1)] : 
+                          `ifdef SUPERSCALAR
+                          (ex_cdb_valid_out[1] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 2)] == dp_prega_idx[`SEL(`PRF_IDX,1)])) ? ex_cdb_value_out[`SEL(64,2)] :
+                          `endif
+                          dp_prega_value[`SEL(64,1)];
+  assign prega_value[1] = (ex_cdb_valid_out[0] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 1)] == dp_prega_idx[`SEL(`PRF_IDX,2)])) ? ex_cdb_value_out[`SEL(64,1)] : 
+                          `ifdef SUPERSCALAR
+                          (ex_cdb_valid_out[1] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 2)] == dp_prega_idx[`SEL(`PRF_IDX,2)])) ? ex_cdb_value_out[`SEL(64,2)] :
+                          `endif
+                          dp_prega_value[`SEL(64,2)];
+  assign pregb_value[0] = (ex_cdb_valid_out[0] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 1)] == dp_pregb_idx[`SEL(`PRF_IDX,1)])) ? ex_cdb_value_out[`SEL(64,1)] : 
+                          `ifdef SUPERSCALAR
+                          (ex_cdb_valid_out[1] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 2)] == dp_pregb_idx[`SEL(`PRF_IDX,1)])) ? ex_cdb_value_out[`SEL(64,2)] :
+                          `endif
+                          dp_pregb_value[`SEL(64,1)];
+  assign pregb_value[1] = (ex_cdb_valid_out[0] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 1)] == dp_pregb_idx[`SEL(`PRF_IDX,2)])) ? ex_cdb_value_out[`SEL(64,1)] : 
+                          `ifdef SUPERSCALAR
+                          (ex_cdb_valid_out[1] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 2)] == dp_pregb_idx[`SEL(`PRF_IDX,2)])) ? ex_cdb_value_out[`SEL(64,2)] :
+                          `endif
+                          dp_pregb_value[`SEL(64,2)];
+
   always @(posedge clock)
   begin
     if (reset)
@@ -555,8 +579,8 @@ module oo_pipeline (// Inputs
     else begin
 			is_ex_LSQ_idx			<= `SD 0;	// FIXME
 			is_ex_pdest_idx		<= `SD dp_pdest_idx;
-			is_ex_prega_value	<= `SD dp_prega_value;
-			is_ex_pregb_value	<= `SD dp_pregb_value;
+			is_ex_prega_value	<= `SD {prega_value[1], prega_value[0]};
+			is_ex_pregb_value	<= `SD {pregb_value[1], pregb_value[0]};
 			is_ex_ALUop				<= `SD dp_ALUop;
 			is_ex_rd_mem			<= `SD dp_rd_mem;
 			is_ex_wr_mem			<= `SD dp_wr_mem;
