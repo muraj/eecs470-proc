@@ -63,7 +63,7 @@ module rob (clk, reset,
 	reg [1:0] incount, outcount;
 	reg empty, empty_almost;
 	
-	wire debug;//debug
+	wire debug1, debug2;//debug
 
 	wire [`ROB_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2, cur_size;
 	wire next_full, next_full_almost, next_empty, next_empty_almost;
@@ -105,7 +105,8 @@ module rob (clk, reset,
 	assign next_empty = next_iocount == 0;
 	assign next_empty_almost = next_iocount == 1;
 
-	assign debug	= data_bt_ex[head_p1]; //debug
+	assign debug1	= data_bt_ex[head]; //debug
+	assign debug2	= data_bt_ex[head_p1]; //debug
 
 
 		
@@ -145,6 +146,7 @@ module rob (clk, reset,
 		// deal with branch misses
 		if (retire1 && isbranch_out1) begin
 			if ((data_bt_ex[head] != bt_pd_out1) || (data_ba_ex[head] != ba_pd_out1)) begin
+			//if ((data_bt_ex[head] != bt_pd_out1)) begin
 				branch_miss = 1;
 				correct_target = data_ba_ex[head];
 				dout2_valid = 0;	
@@ -153,12 +155,13 @@ module rob (clk, reset,
 			end
 			
 		end else if (retire2 && isbranch_out2) begin
-				if ((data_bt_ex[head_p1] != bt_pd_out2) || (data_ba_ex[head_p1] != ba_pd_out2)) begin
-					branch_miss = 1;
-				  correct_target = data_ba_ex[head_p1];
-					move_tail = 1;
-					tail_new = next_head;
-				end 
+			if ((data_bt_ex[head_p1] != bt_pd_out2) || (data_ba_ex[head_p1] != ba_pd_out2)) begin
+			//if ((data_bt_ex[head_p1] != bt_pd_out2)) begin
+				branch_miss = 1;
+			  correct_target = data_ba_ex[head_p1];
+				move_tail = 1;
+				tail_new = next_head;
+			end 
 		end
 
 		// deal with tail and data in (allocate)

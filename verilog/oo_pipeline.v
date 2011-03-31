@@ -486,11 +486,11 @@ module oo_pipeline (// Inputs
             .pdest_in1(rat_pdest_idx[`SEL(`PRF_IDX,1)]), .pdest_in2(rat_pdest_idx[`SEL(`PRF_IDX,2)]), 
             .adest_in1(id_dp_dest_reg_idx[`SEL(5,1)]), .adest_in2(id_dp_dest_reg_idx[`SEL(5,2)]),
 						// Branch @ dispatch
-            .ba_pd_in1(64'b0), .ba_pd_in2(64'b0), //FIXME 
+            .ba_pd_in1(id_dp_NPC[`SEL(64,1)]), .ba_pd_in2(id_dp_NPC[`SEL(64,2)]), //FIXME 
             .bt_pd_in1(1'b0), .bt_pd_in2(1'b0), //FIXME
             .isbranch_in1(id_dp_isbranch[0]), .isbranch_in2(id_dp_isbranch[1]),
 						// Real branch results
-						.ba_ex_in1(ex_cdb_value_out[`SEL(64,1)]), .ba_ex_in2(ex_cdb_value_out[`SEL(64,2)]), .bt_ex_in1(!ex_branch_NT_out[0]), .bt_ex_in2(!ex_branch_NT_out[1]),
+						.ba_ex_in1(ex_cdb_value_out[`SEL(64,1)]), .ba_ex_in2(ex_cdb_value_out[`SEL(64,2)]), .bt_ex_in1(ex_branch_NT_out[0]), .bt_ex_in2(ex_branch_NT_out[1]),
 						// For retire
             .dout1_valid(rob_retire_valid_inst[0]), .dout2_valid(rob_retire_valid_inst[1]), 
 						.rob_idx_out1(rob_idx_out[`SEL(`ROB_IDX,1)]), .rob_idx_out2(rob_idx_out[`SEL(`ROB_IDX,2)]),

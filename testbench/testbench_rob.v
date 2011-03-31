@@ -396,9 +396,9 @@ module testbench;
 		new_inst(2,13,14,0,0,0,0,0,0);
 		@(negedge clk);show_contents();show_io();
 		new_inst(2,15,16,0,0,0,0,0,0);
-		@(negedge clk);show_contents();show_io();up_inst(2, 0, 1, 0, 0, 0, 6);    $display("Branch Prediction! %d, %d, %d %d\n", rob0.retire1, rob0.isbranch_out1, rob0.bt_pd_out2, rob0.debug);
+		@(negedge clk);show_contents();show_io();up_inst(2, 0, 1, 0, 0, 0, 6);    $display("Branch Prediction! %d, %d, %d %d\n", rob0.retire2, rob0.isbranch_out2, rob0.bt_pd_out2, rob0.debug);
 		new_inst(0,5,3,0,0,0,0,0,0);	
-		@(negedge clk);show_contents();show_io();$display("Branch Prediction! %d, %d, %d %d\n", rob0.retire1, rob0.isbranch_out1, rob0.bt_pd_out2, rob0.debug);// I put debug signal inside of the rob.v, this is actually data_bt_ex[head_p1].
+		@(negedge clk);show_contents();show_io();$display("Branch Prediction! %d, %d, %d %d\n", rob0.retire2, rob0.isbranch_out2, rob0.bt_pd_out2, rob0.debug);// I put debug signal inside of the rob.v, this is actually data_bt_ex[head_p1].
 		up_inst(0, 1, 2, 0, 0, 0, 0);
 		//new_inst(2,6,7,0,0,0,0,0,0);
 		@(negedge clk);show_contents();show_io();
