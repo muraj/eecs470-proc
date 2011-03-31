@@ -36,6 +36,9 @@ SIMFILES =	verilog/oo_pipeline.v	\
 		verilog/if_stage.v	\
 		verilog/id_stage.v	\
 		verilog/ex_stage.v	\
+		verilog/alu.v				\
+		verilog/mult.v			\
+		verilog/mem_cont.v	\
 		verilog/cachemem.v  \
 		verilog/rob.v			  \
 		verilog/cb.v				\

@@ -293,6 +293,9 @@ always @(negedge clock) begin
     $fclose(reg_fileno);
 end
 
+
+
+
 //*** EX_STAGE DEBUG ***//
 integer ex_fileno;
 initial begin
@@ -305,14 +308,14 @@ always @(negedge clock) begin
     `define DISPLAY_MUX(x,y) ((x) ? (y) : "-")
     `define DISPLAY_MULT1_STAGE(i) \
       $fwrite(ex_fileno, "%5d:%7s %1s %1s |", pipeline_0.ex_co_stage0.MULT1.mstage[i].npc_out, \
-      get_instr_string(pipeline_0.ex_co_stage0.MULT1.mstage[i].IR_out, pipeline_0.ex_co_stage0.MULT1.mstage[i].done), \
+      get_instr_string(pipeline_0.ex_co_stage0.MULT1.mstage[i].IR_out, pipeline_0.ex_co_stage0.MULT1.mstage[i].done_reg), \
       `DISPLAY_MUX(!pipeline_0.ex_co_stage0.MULT1.mstage[i].stall, "F"), \
-      `DISPLAY_MUX(pipeline_0.ex_co_stage0.MULT1.mstage[i].done, "D"));
+      `DISPLAY_MUX(pipeline_0.ex_co_stage0.MULT1.mstage[i].done_reg, "D"));
     `define DISPLAY_MULT2_STAGE(i) \
       $fwrite(ex_fileno, "%5d:%7s %1s %1s |", pipeline_0.ex_co_stage0.MULT2.mstage[i].npc_out, \
-      get_instr_string(pipeline_0.ex_co_stage0.MULT2.mstage[i].IR_out, pipeline_0.ex_co_stage0.MULT2.mstage[i].done), \
+      get_instr_string(pipeline_0.ex_co_stage0.MULT2.mstage[i].IR_out, pipeline_0.ex_co_stage0.MULT2.mstage[i].done_reg), \
       `DISPLAY_MUX(!pipeline_0.ex_co_stage0.MULT2.mstage[i].stall, "F"), \
-      `DISPLAY_MUX(pipeline_0.ex_co_stage0.MULT2.mstage[i].done, "D"));
+      `DISPLAY_MUX(pipeline_0.ex_co_stage0.MULT2.mstage[i].done_reg, "D"));
     $fwrite(ex_fileno, "%5d ", clock_count);
 /*    if(pipeline_0.ex_co_stage0.cdb_valid[0])
       $fwrite(ex_fileno, "| %2d | %5d:%7s | %16h ");
@@ -346,6 +349,12 @@ always @(negedge clock) begin
   if(pipeline_error_status != `NO_ERROR)
     $fclose(ex_fileno);
 end
+
+
+
+
+
+
 //*** PIPELINE DEBUG ***//
 integer pipe_fileno;
 initial begin
