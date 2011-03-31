@@ -63,7 +63,7 @@ module rob (clk, reset,
 	reg [1:0] incount, outcount;
 	reg empty, empty_almost;
 	
-	reg debug;//debug
+	wire debug;//debug
 
 	wire [`ROB_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2, cur_size;
 	wire next_full, next_full_almost, next_empty, next_empty_almost;
@@ -105,6 +105,10 @@ module rob (clk, reset,
 	assign next_empty = next_iocount == 0;
 	assign next_empty_almost = next_iocount == 1;
 
+	assign debug	= data_bt_ex[head_p1]; //debug
+
+
+		
 	always @* begin
 		// default cases for data
 		next_data_ba_ex1 = data_ba_ex[tail];
@@ -114,7 +118,6 @@ module rob (clk, reset,
 		next_data_rdy1 = data_rdy[tail];
 		next_data_rdy2 = data_rdy[tail_p1];
 		
-		debug	= data_bt_ex[head_p1]; //debug
 		// other default cases
 		next_head = head;
 		next_tail = tail;
@@ -127,6 +130,18 @@ module rob (clk, reset,
 		move_tail = 0;
 		correct_target = 64'd0;
 
+		// deal with head and data out
+		if (retire1 && !empty) begin
+			next_head = head_p1;
+			//dout1 = data[head];
+			outcount = 2'd1;
+			if (retire2 && !empty_almost) begin
+				next_head = head_p2;
+				//dout2 = data[head_p1];
+				outcount = 2'd2;
+			end
+		end
+
 		// deal with branch misses
 		if (retire1 && isbranch_out1) begin
 			if ((data_bt_ex[head] != bt_pd_out1) || (data_ba_ex[head] != ba_pd_out1)) begin
@@ -135,14 +150,15 @@ module rob (clk, reset,
 				dout2_valid = 0;	
 				move_tail = 1;
 				tail_new = next_head;
-			end else if (retire2 && isbranch_out2) begin
+			end
+			
+		end else if (retire2 && isbranch_out2) begin
 				if ((data_bt_ex[head_p1] != bt_pd_out2) || (data_ba_ex[head_p1] != ba_pd_out2)) begin
 					branch_miss = 1;
 				  correct_target = data_ba_ex[head_p1];
 					move_tail = 1;
 					tail_new = next_head;
 				end 
-			end
 		end
 
 		// deal with tail and data in (allocate)
@@ -166,18 +182,6 @@ module rob (clk, reset,
 					next_data_rdy2 = 1'b0;
 
 				end
-			end
-		end
-
-		// deal with head and data out
-		if (retire1 && !empty) begin
-			next_head = head_p1;
-			//dout1 = data[head];
-			outcount = 2'd1;
-			if (retire2 && !empty_almost) begin
-				next_head = head_p2;
-				//dout2 = data[head_p1];
-				outcount = 2'd2;
 			end
 		end
 
