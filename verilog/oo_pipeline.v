@@ -147,10 +147,10 @@ module oo_pipeline (// Inputs
 	wire	[5*`SCALAR-1:0] 				dp_ALUop;
 	wire	[`SCALAR-1:0] 					dp_rd_mem;
 	wire	[`SCALAR-1:0] 					dp_wr_mem;
-	output wire	[32*`SCALAR-1:0] 				dp_is_IR;
-	output wire	[64*`SCALAR-1:0] 				dp_is_NPC;
+	output wire	[32*`SCALAR-1:0]	dp_is_IR;
+	output wire	[64*`SCALAR-1:0] 	dp_is_NPC;
 	wire	[`ROB_IDX*`SCALAR-1:0] 	dp_rob_idx;
-	output wire	[`SCALAR-1:0] 					dp_is_valid_inst;
+	output wire	[`SCALAR-1:0] 		dp_is_valid_inst;
 
 	// Outputs from DISPATCH/EX Pipeline Register
 	reg [`LSQ_IDX*`SCALAR-1:0]	is_ex_LSQ_idx;
@@ -162,7 +162,7 @@ module oo_pipeline (// Inputs
 	reg	[`SCALAR-1:0] 					is_ex_wr_mem;
 	output reg	[32*`SCALAR-1:0] 				is_ex_IR;
 	output reg	[64*`SCALAR-1:0] 				is_ex_NPC;
-	output reg	[`SCALAR-1:0] 					is_ex_valid_inst;
+	output reg	[`SCALAR-1:0] 	is_ex_valid_inst;
 	reg	[`ROB_IDX*`SCALAR-1:0] 	is_ex_rob_idx;
 
 		// only for DEBUGGING
@@ -231,9 +231,9 @@ module oo_pipeline (// Inputs
   assign pipeline_completed_insts = rob_retire_valid_inst[0] + rob_retire_valid_inst[1];
   // FIXME
   assign pipeline_error_status = 
-    id_dp_illegal ? `HALTED_ON_ILLEGAL
-                   : (id_dp_halt ? `HALTED_ON_HALT
-                                 : `NO_ERROR);
+    (id_dp_illegal & id_dp_valid_inst) ? `HALTED_ON_ILLEGAL :
+    (rob_retire_valid_inst[0] && rob_retire_IR[`SEL(32,1)] == {`PAL_INST, `PAL_HALT} ? `HALTED_ON_HALT :
+    (rob_retire_valid_inst[1] && rob_retire_IR[`SEL(32,2)] == {`PAL_INST, `PAL_HALT} ? `HALTED_ON_HALT : `NO_ERROR));
 
   assign pipeline_commit_wr_idx = rob_retire_dest_idx;
   assign pipeline_commit_IR = rob_retire_IR;

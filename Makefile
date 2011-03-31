@@ -21,7 +21,7 @@ INTFLAGS = -I +memcbk
 VISFLAGS = -lncurses
 
 all:    simv
-	./simv #| tee program.out
+	./simv | tee program.out
 
 ##### 
 # Modify starting here
@@ -81,7 +81,6 @@ syn_int:	$(SYNFILES) $(TESTBENCH)
 	$(VCS) $(INTFLAGS) $(TESTBENCH) $(SYNFILES) $(LIB) -o syn_int_simv -RI
 
 clean:
-	rm -rf *.out
 	rm -rf simv simv.daidir csrc vcs.key program.out
 	rm -rf vis_simv vis_simv.daidir
 	rm -rf syn_simv syn_simv.daidir syn_program.out
@@ -89,6 +88,7 @@ clean:
 	rm -rf synsimv synsimv.daidir csrc vcdplus.vpd vcs.key synprog.out pipeline.out writeback.out vc_hdrs.h
 
 nuke:	clean
+	rm -rf *.out
 	rm -f synth/*.vg synth/*.rep synth/*.db synth/*.chk synth/command.log
 	rm -f synth/*.out synth/*.ddc command.log
 

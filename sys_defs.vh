@@ -14,6 +14,7 @@
 //
 //////////////////////////////////////////////
 
+//`define DEBUG_QUIT 500  //Quit after DEBUG_QUIT cycles
 
 `define NUM_MEM_TAGS           15
 
@@ -24,7 +25,7 @@
 `define VIRTUAL_CLOCK_PERIOD   30.0 // Clock period from dc_shell
 `define VERILOG_CLOCK_PERIOD   5.0 // Clock period from test bench
 
-`define MEM_LATENCY_IN_CYCLES (100.0/`VIRTUAL_CLOCK_PERIOD+0.49999)
+`define MEM_LATENCY_IN_CYCLES ($rtoi(100.0/`VIRTUAL_CLOCK_PERIOD+0.99999))
 // the 0.49999 is to force ceiling(100/period).  The default behavior for
 // float to integer conversion is rounding to nearest
 

@@ -1,27 +1,30 @@
 #!/usr/bin/env bash
 usage() {
 cat << EOF
-USAGE: $0 [OPTIONS] [syn]
+USAGE: ${PROGNAME} [OPTIONS] [syn]
 
 This script runs one or all the tests against both this processor's output and another processor's output
 
 OPTIONS:
-  -h, --help            Show this message
-  -t, --test            Specific test program to run
-  -d, --compare-dir     Directory with standard processor simulation
-  syn                   Run tests in synthesis mode
+  -h, --help             Show this message
+  -t, --test FILE        Specific test program to run
+  -d, --compare-dir DIR  Directory with standard processor simulation to test against
+  syn                    Run tests in synthesis mode
 EOF
 }
 TMP=`getopt --name=$0 -a --longoptions="help,compare-dir:,test:" -o="h,d:,t:" -- $@`
+PROGNAME=$0
 eval set -- $TMP;
 until [ $1 == -- ]; do
     case $1 in
         -h|--help)
             usage; exit 1;;
         -d|--compare-dir)
-            comp_dir=$2;;
+            comp_dir=$2;
+            shift;;
         -t|--test)
-            prog=$2;;
+            prog=$2;
+            shift;;
         *)  #Default unknown option
             usage; exit 1;;
      esac

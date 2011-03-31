@@ -66,7 +66,7 @@ module testbench;
 //DEBUG SIGNALS
 `ifndef SYNTH
 //*** RS DEBUG ***//
-  integer rs_fileno, rs_idx;
+  integer rs_fileno;
   wire [31:0] rs1_IR[`RS_SZ-1:0];
   wire [63:0] rs1_npc[`RS_SZ-1:0];
   wire [`ROB_IDX-1:0] rs1_rob_idx[`RS_SZ-1:0];
@@ -109,18 +109,11 @@ genvar rs_iter;
 endgenerate
 initial begin
   rs_fileno = $fopen("resstation.out");
-  rs_idx=0;
-end
-always @(pipeline_error_status) begin
-  if(pipeline_error_status != `NO_ERROR)
-    $fclose(rs_fileno);
 end
 always @(posedge clock) begin
  if(~reset) begin
   $fdisplay(rs_fileno, "|======================================== Cycle: %10d ====================================================|", clock_count);
-  $fdisplay(rs_fileno, "inst_valid: %b rs1_sel: %b npc: %h IR: %h", pipeline_0.rs0.en_out, pipeline_0.rs0.rs1_sel, pipeline_0.rs0.npc_out, pipeline_0.rs0.rs_IR_out);
-  $fdisplay(rs_fileno, "rega_idx: %h, regb_idx: %h", pipeline_0.id_dp_rega_idx, pipeline_0.id_dp_regb_idx);
-  $fdisplay(rs_fileno, "prega_v: %b, pregb_v: %b", pipeline_0.rs0.rs0.entries[15].entry.prega_valid, pipeline_0.rs0.rs0.entries[15].entry.pregb_valid, pipeline_0.rs0.rs0.entries[15].entry.rdy);
+  $fdisplay(rs_fileno, "id_dp_IR %h id_dp_valid %b", pipeline_0.id_dp_IR, pipeline_0.id_dp_valid_inst);
   $fdisplay(rs_fileno, "|                            RS0                           |                           RS1                      |");
   $fdisplay(rs_fileno, "| IDX |   IR   |       NPC      | ROB | RA | RB | RD | R/F |   IR   |       NPC      | ROB | RA | RB | RD | R/F |");
   $fdisplay(rs_fileno, "|===============================================================================================================|");
@@ -134,6 +127,8 @@ always @(posedge clock) begin
   `DISPLAY_RS(9) `DISPLAY_RS(10) `DISPLAY_RS(11)
   `DISPLAY_RS(12) `DISPLAY_RS(13) `DISPLAY_RS(14)
   `DISPLAY_RS(15)
+  if(pipeline_error_status != `NO_ERROR)
+    $fclose(rs_fileno);
  end
 end
 
@@ -197,10 +192,8 @@ always @(posedge clock) begin
    `DISPLAY_ROB(30)
    `DISPLAY_ROB(31)
  end
-end
-always @(pipeline_error_status) begin
-  if(pipeline_error_status != `NO_ERROR)
-    $fclose(rob_fileno);
+ if(pipeline_error_status != `NO_ERROR)
+   $fclose(rob_fileno);
 end
 generate
 genvar rob_iter;
@@ -272,8 +265,6 @@ always @(posedge clock) begin
   $fwrite(rat_fileno, "\n");
   $fdisplay(rat_fileno, "Valid List:       %b", pipeline_0.rat0.valid_list);
  end
-end
-always @(pipeline_error_status) begin
   if(pipeline_error_status != `NO_ERROR)
     $fclose(rat_fileno);
 end
@@ -282,10 +273,6 @@ end
 integer reg_fileno, reg_iter;
 initial begin
   reg_fileno = $fopen("register.out");
-end
-always @(pipeline_error_status) begin
-  if(pipeline_error_status != `NO_ERROR)
-    $fclose(reg_fileno);
 end
 always @(negedge clock) begin
   if(~reset) begin
@@ -302,6 +289,8 @@ always @(negedge clock) begin
       $fdisplay(reg_fileno, "%2d | %h", reg_iter, pipeline_0.PRF.registers[reg_iter]);
     end
   end
+  if(pipeline_error_status != `NO_ERROR)
+    $fclose(reg_fileno);
 end
 
 //*** CDB BROADCASTING ***//
@@ -334,7 +323,7 @@ end
 integer pipe_fileno;
 initial begin
   pipe_fileno = $fopen("pipeline.out");
-  $fdisplay(pipe_fileno, "Cycle:       IF     |      ID      |      DP      |      IS      |      EX      |      CO      |      RE      |            WB            | MEM  ADDR |");
+  $fdisplay(pipe_fileno, "Cycle:       IF     |      ID      |      DP      |      IS      |      EX      |      CO      |      RE      |         WB         | MEM  ADDR |");
 end
 always @(negedge clock) begin
  if(~reset) begin
@@ -351,7 +340,7 @@ always @(negedge clock) begin
    if(pipeline_commit_wr_en[0])
      $fwrite(pipe_fileno, " REG[%2d]=%8x |", pipeline_commit_wr_idx[`SEL(5,1)], pipeline_commit_wr_data[`SEL(64,1)]);
    else
-     $fwrite(pipe_fileno, "                          |");
+     $fwrite(pipe_fileno, "                   |");
    $fwrite(pipe_fileno, "\n      ");
    `DISPLAY_STAGE(if_NPC_out[`SEL(64,2)],if_IR_out[`SEL(32,2)], if_valid_inst_out[1])
    `DISPLAY_STAGE(if_id_NPC[`SEL(64,2)], if_id_IR[`SEL(32,2)], if_id_valid_inst[1])
@@ -363,13 +352,11 @@ always @(negedge clock) begin
    if(pipeline_commit_wr_en[1])
      $fwrite(pipe_fileno, " REG[%2d]=%8x |", pipeline_commit_wr_idx[`SEL(5,2)], pipeline_commit_wr_data[`SEL(64,2)]);
    else
-     $fwrite(pipe_fileno, "                          |");
+     $fwrite(pipe_fileno, "                   |");
    $fwrite(pipe_fileno, "\n");
  end
-end
-always @(pipeline_error_status) begin
-  if(pipeline_error_status != `NO_ERROR)
-    $fclose(pipe_fileno);
+ if(pipeline_error_status != `NO_ERROR)
+   $fclose(pipe_fileno);
 end
 `endif  //SYNTH
 
@@ -533,11 +520,13 @@ end
     begin
       clock_count <= `SD (clock_count + 1);
       instr_count <= `SD (instr_count + pipeline_completed_insts);
-      if(clock_count > 500) begin
+      `ifdef DEBUG_QUIT
+      if(clock_count > `DEBUG_QUIT) begin
           $display("Debug quit");
           $fclose(wb_fileno);
           $finish;
       end
+      `endif //DEBUG_QUIT
     end
   end  
 
@@ -550,29 +539,37 @@ end
     else
     begin
       if(pipeline_completed_insts>0) begin  //FIXME
+        $fdisplay(wb_fileno, "# SCALAR 1, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
+                  co_instr_str[0], pipeline_commit_IR[`SEL(32,1)], clock_count,
+                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]);
         if(pipeline_commit_wr_en[0])
-          $fdisplay(wb_fileno, "# SCALAR 1, IR=%s %h cycle=%0d rob_pdest_idx: %2d \nPC=%x, REG[%d]=%x",
-                    co_instr_str[0], pipeline_commit_IR[`SEL(32,1)], clock_count,
-                    pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,1)],
+          $fdisplay(wb_fileno, "PC=%x, REG[%d]=%x",
                     pipeline_commit_NPC[`SEL(64, 1)]-4,
                     pipeline_commit_wr_idx[`SEL(5,1)],
                     pipeline_commit_wr_data[`SEL(64,1)]);
-       `ifdef SUPERSCALAR
+        else
+          $fdisplay(wb_fileno, "PC=%x, ---", pipeline_commit_NPC[`SEL(64,1)]-4);
+      end
+      `ifdef SUPERSCALAR
+      if(pipeline_completed_insts>1) begin  //FIXME
+        $fdisplay(wb_fileno, "# SCALAR 2, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
+                  co_instr_str[1], pipeline_commit_IR[`SEL(32,2)], clock_count,
+                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]);
         if(pipeline_commit_wr_en[1])
-          $fdisplay(wb_fileno, "# SCALAR 2, IR=%s %h cycle=%0d rob_pdest_idx: %2d \nPC=%x, REG[%d]=%x",
-                    co_instr_str[1], pipeline_commit_IR[`SEL(32,2)], clock_count,
-                    pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,2)],
+          $fdisplay(wb_fileno, "PC=%x, REG[%d]=%x",
                     pipeline_commit_NPC[`SEL(64, 2)]-4,
                     pipeline_commit_wr_idx[`SEL(5,2)],
                     pipeline_commit_wr_data[`SEL(64,2)]);
-       `endif //SUPERSCALAR
-
+        else
+          $fdisplay(wb_fileno, "PC=%x, ---", pipeline_commit_NPC[`SEL(64,2)]-4);
       end
+      `endif //SUPERSCALAR
+
       // deal with any halting conditions
       if(pipeline_error_status!=`NO_ERROR)
       begin
         $display("@@@ Unified Memory contents hex on left, decimal on right: ");
-        show_mem_with_decimal(0,`MEM_64BIT_LINES - 1); 
+//        show_mem_with_decimal(0,`MEM_64BIT_LINES - 1); 
           // 8Bytes per line, 16kB total
 
         $display("@@  %t : System halted\n@@", $realtime);
@@ -591,7 +588,7 @@ end
         $display("@@@\n@@");
         show_clk_count;
         $fclose(wb_fileno);
-        #100 $finish;
+        $finish;
       end
 
     end  // if(reset)
