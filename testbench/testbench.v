@@ -323,7 +323,7 @@ end
 integer pipe_fileno;
 initial begin
   pipe_fileno = $fopen("pipeline.out");
-  $fdisplay(pipe_fileno, "Cycle:       IF     |      ID      |      DP      |      IS      |      EX      |      CO      |      RE      |         WB         | MEM  ADDR |");
+  $fdisplay(pipe_fileno, "Cycle:       IF     |      ID      |      DP      |      IS      |      EX      |      CO      |      RE      |        WB        | MEM  ADDR |");
 end
 always @(negedge clock) begin
  if(~reset) begin
@@ -340,7 +340,7 @@ always @(negedge clock) begin
    if(pipeline_commit_wr_en[0])
      $fwrite(pipe_fileno, " REG[%2d]=%8x |", pipeline_commit_wr_idx[`SEL(5,1)], pipeline_commit_wr_data[`SEL(64,1)]);
    else
-     $fwrite(pipe_fileno, "                   |");
+     $fwrite(pipe_fileno, "                  |");
    $fwrite(pipe_fileno, "\n      ");
    `DISPLAY_STAGE(if_NPC_out[`SEL(64,2)],if_IR_out[`SEL(32,2)], if_valid_inst_out[1])
    `DISPLAY_STAGE(if_id_NPC[`SEL(64,2)], if_id_IR[`SEL(32,2)], if_id_valid_inst[1])
@@ -352,7 +352,7 @@ always @(negedge clock) begin
    if(pipeline_commit_wr_en[1])
      $fwrite(pipe_fileno, " REG[%2d]=%8x |", pipeline_commit_wr_idx[`SEL(5,2)], pipeline_commit_wr_data[`SEL(64,2)]);
    else
-     $fwrite(pipe_fileno, "                   |");
+     $fwrite(pipe_fileno, "                  |");
    $fwrite(pipe_fileno, "\n");
  end
  if(pipeline_error_status != `NO_ERROR)

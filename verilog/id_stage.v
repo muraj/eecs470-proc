@@ -280,14 +280,14 @@ module id_stage(
   wire    [4:0] rb_idx1 = if_id_IR1[20:16];   // inst operand B register index
   wire    [4:0] rc_idx1 = if_id_IR1[4:0];     // inst operand C register index
 	
-	assign id_ra_idx_out[`SEL(5,1)] = id_opa_select_out[`SEL(2,1)] == `ALU_OPA_IS_REGA ? ra_idx1 : `ZERO_REG;
-	assign id_rb_idx_out[`SEL(5,1)] = id_opb_select_out[`SEL(2,1)] == `ALU_OPB_IS_REGB ? rb_idx1 : `ZERO_REG;
+	assign id_ra_idx_out[`SEL(5,1)] = ((id_opa_select_out[`SEL(2,1)] == `ALU_OPA_IS_REGA) || id_cond_branch_out[0])? ra_idx1 : `ZERO_REG;
+	assign id_rb_idx_out[`SEL(5,1)] = (id_opb_select_out[`SEL(2,1)] == `ALU_OPB_IS_REGB) ? rb_idx1 : `ZERO_REG;
 	`ifdef SUPERSCALAR
 	wire   [31:0] if_id_IR2 = if_id_IR[`SEL(32,2)];
   wire    [4:0] ra_idx2 = if_id_IR2[25:21];   // inst operand A register index
   wire    [4:0] rb_idx2 = if_id_IR2[20:16];   // inst operand B register index
   wire    [4:0] rc_idx2 = if_id_IR2[4:0];     // inst operand C register index
-	assign id_ra_idx_out[`SEL(5,2)] = id_opa_select_out[`SEL(2,2)] == `ALU_OPA_IS_REGA ? ra_idx2 : `ZERO_REG;
+	assign id_ra_idx_out[`SEL(5,2)] = ((id_opa_select_out[`SEL(2,2)] == `ALU_OPA_IS_REGA) || id_cond_branch_out[1]) ? ra_idx2 : `ZERO_REG;
 	assign id_rb_idx_out[`SEL(5,2)] = id_opb_select_out[`SEL(2,2)] == `ALU_OPB_IS_REGB ? rb_idx2 : `ZERO_REG;
 	`endif
 

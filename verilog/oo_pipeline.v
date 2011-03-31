@@ -232,8 +232,8 @@ module oo_pipeline (// Inputs
   // FIXME
   assign pipeline_error_status = 
     (id_dp_illegal & id_dp_valid_inst) ? `HALTED_ON_ILLEGAL :
-    (rob_retire_valid_inst[0] && rob_retire_IR[`SEL(32,1)] == {`PAL_INST, `PAL_HALT} ? `HALTED_ON_HALT :
-    (rob_retire_valid_inst[1] && rob_retire_IR[`SEL(32,2)] == {`PAL_INST, `PAL_HALT} ? `HALTED_ON_HALT : `NO_ERROR));
+    (rob_retire_valid_inst[0] && pipeline_commit_IR[`SEL(32,1)] == 32'h555 ? `HALTED_ON_HALT :
+    (rob_retire_valid_inst[1] && pipeline_commit_IR[`SEL(32,2)] == 32'h555 ? `HALTED_ON_HALT : `NO_ERROR));
 
   assign pipeline_commit_wr_idx = rob_retire_dest_idx;
   assign pipeline_commit_IR = rob_retire_IR;
