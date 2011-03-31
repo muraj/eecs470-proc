@@ -62,6 +62,8 @@ module rob (clk, reset,
 	wire [`ROB_IDX:0] next_iocount;
 	reg [1:0] incount, outcount;
 	reg empty, empty_almost;
+	
+	reg debug;//debug
 
 	wire [`ROB_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2, cur_size;
 	wire next_full, next_full_almost, next_empty, next_empty_almost;
@@ -112,6 +114,7 @@ module rob (clk, reset,
 		next_data_rdy1 = data_rdy[tail];
 		next_data_rdy2 = data_rdy[tail_p1];
 		
+		debug	= data_bt_ex[head_p1]; //debug
 		// other default cases
 		next_head = head;
 		next_tail = tail;
