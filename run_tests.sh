@@ -41,16 +41,17 @@ if ! [ -f $comp_dir/Makefile ]; then
   exit 1;
 fi
 echo "Comparing results against directory in-order proc in $comp_dir";
-printf "%-40s %-8s %-4s\n" "File" "CPI" "Test";
+printf "%-40s %-9s %-9s %-4s\n" "File" "Our CPI" "Their CPI" "Test";
 for f in ${prog:-test_progs/*.s}
 do
-	(./vs-asm $f > ./program.mem) || exit;
+	(./vs-asm $f > ./program.mem 2> /dev/null) || exit;
 	cp -f ./program.mem $comp_dir/program.mem;
 	(make $1 > /dev/null) || exit;
 	(cd $comp_dir; make > /dev/null) || exit;
 	diff -I '^#' writeback.out $comp_dir/writeback.out > results.txt; # Ignore extra comments
 	printf "%-40s " "$(basename $f)";
-	printf "%-8s" `grep CPI ${1:+${1}_}program.out | cut -d " " -f 9`;
+	printf "%-9s " `grep CPI ${1:+${1}_}program.out | cut -d " " -f 9`;
+	printf "%-9s" `grep CPI ${comp_dir}/program.out | cut -d " " -f 9`;
 	if [ -s results.txt ]; then
 		echo -e "\033[31m FAIL\033[0m";
     if ! $QUIET_MODE ; then

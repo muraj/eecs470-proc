@@ -118,7 +118,7 @@ always @(posedge clock) begin
   $fdisplay(rs_fileno, "| IDX |   IR   |       NPC      | ROB | RA | RB | RD | R/F |   IR   |       NPC      | ROB | RA | RB | RD | R/F |");
   $fdisplay(rs_fileno, "|===============================================================================================================|");
   `define DISPLAY_RS(i) \
-      $fdisplay(rs_fileno, "|%4d |%7s|%16h|  %02d | %02d | %02d | %02d | %b/%b |%7s|%16h|  %02d | %02d | %02d | %02d | %b/%b |", i, \
+      $fdisplay(rs_fileno, "|%4d |%9s|%16h|  %02d | %02d | %02d | %02d | %b/%b |%9s|%16h|  %02d | %02d | %02d | %02d | %b/%b |", i, \
                 get_instr_string(rs1_IR[i], !rs1_free[i]), rs1_npc[i], rs1_rob_idx[i], rs1_prega_idx[i], rs1_pregb_idx[i], rs1_pdest_idx[i], rs1_rdy[i], rs1_free[i], \
                 get_instr_string(rs2_IR[i], !rs2_free[i]), rs2_npc[i], rs2_rob_idx[i], rs2_prega_idx[i], rs2_pregb_idx[i], rs2_pdest_idx[i], rs2_rdy[i], rs2_free[i]);
   `DISPLAY_RS(0) `DISPLAY_RS(1) `DISPLAY_RS(2)
@@ -150,15 +150,16 @@ end
 always @(posedge clock) begin 
  if(~reset) begin
   $fdisplay(rob_fileno, "\n|=============================== Cycle: %10d ================================|", clock_count);
-  $fdisplay(rob_fileno, "| H/T | IDX |    IR    |        NPC       | RDY | PDR | ADR | BRA/TKN |  Branch Address  |");
+  $fdisplay(rob_fileno, "branch_miss: %b correct_target: %h npc_out1: %h npc_out2: %h", pipeline_0.rob0.branch_miss, pipeline_0.rob0.correct_target, pipeline_0.rob0.npc_out1, pipeline_0.rob0.npc_out2);
+  $fdisplay(rob_fileno, "| H/T | IDX |    IR    |        NPC       | RDY | PDR | ADR | BRA/TKN |  Branch Address  |  Branch Addr EX  |");
   $fdisplay(rob_fileno, "|==================================================================================|");
   `define DISPLAY_ROB(i) \
-    $fdisplay(rob_fileno, "| %1s %1s | %3d | %7s | %h |  %b  | %3d | %3d |  %b / %b  | %h |",  \
+    $fdisplay(rob_fileno, "| %1s %1s | %3d | %9s | %h |  %b  | %3d | %3d |  %b / %b  | %16h | %16h |",  \
               i === head ? "H" : " ",                         \
               i === tail ? "T" : " ", i,                      \
               get_instr_string(rob_ir[i], 1'b1),              \
               rob_npc[i], rob_rdy[i], rob_pdest[i], rob_adest[i],  \
-              cb_isbranch[i], cb_bt_pd[i], cb_ba_pd[i]);
+              cb_isbranch[i], cb_bt_pd[i], cb_ba_pd[i], pipeline_0.rob0.data_ba_ex[i]);
    `DISPLAY_ROB(0)
    `DISPLAY_ROB(1)
    `DISPLAY_ROB(2)
@@ -307,22 +308,22 @@ always @(negedge clock) begin
   if(~reset) begin
     `define DISPLAY_MUX(x,y) ((x) ? (y) : "-")
     `define DISPLAY_MULT1_STAGE(i) \
-      $fwrite(ex_fileno, "%5d:%7s %1s %1s |", pipeline_0.ex_co_stage0.MULT1.mstage[i].npc_out, \
+      $fwrite(ex_fileno, "%5d:%9s %1s %1s |", pipeline_0.ex_co_stage0.MULT1.mstage[i].npc_out, \
       get_instr_string(pipeline_0.ex_co_stage0.MULT1.mstage[i].IR_out, pipeline_0.ex_co_stage0.MULT1.mstage[i].done_reg), \
       `DISPLAY_MUX(!pipeline_0.ex_co_stage0.MULT1.mstage[i].stall, "F"), \
       `DISPLAY_MUX(pipeline_0.ex_co_stage0.MULT1.mstage[i].done_reg, "D"));
     `define DISPLAY_MULT2_STAGE(i) \
-      $fwrite(ex_fileno, "%5d:%7s %1s %1s |", pipeline_0.ex_co_stage0.MULT2.mstage[i].npc_out, \
+      $fwrite(ex_fileno, "%5d:%9s %1s %1s |", pipeline_0.ex_co_stage0.MULT2.mstage[i].npc_out, \
       get_instr_string(pipeline_0.ex_co_stage0.MULT2.mstage[i].IR_out, pipeline_0.ex_co_stage0.MULT2.mstage[i].done_reg), \
       `DISPLAY_MUX(!pipeline_0.ex_co_stage0.MULT2.mstage[i].stall, "F"), \
       `DISPLAY_MUX(pipeline_0.ex_co_stage0.MULT2.mstage[i].done_reg, "D"));
     $fwrite(ex_fileno, "%5d ", clock_count);
 /*    if(pipeline_0.ex_co_stage0.cdb_valid[0])
-      $fwrite(ex_fileno, "| %2d | %5d:%7s | %16h ");
+      $fwrite(ex_fileno, "| %2d | %5d:%9s | %16h ");
     else
       $fwrite(ex_fileno, "| -- |   --:--     | ------------------");
-    $fwrite(ex_fileno, "| %5d:%7s %1s %1s");
-    $fwrite(ex_fileno, "| %5d:%7s %1s %1s");  */
+    $fwrite(ex_fileno, "| %5d:%9s %1s %1s");
+    $fwrite(ex_fileno, "| %5d:%9s %1s %1s");  */
     `DISPLAY_MULT1_STAGE(0)
     `DISPLAY_MULT1_STAGE(1)
     `DISPLAY_MULT1_STAGE(2)
@@ -332,11 +333,11 @@ always @(negedge clock) begin
     `DISPLAY_MULT1_STAGE(6)
     `DISPLAY_MULT1_STAGE(7)
 /*    if(pipeline_0.ex_co_stage0.cdb_valid[1])
-      $fwrite(ex_fileno, "| %2d | %5d:%7s | %16h ");
+      $fwrite(ex_fileno, "| %2d | %5d:%9s | %16h ");
     else
       $fwrite(ex_fileno, "| -- |   --:--     | ------------------");
-    $fwrite(ex_fileno, "| %5d:%7s %1s %1s");
-    $fwrite(ex_fileno, "| %5d:%7s %1s %1s"); */
+    $fwrite(ex_fileno, "| %5d:%9s %1s %1s");
+    $fwrite(ex_fileno, "| %5d:%9s %1s %1s"); */
     `DISPLAY_MULT2_STAGE(0)
     `DISPLAY_MULT2_STAGE(1)
     `DISPLAY_MULT2_STAGE(2)
@@ -365,7 +366,7 @@ always @(negedge clock) begin
  if(~reset) begin
    $fwrite(pipe_fileno, "%5d:", clock_count);
    `define DISPLAY_STAGE(npc, ir, valid) \
-    $fwrite(pipe_fileno, "%5d:%7s|", npc, get_instr_string(ir, valid));
+    $fwrite(pipe_fileno, "%5d:%9s|", npc, get_instr_string(ir, valid));
    `DISPLAY_STAGE(if_NPC_out[`SEL(64,1)],if_IR_out[`SEL(32,1)], if_valid_inst_out[0])
    `DISPLAY_STAGE(if_id_NPC[`SEL(64,1)], if_id_IR[`SEL(32,1)], if_id_valid_inst[0])
    `DISPLAY_STAGE(id_dp_NPC[`SEL(64,1)], id_dp_IR[`SEL(32,1)], id_dp_valid_inst[0])
