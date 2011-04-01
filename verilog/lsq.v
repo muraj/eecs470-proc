@@ -1,15 +1,17 @@
 module lsq (clk, reset, 
 						full, full_almost, 
 						// Inputs at Dispatch
-						in_req, rob_idx_in, pdest_idx_in, rd_mem_in, wr_mem_in,
+						rob_idx_in, pdest_idx_in, rd_mem_in, wr_mem_in,
 						// Inputs from EX
 						up_req, lsq_idx_in, addr_in, reg_value_in,
 						// Inputs from MEM
 						mem2lsq_response, mem2lsq_data, mem2lsq_tag
+						// Inputs from MEM
+						rob_head, rob_head_p1,
 						// Output at Dispatch
 						lsq_idx_out,
 						// Outputs to EX
-						out_valid, rob_idx_out, pdest_idx_out, mem_value_out, done_out, rd_mem_out, wr_mem_out,
+						out_valid, rob_idx_out, pdest_idx_out, mem_value_out, rd_mem_out, wr_mem_out,
 						// Outputs to MEM
 						lsq2mem_command, lsq2mem_addr, lsq2mem_data,
 						);
@@ -17,20 +19,21 @@ module lsq (clk, reset,
 // Input Definitions
 
   input clk, reset;
-	input [`SCALAR-1:0]						in_req; 	    // allocation requests at dispatch
 	input [`ROB_IDX*`SCALAR-1:0]	rob_idx_in;   // rob index assigned at dispatch
-	input [`PRF_IDX*`SCALAR-1:0]	pdest_idx_in; // destination PRF index
+	input [`PRF_IDX*`SCALAR-1:0]	pdest_idx_in; // destination PRF index for loads
 	input [`SCALAR-1:0]						rd_mem_in;    // loads
 	input [`SCALAR-1:0]						wr_mem_in;		// stores
 
 	input [`SCALAR-1:0]					  up_req;				// address updates from EX stage
 	input [`LSQ_IDX*`SCALAR-1:0]	lsq_idx_in;   // LSQ index to update
 	input [64*`SCALAR-1:0]				addr_in;	    // result of EX stage
-	input [64*`SCALAR-1:0]				reg_value_in; // data for store
+	input [64*`SCALAR-1:0]				reg_value_in; // data for stores
 
 	input [3:0]	 mem2lsq_response; // 0 = can't accept, other = tag of transaction
 	input [63:0] mem2lsq_data;		 // data from mem
 	input [3:0]  mem2lsq_tag;			 // tag of data
+
+	input [`ROB_IDX-1:0] rob_head, rob_head_p1;
 
 // Output Definitions
 
@@ -48,46 +51,54 @@ module lsq (clk, reset,
 	output [63:0] lsq2mem_addr;		  // address to mem
 	output [63:0] lsq2mem_data;			// data to mem
 
-// FIXME start from here
-// Internal Data Storage
 
-	reg [`LSQ_IDX-1:0] 	data_ [`LSQ_SZ-1:0];
-	reg [`LSQ_SZ-1:0] 	data_bt_ex;
-	reg [`LSQ_SZ-1:0] 	data_done;
+	wire [`SCALAR-1:0]	in_req;   // allocation requests at dispatch
+	assign in_req = rd_mem_in | wr_mem_in;  // bit-wise OR
+	
+// Internal Data Storage
+	reg [63:0] 	data_addr [`LSQ_SZ-1:0];
+	reg [63:0] 	data_regv [`LSQ_SZ-1:0];
+	reg [63:0] 	data_regv [`LSQ_SZ-1:0];
+	reg [`LSQ_SZ-1:0] 	wr_mem;
+	reg [`LSQ_SZ-1:0] 	ready_launch;
+	reg [`LSQ_SZ-1:0] 	ready_commit;
 	reg [`LSQ_IDX-1:0]  lsq_idx [`NUM_MEM_TAGS:1];
 
-	reg [63-1:0] next_data_ba_ex1, next_data_ba_ex2;
-	reg next_data_bt_ex1, next_data_bt_ex2;
-	reg next_data_rdy1, next_data_rdy2;
+// H/T business
+	reg [`LSQ_IDX-1:0] head, tail, next_head, next_tail;
+	reg [`LSQ_IDX-1:0] tail_new;
 
-	reg [`ROB_IDX-1:0] head, tail, next_head, next_tail;
-	reg [`ROB_IDX-1:0] tail_new;
-	reg move_tail;
-
-	reg [`ROB_IDX:0] iocount;
-	wire [`ROB_IDX:0] next_iocount;
+	reg [`LSQ_IDX:0] iocount;
+	wire [`LSQ_IDX:0] next_iocount;
 	reg [1:0] incount, outcount;
 	reg empty, empty_almost;
 
-	wire [`ROB_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2, cur_size;
+	wire [`LSQ_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2, cur_size;
 	wire next_full, next_full_almost, next_empty, next_empty_almost;
 	
-	wire retire1, retire2;
+// FIXME start from here
+
+	wire [`SCALAR-1:0] commit, launch;
 
 	wire bt_pd_out1, bt_pd_out2;
 	wire [63:0] ba_pd_out1, ba_pd_out2;
 	wire isbranch_out1, isbranch_out2;
 
-	assign rob_idx_out1 = tail;
-	assign rob_idx_out2 = tail_p1;
-	assign isbranch_out = {isbranch_out1, isbranch_out2};
-	// branch outputs
-	assign ba_out = {data_ba_ex[head],data_ba_ex[head_p1]};
-	assign bt_out = {data_bt_ex[head],data_bt_ex[head_p1]};
+	// Committing decision
+	assign commit[0] = !empty && 
+										 (wr_mem[head])? ready_launch[head]: // for stores, launch == commit
+										 								 ready_commit[head]; // for loads, launch happens before commit
+	assign commit[1] = !empty_almost && commit[0] && 
+										 (wr_mem[head_p1])? ready_launch[head_p1]:
+										 						 				ready_commit[head_p1];
 
-	// Retiring decision
-	assign retire1 = !empty && data_rdy[head];
-	assign retire2 = !empty_almost && retire1 && data_rdy[head_p1];
+	// Memory launch decision
+	assign launch[0] = !empty && 
+										 (wr_mem[head])? (rob_idx_out[`SEL(`ROB_IDX,1)] == rob_head)&&ready_launch[head]: // for stores, need to check rob status
+																		 ready_launch[head]; // for loads, ready_launch is sufficient info
+  assign launch[1] = !empty_almost && launch[0] && 
+										 (wr_mem[head_p1])? (rob_idx_out[`SEL(`ROB_IDX,2)] == rob_head_p1)&&ready_launch[head_p1]:
+																		 		ready_launch[head_p1];
 	
 	// ===================================================
 	// Duplicate cb functionality for things to be updated
@@ -98,10 +109,10 @@ module lsq (clk, reset,
 	assign head_p1 = head + 1'd1;
 	assign head_p2 = head + 2'd2;
 	
-	assign cur_size = (next_tail>=next_head)? (next_tail - next_head) : (next_tail + `ROB_SZ - next_head);
-	assign next_iocount = (move_tail)? cur_size : iocount + incount - outcount;
-	assign next_full = next_iocount == `ROB_SZ;
-	assign next_full_almost = next_iocount == (`ROB_SZ-1);
+	assign cur_size = (next_tail>=next_head)? (next_tail - next_head) : (next_tail + `LSQ_SZ - next_head);
+	assign next_iocount = (flush)? cur_size : iocount + incount - outcount;
+	assign next_full = next_iocount == `LSQ_SZ;
+	assign next_full_almost = next_iocount == (`LSQ_SZ-1);
 	assign next_empty = next_iocount == 0;
 	assign next_empty_almost = next_iocount == 1;
 
@@ -120,35 +131,28 @@ module lsq (clk, reset,
 		tail_new = tail;
 		incount = 2'd0;
 		outcount = 2'd0;
-		dout1_valid = retire1;
-		dout2_valid = retire2;
+		dout1_valid = commit[0];
+		dout2_valid = commit[1];
 		branch_miss = 0;
-		move_tail = 0;
 		correct_target = 64'd0;
 
-		// deal with branch misses
-		if (retire1 && isbranch_out1) begin
-			if ((data_bt_ex[head] != bt_pd_out1) || (data_ba_ex[head] != ba_pd_out1)) begin
-				branch_miss = 1;
-				correct_target = data_ba_ex[head];
-				dout2_valid = 0;	
-				move_tail = 1;
-				tail_new = next_head;
-			end else if (retire2 && isbranch_out2) begin
-				if ((data_bt_ex[head_p1] != bt_pd_out2) || (data_ba_ex[head_p1] != ba_pd_out2)) begin
-					branch_miss = 1;
-				  correct_target = data_ba_ex[head_p1];
-					move_tail = 1;
-					tail_new = next_head;
-				end 
+		// deal with head and data out
+		if (commit[0] && !empty) begin
+			next_head = head_p1;
+			//dout1 = data[head];
+			outcount = 2'd1;
+			if (commit[1] && !empty_almost) begin
+				next_head = head_p2;
+				//dout2 = data[head_p1];
+				outcount = 2'd2;
 			end
 		end
 
 		// deal with tail and data in (allocate)
-		if (move_tail) begin
+		if (flush) begin
 			next_tail = tail_new;
 		end else begin
-			if (din1_req && !full) begin
+			if (in_req[0] && !full) begin
 				next_tail = tail_p1;
 				incount = 2'd1;
 
@@ -156,7 +160,7 @@ module lsq (clk, reset,
 				next_data_bt_ex1 = 1'b0;
 				next_data_rdy1 = 1'b0;
 
-				if (din2_req && !full_almost) begin
+				if (in_req[1] && !full_almost) begin
 					next_tail = tail_p2;
 					incount = 2'd2;
 					
@@ -165,18 +169,6 @@ module lsq (clk, reset,
 					next_data_rdy2 = 1'b0;
 
 				end
-			end
-		end
-
-		// deal with head and data out
-		if (retire1 && !empty) begin
-			next_head = head_p1;
-			//dout1 = data[head];
-			outcount = 2'd1;
-			if (retire2 && !empty_almost) begin
-				next_head = head_p2;
-				//dout2 = data[head_p1];
-				outcount = 2'd2;
 			end
 		end
 
@@ -189,9 +181,9 @@ module lsq (clk, reset,
 	// ===================================================
 	always @(posedge clk) begin
 		if (reset) begin
-			head 					<= `SD {`ROB_IDX{1'b0}};
-			tail 					<= `SD {`ROB_IDX{1'b0}};
-			iocount 			<= `SD {`ROB_IDX+1{1'b0}};
+			head 					<= `SD {`LSQ_IDX{1'b0}};
+			tail 					<= `SD {`LSQ_IDX{1'b0}};
+			iocount 			<= `SD {`LSQ_IDX+1{1'b0}};
 			full 					<= `SD 1'b0;
 			full_almost 	<= `SD 1'b0;
 			empty					<= `SD 1'b1;
@@ -230,12 +222,13 @@ module lsq (clk, reset,
 
   generate
   genvar i;
-  for(i=0;i<`ROB_SZ;i=i+1) begin : REG_RESET
+  for(i=0;i<`LSQ_SZ;i=i+1) begin : REG_RESET
       always @(posedge clk) begin
 				if (reset) begin
-            data_ba_ex[i] <= `SD {64{1'b0}};
-            data_bt_ex[i] <= `SD 1'b0;
-            data_rdy[i] <= `SD 1'b0;
+            data_addr[i] <= `SD {64{1'b0}};
+            data_addr[i] <= `SD {64{1'b0}};
+            ready_launch[i] <= `SD 1'b0;
+            ready_commit[i] <= `SD 1'b0;
 				end
       end
   end
@@ -247,8 +240,14 @@ module lsq (clk, reset,
 	// ===================================================
 
 	// Circular buffer for ROB_IDX
-	cb #(.CB_IDX(`LSQ_IDX), .CB_WIDTH(`ROB_IDX)) cb_rob_idx (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(in_req[0]), .din2_en(in_req[1]), .dout1_req(commit[0]), .dout2_req(commit[1]), .din1(rob_idx_in[`SEL(`ROB_IDX,1)]), .din2(rob_idx_in[`SEL(`ROB_IDX,2)]), .dout1(rob_idx_out[`SEL(`ROB_IDX,1)]), .dout2(rob_idx_out[`SEL(`ROB_IDX,2)]), .full(), .full_almost(), .head(), .tail());
+	cb #(.CB_IDX(`LSQ_IDX), .CB_WIDTH(`ROB_IDX)) cb_rob_idx (.clk(clk), .reset(reset),	.move_tail(flush), .tail_new(tail_new), .din1_en(in_req[0]), .din2_en(in_req[1]), .dout1_req(commit[0]), .dout2_req(commit[1]), .din1(rob_idx_in[`SEL(`ROB_IDX,1)]), .din2(rob_idx_in[`SEL(`ROB_IDX,2)]), .dout1(rob_idx_out[`SEL(`ROB_IDX,1)]), .dout2(rob_idx_out[`SEL(`ROB_IDX,2)]), .full(), .full_almost(), .head(), .tail());
 	
-	cb #(.CB_IDX(`LSQ_IDX), .CB_WIDTH(32)) cb_pdest_idx (.clk(clk), .reset(reset),	.move_tail(move_tail), .tail_new(tail_new), .din1_en(in_req[0]), .din2_en(in_req[1]), .dout1_req(commit[0]), .dout2_req(commit[1]), .din1(pdest_idx_in[`SEL(`PRF_IDX,1)]), .din2(pdest_idx_in[`SEL(`PRF_IDX,2)]), .dout1(pdest_idx_out[`SEL(`PRF_IDX,1)]), .dout2(pdest_idx_out[`SEL(`PRF_IDX,2)]), .full(), .full_almost(), .head(), .tail());
+	// Circular buffer for pdest_idx
+	cb #(.CB_IDX(`LSQ_IDX), .CB_WIDTH(32)) cb_pdest_idx (.clk(clk), .reset(reset),	.move_tail(flush), .tail_new(tail_new), .din1_en(in_req[0]), .din2_en(in_req[1]), .dout1_req(commit[0]), .dout2_req(commit[1]), .din1(pdest_idx_in[`SEL(`PRF_IDX,1)]), .din2(pdest_idx_in[`SEL(`PRF_IDX,2)]), .dout1(pdest_idx_out[`SEL(`PRF_IDX,1)]), .dout2(pdest_idx_out[`SEL(`PRF_IDX,2)]), .full(), .full_almost(), .head(), .tail());
+
+	// Circular buffer for load indicator; stores corresponds to zero
+	cb #(.CB_IDX(`LSQ_IDX), .CB_WIDTH(1)) cb_rd_mem (.clk(clk), .reset(reset),	.move_tail(flush), .tail_new(tail_new), .din1_en(in_req[0]), .din2_en(in_req[1]), .dout1_req(commit[0]), .dout2_req(commit[1]), .din1(rd_mem_in[0]), .din2(rd_mem_in[1]), .dout1(rd_mem_out[0]), .dout2(rd_mem_out[1]), .full(), .full_almost(), .head(), .tail());
+
+
 
 endmodule
