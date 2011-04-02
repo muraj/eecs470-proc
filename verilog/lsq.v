@@ -3,11 +3,11 @@ module lsq (clk, reset,
 						// Inputs at Dispatch
 						rob_idx_in, pdest_idx_in, rd_mem_in, wr_mem_in,
 						// Inputs from EX
-						up_req, lsq_idx_in, addr_in, reg_value_in,
+						up_req, lsq_idx_in, addr_in, regv_in,
 						// Inputs from MEM
 						mem2lsq_response, mem2lsq_data, mem2lsq_tag
-						// Inputs from MEM
-						rob_head, rob_head_p1,
+						// Inputs from ROB
+						rob_head,
 						// Output at Dispatch
 						lsq_idx_out,
 						// Outputs to EX
@@ -27,13 +27,13 @@ module lsq (clk, reset,
 	input [`SCALAR-1:0]					  up_req;				// address updates from EX stage
 	input [`LSQ_IDX*`SCALAR-1:0]	lsq_idx_in;   // LSQ index to update
 	input [64*`SCALAR-1:0]				addr_in;	    // result of EX stage
-	input [64*`SCALAR-1:0]				reg_value_in; // data for stores
+	input [64*`SCALAR-1:0]				regv_in; // data for stores
 
 	input [3:0]	 mem2lsq_response; // 0 = can't accept, other = tag of transaction
 	input [63:0] mem2lsq_data;		 // data from mem
 	input [3:0]  mem2lsq_tag;			 // tag of data
 
-	input [`ROB_IDX-1:0] rob_head, rob_head_p1;
+	input [`ROB_IDX-1:0] rob_head;
 
 // Output Definitions
 
@@ -53,16 +53,16 @@ module lsq (clk, reset,
 
 
 	wire [`SCALAR-1:0]	in_req;   // allocation requests at dispatch
-	assign in_req = rd_mem_in | wr_mem_in;  // bit-wise OR
+	assign in_req[0] = (rd_mem_in[0] || wr_mem_in[0]) && !full;
+	assign in_req[1] = (rd_mem_in[1] || wr_mem_in[1]) && !full_almost;
 	
 // Internal Data Storage
 	reg [63:0] 	data_addr [`LSQ_SZ-1:0];
 	reg [63:0] 	data_regv [`LSQ_SZ-1:0];
-	reg [63:0] 	data_regv [`LSQ_SZ-1:0];
 	reg [`LSQ_SZ-1:0] 	wr_mem;
 	reg [`LSQ_SZ-1:0] 	ready_launch;
 	reg [`LSQ_SZ-1:0] 	ready_commit;
-	reg [`LSQ_IDX-1:0]  lsq_idx [`NUM_MEM_TAGS:1];
+	//reg [`LSQ_IDX-1:0]  lsq_idx [`NUM_MEM_TAGS:1];
 
 // H/T business
 	reg [`LSQ_IDX-1:0] head, tail, next_head, next_tail;
@@ -76,33 +76,33 @@ module lsq (clk, reset,
 	wire [`LSQ_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2, cur_size;
 	wire next_full, next_full_almost, next_empty, next_empty_almost;
 	
-// FIXME start from here
+	wire [`SCALAR-1:0] commit;
+	wire launch;
 
-	wire [`SCALAR-1:0] commit, launch;
-
-	wire bt_pd_out1, bt_pd_out2;
-	wire [63:0] ba_pd_out1, ba_pd_out2;
-	wire isbranch_out1, isbranch_out2;
+	// Memory launch decision
+	// Currently both ld/st are only launched at the lsq head
+	assign launch = !empty &&
+ 								  (wr_mem[head])? (rob_idx_out[`SEL(`ROB_IDX,1)] == rob_head)&&ready_launch[head]: // for stores, need to check rob status
+									 							  ready_launch[head]; // for loads, ready_launch is sufficient info
 
 	// Committing decision
 	assign commit[0] = !empty && 
-										 (wr_mem[head])? ready_launch[head]: // for stores, launch == commit
+										 (wr_mem[head])? launch: // for stores, launch == commit
 										 								 ready_commit[head]; // for loads, launch happens before commit
 	assign commit[1] = !empty_almost && commit[0] && 
-										 (wr_mem[head_p1])? ready_launch[head_p1]:
-										 						 				ready_commit[head_p1];
+										 (!wr_mem[head_p1])&&ready_commit[head_p1]; // only happens for loads that got forwarded
 
-	// Memory launch decision
-	assign launch[0] = !empty && 
-										 (wr_mem[head])? (rob_idx_out[`SEL(`ROB_IDX,1)] == rob_head)&&ready_launch[head]: // for stores, need to check rob status
-																		 ready_launch[head]; // for loads, ready_launch is sufficient info
-  assign launch[1] = !empty_almost && launch[0] && 
-										 (wr_mem[head_p1])? (rob_idx_out[`SEL(`ROB_IDX,2)] == rob_head_p1)&&ready_launch[head_p1]:
-																		 		ready_launch[head_p1];
-	
 	// ===================================================
 	// Duplicate cb functionality for things to be updated
 	// ===================================================
+
+	// combinational outputs
+	assign lsq_idx_out = {head_p1, head}
+	assign out_valid = commit;
+	assign mem_value_out = {data_regv[head_p1],data_regv[head]};
+	assign rd_mem_out = {!wr_mem[head_p1],!wr_mem[head]};
+	assign wr_mem_out = {wr_mem[head_p1],wr_mem[head]};
+
 	// purely combinational
 	assign tail_p1 = tail + 1'd1;
 	assign tail_p2 = tail + 2'd2;
@@ -118,12 +118,16 @@ module lsq (clk, reset,
 
 	always @* begin
 		// default cases for data
-		next_data_ba_ex1 = data_ba_ex[tail];
-		next_data_ba_ex2 = data_ba_ex[tail_p1];
-		next_data_bt_ex1 = data_bt_ex[tail];
-		next_data_bt_ex2 = data_bt_ex[tail_p1];
-		next_data_rdy1 = data_rdy[tail];
-		next_data_rdy2 = data_rdy[tail_p1];
+		next_data_addr1 = data_addr[tail];
+		next_data_addr2 = data_addr[tail_p1];
+		next_data_regv1 = data_regv[tail];
+		next_data_regv2 = data_regv[tail_p1];
+		next_wr_mem1 = wr_mem[tail];
+		next_wr_mem2 = wr_mem[tail_p1];
+		next_ready_launch1 = ready_launch[tail];
+		next_ready_launch2 = ready_launch[tail_p1];
+		next_ready_commit1 = ready_commit[tail];
+		next_ready_commit2 = ready_commit[tail_p1];
 		
 		// other default cases
 		next_head = head;
@@ -131,19 +135,13 @@ module lsq (clk, reset,
 		tail_new = tail;
 		incount = 2'd0;
 		outcount = 2'd0;
-		dout1_valid = commit[0];
-		dout2_valid = commit[1];
-		branch_miss = 0;
-		correct_target = 64'd0;
 
 		// deal with head and data out
-		if (commit[0] && !empty) begin
+		if (commit[0]) begin
 			next_head = head_p1;
-			//dout1 = data[head];
 			outcount = 2'd1;
-			if (commit[1] && !empty_almost) begin
+			if (commit[1]) begin
 				next_head = head_p2;
-				//dout2 = data[head_p1];
 				outcount = 2'd2;
 			end
 		end
@@ -152,21 +150,25 @@ module lsq (clk, reset,
 		if (flush) begin
 			next_tail = tail_new;
 		end else begin
-			if (in_req[0] && !full) begin
+			if (in_req[0]) begin
 				next_tail = tail_p1;
 				incount = 2'd1;
 
-				next_data_ba_ex1 = {64{1'b0}};
-				next_data_bt_ex1 = 1'b0;
-				next_data_rdy1 = 1'b0;
+				next_data_addr1 = {64{1'b0}};
+				next_data_regv1 = {64{1'b0}};
+				next_wr_mem1 = wr_mem_in[0];
+				next_ready_launch1 = 1'b0;
+				next_ready_commit1 = 1'b0;
 
-				if (in_req[1] && !full_almost) begin
+				if (in_req[1]) begin
 					next_tail = tail_p2;
 					incount = 2'd2;
 					
-					next_data_ba_ex2 = {64{1'b0}};
-					next_data_bt_ex2 = 1'b0;
-					next_data_rdy2 = 1'b0;
+					next_data_addr2 = {64{1'b0}};
+					next_data_regv2 = {64{1'b0}};
+					next_wr_mem2 = wr_mem_in[1];
+					next_ready_launch2 = 1'b0;
+					next_ready_commit2 = 1'b0;
 
 				end
 			end
@@ -191,24 +193,32 @@ module lsq (clk, reset,
 
 		end else begin
 			// data allocation
-			data_ba_ex[tail]			<= `SD next_data_ba_ex1;
-			data_ba_ex[tail_p1]		<= `SD next_data_ba_ex2;
-			data_bt_ex[tail]			<= `SD next_data_bt_ex1;
-			data_bt_ex[tail_p1]		<= `SD next_data_bt_ex2;
-			data_rdy[tail]				<= `SD next_data_rdy1;
-			data_rdy[tail_p1]			<= `SD next_data_rdy2;
+			data_addr[tail]       <= `SD next_data_addr1;
+			data_addr[tail_p1]    <= `SD next_data_addr2;
+			data_regv[tail]       <= `SD next_data_regv1;
+			data_regv[tail_p1]    <= `SD next_data_regv2;
+			wr_mem[tail]      		<= `SD next_data_wr_mem1;
+			wr_mem[tail_p1]       <= `SD next_data_wr_mem2;
+			ready_launch[tail]    <= `SD next_ready_launch1;
+		  ready_launch[tail_p1] <= `SD next_ready_launch2;
+			ready_commit[tail]    <= `SD next_ready_commit1;
+		  ready_commit[tail_p1] <= `SD next_ready_commit2;
 
 			// data updates
-			if (dup1_req) begin
-				data_ba_ex[rob_idx_in1] <= `SD ba_ex_in1;
-				data_bt_ex[rob_idx_in1] <= `SD bt_ex_in1;
-				data_rdy[rob_idx_in1] 	<= `SD 1'b1;
-				if (dup2_req) begin
-					data_ba_ex[rob_idx_in2] <= `SD ba_ex_in2;
-					data_bt_ex[rob_idx_in2]	<= `SD bt_ex_in2;
-					data_rdy[rob_idx_in2] 	<= `SD 1'b1;
+			if (up_req[0]) begin
+				data_addr[lsq_idx_in[`SEL(`LSQ_IDX,1)]] <= `SD addr_in[`SEL(64,1)];
+				data_regv[lsq_idx_in[`SEL(`LSQ_IDX,1)]] <= `SD regv_in[`SEL(64,1)];
+				ready_launch[lsq_idx_in[`SEL(`LSQ_IDX,1)]] <= `SD 1'b1;
+				if (up_req[1]) begin
+					data_addr[lsq_idx_in[`SEL(`LSQ_IDX,2)]] <= `SD addr_in[`SEL(64,2)];
+					data_regv[lsq_idx_in[`SEL(`LSQ_IDX,2)]] <= `SD regv_in[`SEL(64,2)];
+					ready_launch[lsq_idx_in[`SEL(`LSQ_IDX,2)]] <= `SD 1'b1;
 				end
 			end
+
+			// mem updates
+
+			// FIXME
 
 			head 					<= `SD next_head;
 			tail					<= `SD next_tail;
@@ -244,10 +254,5 @@ module lsq (clk, reset,
 	
 	// Circular buffer for pdest_idx
 	cb #(.CB_IDX(`LSQ_IDX), .CB_WIDTH(32)) cb_pdest_idx (.clk(clk), .reset(reset),	.move_tail(flush), .tail_new(tail_new), .din1_en(in_req[0]), .din2_en(in_req[1]), .dout1_req(commit[0]), .dout2_req(commit[1]), .din1(pdest_idx_in[`SEL(`PRF_IDX,1)]), .din2(pdest_idx_in[`SEL(`PRF_IDX,2)]), .dout1(pdest_idx_out[`SEL(`PRF_IDX,1)]), .dout2(pdest_idx_out[`SEL(`PRF_IDX,2)]), .full(), .full_almost(), .head(), .tail());
-
-	// Circular buffer for load indicator; stores corresponds to zero
-	cb #(.CB_IDX(`LSQ_IDX), .CB_WIDTH(1)) cb_rd_mem (.clk(clk), .reset(reset),	.move_tail(flush), .tail_new(tail_new), .din1_en(in_req[0]), .din2_en(in_req[1]), .dout1_req(commit[0]), .dout2_req(commit[1]), .din1(rd_mem_in[0]), .din2(rd_mem_in[1]), .dout1(rd_mem_out[0]), .dout2(rd_mem_out[1]), .full(), .full_almost(), .head(), .tail());
-
-
 
 endmodule
