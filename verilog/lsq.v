@@ -5,7 +5,9 @@ module lsq (clk, reset,
 						// Inputs from EX
 						up_req, lsq_idx_in, addr_in, regv_in,
 						// Inputs from MEM
-						mem2lsq_response, mem2lsq_data, mem2lsq_tag
+						mem2lsq_response, 
+						// Inputs from DCACHE
+						dcache2lsq_valid, dcache2lsq_tag, dcache2lsq_data,
 						// Inputs from ROB
 						rob_head,
 						// Output at Dispatch
@@ -27,11 +29,13 @@ module lsq (clk, reset,
 	input [`SCALAR-1:0]					  up_req;				// address updates from EX stage
 	input [`LSQ_IDX*`SCALAR-1:0]	lsq_idx_in;   // LSQ index to update
 	input [64*`SCALAR-1:0]				addr_in;	    // result of EX stage
-	input [64*`SCALAR-1:0]				regv_in; // data for stores
+	input [64*`SCALAR-1:0]				regv_in; 			// data for stores
 
 	input [3:0]	 mem2lsq_response; // 0 = can't accept, other = tag of transaction
-	input [63:0] mem2lsq_data;		 // data from mem
-	input [3:0]  mem2lsq_tag;			 // tag of data
+
+	input dcache2lsq_valid;					// validates data
+	input [3:0]  dcache2lsq_tag;		// tag of incoming data
+	input [63:0] dcache2lsq_data; 	// incoming data from cache
 
 	input [`ROB_IDX-1:0] rob_head;
 
@@ -62,7 +66,7 @@ module lsq (clk, reset,
 	reg [`LSQ_SZ-1:0] 	wr_mem;
 	reg [`LSQ_SZ-1:0] 	ready_launch;
 	reg [`LSQ_SZ-1:0] 	ready_commit;
-	//reg [`LSQ_IDX-1:0]  lsq_idx [`NUM_MEM_TAGS:1];
+	reg [`LSQ_IDX-1:0]  lsq_map [`NUM_MEM_TAGS:1];
 
 // H/T business
 	reg [`LSQ_IDX-1:0] head, tail, next_head, next_tail;
@@ -81,9 +85,24 @@ module lsq (clk, reset,
 
 	// Memory launch decision
 	// Currently both ld/st are only launched at the lsq head
+	wire dcache_miss, dcache_hit, stall;
+
 	assign launch = !empty &&
  								  (wr_mem[head])? (rob_idx_out[`SEL(`ROB_IDX,1)] == rob_head)&&ready_launch[head]: // for stores, need to check rob status
 									 							  ready_launch[head]; // for loads, ready_launch is sufficient info
+
+	assign lsq2mem_command = (launch)? ((wr_mem[head])? `BUS_STORE: `BUS_LOAD):
+																		 `BUS_NONE;
+	assign lsq2mem_addr = data_addr[head];
+	assign lsq2mem_data = data_regv[head];
+
+	assign dcache_miss = launch && !wr_mem[head] && !dcache2lsq_valid;
+	assign dcache_hit = launch && !wr_mem[head] && dcache2lsq_valid && (dcahce2lsq_tag=={4{1'b0}});
+	assign stall = dcache_miss && (mem2lsq_tag==0); // no tickets available at mem; need to stall
+
+	// if launching a load, store the mem ticket
+
+	assign next_lsq_map																							 
 
 	// Committing decision
 	assign commit[0] = !empty && 
@@ -174,7 +193,6 @@ module lsq (clk, reset,
 			end
 		end
 
-
 	end // always @*
 
 
@@ -216,10 +234,23 @@ module lsq (clk, reset,
 				end
 			end
 
-			// mem updates
+			// ticket => lsq mapping
+			if (dcache_miss) begin
+				// Cache miss
+				lsq_map[mem2lsq_response] <= `SD head;
+			end else if (dcache_hit) begin
+				// Cache hit
+				data_regv[head] 	 <= `SD dcache2lsq_data;
+				ready_commit[head] <= `SD 1'b1;
+			end
 
-			// FIXME
+			// Data from cache
+			if (dcache2lsq_valid && (dcache2lsq_tag!={4{1'b0}})) begin
+				data_regv[lsq_map[dcache2lsq_tag]] 	  <= `SD dcache2lsq_data;
+				ready_commit[lsq_map[dcache2lsq_tag]] <= `SD 1'b1;
+			end
 
+			// H/T business
 			head 					<= `SD next_head;
 			tail					<= `SD next_tail;
 			iocount 			<= `SD next_iocount;
@@ -228,7 +259,7 @@ module lsq (clk, reset,
 			empty					<= `SD next_empty;
 			empty_almost	<= `SD next_empty_almost;
 		end
-	end
+	end // always @(posedge clk)
 
   generate
   genvar i;
@@ -236,12 +267,19 @@ module lsq (clk, reset,
       always @(posedge clk) begin
 				if (reset) begin
             data_addr[i] <= `SD {64{1'b0}};
-            data_addr[i] <= `SD {64{1'b0}};
+            data_regv[i] <= `SD {64{1'b0}};
             ready_launch[i] <= `SD 1'b0;
             ready_commit[i] <= `SD 1'b0;
 				end
       end
   end
+	for(i=1;i<=`NUM_MEM_TAGS;i=i+1) begin : MAP_RESET
+		always @(posedge clk) begin
+			if (reset) begin
+				lsq_map[i] <= `SD {`LSQ_IDX{1'b0}};
+			end
+		end
+	end
   endgenerate
 
 
