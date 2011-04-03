@@ -314,3 +314,8 @@
 `define EX_MULT	2'b10
 `define EX_ALU	2'b11
 
+// D-cache Defines
+`define DCACHE_IDX_BITS	(8)      
+`define DCACHE_TAG_BITS (13-`DCACHE_IDX_BITS)	// 13 indicates MEM_64BIT_LINES (=2^13)
+`define DCACHE_LINES		(1<<`DCACHE_IDX_BITS)
+
