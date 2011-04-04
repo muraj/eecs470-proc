@@ -18,7 +18,9 @@ module rob (clk, reset,
 						// branch miss signal
 						branch_miss, correct_target,
 						// for updating branch predictor
-						isbranch_out, bt_out, ba_out
+						isbranch_out, bt_out, ba_out,
+						// for lsq
+						head
 						);
 
   input clk, reset, din1_req, din2_req, dup1_req, dup2_req;
@@ -54,7 +56,8 @@ module rob (clk, reset,
 	reg next_data_bt_ex1, next_data_bt_ex2;
 	reg next_data_rdy1, next_data_rdy2;
 
-	reg [`ROB_IDX-1:0] head, tail, next_head, next_tail;
+	output reg [`ROB_IDX-1:0] head;
+	reg [`ROB_IDX-1:0] tail, next_head, next_tail;
 	reg [`ROB_IDX-1:0] tail_new;
 	reg move_tail;
 

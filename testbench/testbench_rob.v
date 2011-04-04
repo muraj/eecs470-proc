@@ -33,6 +33,7 @@ module testbench;
 	wire [`SCALAR-1:0] isbranch_out;
 	wire [`SCALAR-1:0] bt_out;
 	wire [`SCALAR*64-1:0] ba_out;
+	wire [`ROB_IDX-1:0] head;
 
 	rob rob0 (clk, reset, 
 						full, full_almost,
@@ -45,7 +46,8 @@ module testbench;
 						rob_idx_out1, rob_idx_out2,
 						ir_out1, ir_out2, npc_out1, npc_out2, pdest_out1, pdest_out2, adest_out1, adest_out2,
 						branch_miss, correct_target, 
-						isbranch_out, bt_out, ba_out
+						isbranch_out, bt_out, ba_out,
+						head
 						);
 						
 	always

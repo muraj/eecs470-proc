@@ -226,6 +226,7 @@ module oo_pipeline (// Inputs
   wire [63:0] rob_target_pc;
   wire [`SCALAR-1:0] rob_bt_out;
   wire [`SCALAR-1:0] rob_retire_isbranch;
+	wire [`ROB_IDX-1:0] rob_head;
 
   // From the original version
   assign pipeline_completed_insts = rob_retire_valid_inst[0] + rob_retire_valid_inst[1];
@@ -502,7 +503,9 @@ module oo_pipeline (// Inputs
 						// Branch Miss
 						.branch_miss(rob_mispredict), .correct_target(rob_target_pc),
 						// for updating branch predictor
-						.isbranch_out(rob_retire_isbranch), .bt_out(rob_bt_out), .ba_out(rob_ba_out)
+						.isbranch_out(rob_retire_isbranch), .bt_out(rob_bt_out), .ba_out(rob_ba_out),
+						// for lsq
+						.head(rob_head)
 						);
 
   regfile #(.IDX_WIDTH(`PRF_IDX), .DATA_WIDTH(64), .ZERO_REGISTER(`ZERO_PRF))
