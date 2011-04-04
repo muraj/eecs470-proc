@@ -1,64 +1,64 @@
 `timescale 1ns/100ps
-`define CB_IDX 3
-`define CB_WIDTH 8 
-`define CB_LENGTH 8 
-
-// testbench works with length
 
 module testbench;
 
-  integer count, limbo, idx, NPC;  //TEST VARS
+  integer clk_count, limbo, idx, NPC;  //TEST VARS
 
-  reg clk, reset, din1_req, din2_req, dup1_req, dup2_req;
-	reg [31:0] ir_in1, ir_in2;
-	reg [63:0] npc_in1, npc_in2;
-	reg [`PRF_IDX-1:0] pdest_in1, pdest_in2;
-	reg [`ARF_IDX-1:0] adest_in1, adest_in2;
-	reg bt_pd_in1, bt_pd_in2;
-	reg [63:0] ba_pd_in1, ba_pd_in2;
-	reg isbranch_in1, isbranch_in2;
-	reg bt_ex_in1, bt_ex_in2;
-	reg [63:0] ba_ex_in1, ba_ex_in2;
-	reg [`ROB_IDX-1:0] rob_idx_in1, rob_idx_in2;
-	
-	reg  [63:0] proc2mem_addr;    // address for current command
-	reg  [63:0] proc2mem_data;    // address for current command
-	reg  [1:0]  proc2mem_command; // `BUS_NONE `BUS_LOAD or `BUS_STORE
+  reg clk, reset;
+	reg [`ROB_IDX*`SCALAR-1:0]	rob_idx_in;   // rob index assigned at dispatch
+	reg [`PRF_IDX*`SCALAR-1:0]	pdest_idx_in; // destination PRF index for loads
+	reg [`SCALAR-1:0]						rd_mem_in;    // loads
+	reg [`SCALAR-1:0]						wr_mem_in;		// stores
 
-	wire [3:0]  mem2proc_response;// 0 = can't accept, other=tag of transaction
-	wire [63:0] mem2proc_data;    // data resulting from a load
-	wire [3:0]  mem2proc_tag;     // 0 = no value, other=tag of transaction
+	reg [`SCALAR-1:0]					  up_req;				// address updates from EX stage
+	reg [`LSQ_IDX*`SCALAR-1:0]	lsq_idx_in;   // LSQ index to update
+	reg [64*`SCALAR-1:0]				addr_in;	    // result of EX stage
+	reg [64*`SCALAR-1:0]				regv_in; 			// data for stores
+
+	reg [3:0]	 mem2lsq_response; // 0 = can't accept, other = tag of transaction
+
+	reg dcache2lsq_valid;					// validates data
+	reg [3:0]  dcache2lsq_tag;		// tag of incoming data
+	reg [63:0] dcache2lsq_data; 	// incoming data from cache
+
+	reg [`ROB_IDX-1:0] rob_head;
+
+// Output Definitions
 
 	wire full, full_almost;
-	wire dout1_valid, dout2_valid;
-	wire [`ROB_IDX-1:0] rob_idx_out1, rob_idx_out2;
-	wire [`PRF_IDX-1:0] pdest_out1, pdest_out2;
-	wire [`ARF_IDX-1:0] adest_out1, adest_out2;
-	wire [31:0] ir_out1, ir_out2;
-	wire [63:0] npc_out1, npc_out2;
-	wire branch_miss;
-	wire [64-1:0] correct_target;
-	wire [`SCALAR-1:0] isbranch_out;
-	wire [`SCALAR-1:0] bt_out;
-	wire [`SCALAR*64-1:0] ba_out;
+	wire [`LSQ_IDX*`SCALAR-1:0]	lsq_idx_out;	 // output assigned LSQ index at dispatch
 
+	wire [`SCALAR-1:0]					out_valid;		 // output valid signals
+	wire [`ROB_IDX*`SCALAR-1:0]	rob_idx_out;   // output rob index at commit
+	wire [`PRF_IDX*`SCALAR-1:0]	pdest_idx_out; // destination PRF index at commit
+	wire [64*`SCALAR-1:0]				mem_value_out; // data for load
+	wire [`SCALAR-1:0]					rd_mem_out;		 // loads
+	wire [`SCALAR-1:0]					wr_mem_out;		 // stores
 	
+	wire [1:0]	lsq2mem_command;  // `BUS_NONE, `BUS_LOAD, `BUS_STORE
+	wire [63:0] lsq2mem_addr;		  // address to mem
+	wire [63:0] lsq2mem_data;			// data to mem
 
-
-
-	rob rob0 (clk, reset, 
-						full, full_almost,
-						dout1_valid, dout2_valid,
-						din1_req, din2_req,
-						dup1_req, dup2_req,
-						ir_in1, ir_in2, npc_in1, npc_in2, pdest_in1, pdest_in2, adest_in1, adest_in2, ba_pd_in1, ba_pd_in2, bt_pd_in1, bt_pd_in2, isbranch_in1, isbranch_in2,
-						ba_ex_in1, ba_ex_in2, bt_ex_in1, bt_ex_in2, 
-						rob_idx_in1, rob_idx_in2,
-						rob_idx_out1, rob_idx_out2,
-						ir_out1, ir_out2, npc_out1, npc_out2, pdest_out1, pdest_out2, adest_out1, adest_out2,
-						branch_miss, correct_target, 
-						isbranch_out, bt_out, ba_out
-						);
+  lsq lsq0 (clk, reset, 
+						full, full_almost, 
+						// Inputs at Dispatch
+						rob_idx_in, pdest_idx_in, rd_mem_in, wr_mem_in,
+						// Inputs from EX
+						up_req, lsq_idx_in, addr_in, regv_in,
+						// Inputs from MEM
+						mem2lsq_response,
+						// Inputs from DCACHE
+						dcache2lsq_valid, dcache2lsq_tag, dcache2lsq_data,
+						// Inputs from ROB
+						rob_head,
+						// Output at Dispatch
+						lsq_idx_out,
+						// Outputs to EX
+						out_valid, rob_idx_out, pdest_idx_out, mem_value_out, rd_mem_out, wr_mem_out,
+						// Outputs to MEM
+						lsq2mem_command, lsq2mem_addr, lsq2mem_data
+					 );
+/*
  mem mem0	( // Inputs
              clk,
              proc2mem_command,
@@ -70,31 +70,90 @@ module testbench;
              mem2proc_data,
              mem2proc_tag
            );
+*/
+
 	always
   begin
     #(`VERILOG_CLOCK_PERIOD/2.0);
     clk = ~clk;
+		NPC = NPC+1;
   end
 
-
+	always @(posedge clk)
+  begin
+    clk_count = clk_count + 1;
+  end
+/*
   task show_io_mem;
 	  begin
-		if(
     $display("==OUTPUTS====================================================");
    	$display("Response\tData\tTag");
 		$display("%d\t0x%h\t%d", mem2proc_response, mem2proc_data, mem2proc_tag );
     $display("=============================================================\n");
 	  end
 	endtask
+*/
 
+	task insert;
+	input [1:0] num_inst;
+  input write1, write2;
+  begin
+		
+		if (num_inst >= 1) begin
+			wr_mem_in[0] = write1;
+			rd_mem_in[0] = !write1;
+			rob_idx_in[`SEL(`ROB_IDX,1)] = clk_count%`ROB_SZ;
+			pdest_idx_in[`SEL(`PRF_IDX,1)] = clk_count%`PRF_SZ+1;
+			wr_mem_in[1] = 0;
+			rd_mem_in[1] = 0;
+
+		  if (num_inst == 2) begin
+				wr_mem_in[1] = write2;
+				rd_mem_in[1] = !write2;
+				rob_idx_in[`SEL(`ROB_IDX,2)] = clk_count%`ROB_SZ;
+				pdest_idx_in[`SEL(`PRF_IDX,2)] = clk_count%`PRF_SZ+1;
+			end
+		
+		end else begin
+			wr_mem_in = 0;
+			rd_mem_in = 0;
+			rob_idx_in = 0;
+			pdest_idx_in = 0;
+		end
+
+	end
+	endtask
+
+	task up;
+	input [1:0] num_inst;
+  input [`LSQ_IDX-1:0] lsq1, lsq2;
+  begin
+		
+		if (num_inst >= 1) begin
+			up_req[0] = 1'b1;
+			up_req[1] = 1'b0;
+			lsq_idx_in[`SEL(`LSQ_IDX,1)] = lsq1;
+			addr_in[`SEL(64,1)] = NPC;
+			regv_in[`SEL(64,1)] = clk_count;
+
+		  if (num_inst == 2) begin
+				up_req[1] = 1'b1;
+				lsq_idx_in[`SEL(`LSQ_IDX,2)] = lsq2;
+				addr_in[`SEL(64,2)] = NPC;
+				regv_in[`SEL(64,2)] = clk_count;
+			end
+		end else begin
+			up_req = 0;
+			lsq_idx_in = 0;
+			addr_in = 0;
+			regv_in = 0;
+		end
+
+	end
+	endtask
 
 	task show_io;
 	  begin
-		
-    $display("==OUTPUTS====================================================");
-   	$display("RDY1\tRDY2\tROB1\tROB2\tVAL1\tVAL2\tMISS\tBA");
-		$display("%b\t%b\t%0d\t%0d\t%b\t%b\t%b\t%0d", !full, !full_almost, rob_idx_out1, rob_idx_out2, dout1_valid, dout2_valid, branch_miss, ba_out);
-    $display("=============================================================\n");
 
 	  end
 	endtask
@@ -102,144 +161,95 @@ module testbench;
 
 	task show_contents;
 	  begin
-		$display("==============================================================");
-    $display("ROB Contents");
-		$display("==============================================================");
+			$display("@%4d NS, CLK%3d", $time, clk_count);
+  	  $display("==========================================================");
+			$display("| F/A | E/A | LCH | CM | IN | UP | \$VAL | MEMRES | \$TAG |");
+  	  $display("----------------------------------------------------------");
+			$display("| %b/%b | %b/%b |  %b  | %b%b | %b%b | %b%b |   %b  |   %2d   |  %2d  |", 
+							 lsq0.full, lsq0.full_almost, lsq0.empty, lsq0.empty_almost, lsq0.launch, 
+							 lsq0.commit[1], lsq0.commit[0], lsq0.in_req[1], lsq0.in_req[0],
+							 up_req[1], up_req[0], dcache2lsq_valid, mem2lsq_response, dcache2lsq_tag);
+  	  $display("==========================================================\n");
+			
+			`define DISPLAY_LSQ_ENTRY(i) \
+			$display("| %1s %1s |  %2d |   %b  |   %b  |   %b  |   %b  |  %2d  | %08d | %08d |", \
+							 i===lsq0.head ? "H" : " ", i===lsq0.tail ? "T" : " ", i, \
+							 lsq0.wr_mem[i], lsq0.ready_launch[i], lsq0.ready_commit[i], \
+							 lsq0.launched[i], lsq0.cb_rob_idx.data[i], lsq0.data_addr[i], lsq0.data_regv[i]);
+			
+			$display("======================================================================");
+   		$display("| H/T | IDX | STOR | RDYL | RDYC | SENT | ROB# |   ADDR   |    VAL   |");
+   		$display("|--------------------------------------------------------------------|");
 
-    $display("Counter : %d",rob0.iocount);
-		$display("Full  / Almost : %0d,%0d",rob0.full, rob0.full_almost);
-		$display("Empty / Almost : %0d,%0d\n",rob0.empty, rob0.empty_almost);
-    $display("Head : %d",rob0.head);
-		$display("Tail : %d\n",rob0.tail);
-    
-		$display("         |  RDY\tBTEX\tBAEX\tNPC\tPDEST\tBTPD\tBAPD");
-		$display("==============================================================");
-    $display("Entry  0 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[0], rob0.data_bt_ex[0], rob0.data_ba_ex[0], rob0.cb_npc.data[0], rob0.cb_pdest.data[0], rob0.cb_bt_pd.data[0], rob0.cb_ba_pd.data[0]);
-    $display("Entry  1 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[1], rob0.data_bt_ex[1], rob0.data_ba_ex[1], rob0.cb_npc.data[1], rob0.cb_pdest.data[1], rob0.cb_bt_pd.data[1], rob0.cb_ba_pd.data[1]);
-    $display("Entry  2 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[2], rob0.data_bt_ex[2], rob0.data_ba_ex[2], rob0.cb_npc.data[2], rob0.cb_pdest.data[2], rob0.cb_bt_pd.data[2], rob0.cb_ba_pd.data[2]);
-    $display("Entry  3 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[3], rob0.data_bt_ex[3], rob0.data_ba_ex[3], rob0.cb_npc.data[3], rob0.cb_pdest.data[3], rob0.cb_bt_pd.data[3], rob0.cb_ba_pd.data[3]);
-    $display("Entry  4 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[4], rob0.data_bt_ex[4], rob0.data_ba_ex[4], rob0.cb_npc.data[4], rob0.cb_pdest.data[4], rob0.cb_bt_pd.data[4], rob0.cb_ba_pd.data[4]);
-    $display("Entry  5 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[5], rob0.data_bt_ex[5], rob0.data_ba_ex[5], rob0.cb_npc.data[5], rob0.cb_pdest.data[5], rob0.cb_bt_pd.data[5], rob0.cb_ba_pd.data[5]);
-    $display("Entry  6 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[6], rob0.data_bt_ex[6], rob0.data_ba_ex[6], rob0.cb_npc.data[6], rob0.cb_pdest.data[6], rob0.cb_bt_pd.data[6], rob0.cb_ba_pd.data[6]);
-    $display("Entry  7 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[7], rob0.data_bt_ex[7], rob0.data_ba_ex[7], rob0.cb_npc.data[7], rob0.cb_pdest.data[7], rob0.cb_bt_pd.data[7], rob0.cb_ba_pd.data[7]);
-/*  $display("Entry  8 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[8], rob0.data_bt_ex[8], rob0.data_ba_ex[8], rob0.cb_npc.data[8], rob0.cb_pdest.data[8], rob0.cb_bt_pd.data[8], rob0.cb_ba_pd.data[8]);
-    $display("Entry  9 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[9], rob0.data_bt_ex[9], rob0.data_ba_ex[9], rob0.cb_npc.data[9], rob0.cb_pdest.data[9], rob0.cb_bt_pd.data[9], rob0.cb_ba_pd.data[9]);
-    $display("Entry 10 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[10], rob0.data_bt_ex[10], rob0.data_ba_ex[10], rob0.cb_npc.data[10], rob0.cb_pdest.data[10], rob0.cb_bt_pd.data[10], rob0.cb_ba_pd.data[10]);
-    $display("Entry 11 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[11], rob0.data_bt_ex[11], rob0.data_ba_ex[11], rob0.cb_npc.data[11], rob0.cb_pdest.data[11], rob0.cb_bt_pd.data[11], rob0.cb_ba_pd.data[11]);
-    $display("Entry 12 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[12], rob0.data_bt_ex[12], rob0.data_ba_ex[12], rob0.cb_npc.data[12], rob0.cb_pdest.data[12], rob0.cb_bt_pd.data[12], rob0.cb_ba_pd.data[12]);
-    $display("Entry 13 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[13], rob0.data_bt_ex[13], rob0.data_ba_ex[13], rob0.cb_npc.data[13], rob0.cb_pdest.data[13], rob0.cb_bt_pd.data[13], rob0.cb_ba_pd.data[13]);
-    $display("Entry 14 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[14], rob0.data_bt_ex[14], rob0.data_ba_ex[14], rob0.cb_npc.data[14], rob0.cb_pdest.data[14], rob0.cb_bt_pd.data[14], rob0.cb_ba_pd.data[14]);
-    $display("Entry 15 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d",rob0.data_rdy[15], rob0.data_bt_ex[15], rob0.data_ba_ex[15], rob0.cb_npc.data[15], rob0.cb_pdest.data[15], rob0.cb_bt_pd.data[15], rob0.cb_ba_pd.data[15]);
-*/
-		$display("==============================================================\n");
+			for (idx=0;idx<`LSQ_SZ;idx=idx+1) begin
+				`DISPLAY_LSQ_ENTRY(idx)
+			end
+  	  
+			$display("======================================================================\n");
+			$display("====================================================");
+			$display("| TAG | 1| 2| 3| 4| 5| 6| 7| 8| 9| 0| 1| 2| 3| 4| 5|");
+			$display("| LSQ | %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d|", 
+							 lsq0.lsq_map[1], 
+							 lsq0.lsq_map[2], 
+							 lsq0.lsq_map[3], 
+							 lsq0.lsq_map[4], 
+							 lsq0.lsq_map[5], 
+							 lsq0.lsq_map[6], 
+							 lsq0.lsq_map[7], 
+							 lsq0.lsq_map[8], 
+							 lsq0.lsq_map[9], 
+							 lsq0.lsq_map[10],
+							 lsq0.lsq_map[11],
+							 lsq0.lsq_map[12],
+							 lsq0.lsq_map[13],
+							 lsq0.lsq_map[14],
+							 lsq0.lsq_map[15]
+							 );
+			$display("====================================================\n");
 	  end
 	endtask
 
+
 	task reset_all;
 	  begin
-			count = 0;
-			NPC = 0;
-			reset = 0; din1_req = 0; din2_req = 0; dup1_req = 0; dup2_req = 0;
-	    ir_in1 = 0; ir_in2 = 0;
-	    npc_in1 = 0; npc_in2 = 0;
-	    pdest_in1 = 0; pdest_in2 = 0;
-	    bt_pd_in1 = 0; bt_pd_in2 = 0;
-	    ba_pd_in1 = 0; ba_pd_in2 = 0;
-	    bt_ex_in1 = 0; bt_ex_in2 = 0;
-	    ba_ex_in1 = 0; ba_ex_in2 = 0;
-	    rob_idx_in1 = 0; rob_idx_in2 = 0;
+			// reset lsq first
+			$display("@%4d NS, CLK%3d, RESETTING ALL", $time, clk_count);
+    	@(negedge clk); reset = 1'b1;@(negedge clk); reset = 1'b0; 
+
+			// reset inputs
+	   	rob_idx_in=0;   
+	   	pdest_idx_in=0; 
+	   	rd_mem_in=0;    
+	   	wr_mem_in=0;		
+
+	    up_req=0;				
+	   	lsq_idx_in=0;   
+	   	addr_in=0;	    
+	   	regv_in=0; 			
+
+	    mem2lsq_response=0; 
+
+	    dcache2lsq_valid=0;	
+	    dcache2lsq_tag=0;		
+	    dcache2lsq_data=0; 	
+
+	    rob_head=0;
   	end
   endtask
-
-
-
-  // Task to allocate an instruction 
-  task new_inst;
-	input [1:0] num_inst;
-  input [`PRF_IDX-1:0] dest_idx1, dest_idx2;
-	input bt_pd1, bt_pd2, isbranch1, isbranch2;
-	input [63:0] ba_pd1, ba_pd2; 
-  begin
-
-    if (num_inst >= 1) begin
-			din1_req = 1;
-			din2_req = 0;
-			
-			NPC = NPC + 1;
-			npc_in1 = NPC;  // arbitrary
-			ir_in1 = NPC/2; // arbitrary
-			pdest_in1 = dest_idx1;
-			bt_pd_in1 = bt_pd1;
-			ba_pd_in1 = ba_pd1; 
-			isbranch_in1 = isbranch1;
-			$display("Allocating Inst @%4.0fns: PRF=%0d, ISBR=%b, BT:%b, BA:%0d",	$time, dest_idx1, isbranch1, bt_pd1, ba_pd1);
-
-			if (num_inst == 2) begin
-				din2_req = 1;
-				
-				NPC = NPC + 1;
-				npc_in2 = NPC;  // arbitrary
-				ir_in2 = NPC/2; // arbitrary
-				pdest_in2 = dest_idx2;
-				bt_pd_in2 = bt_pd2;
-				ba_pd_in2 = ba_pd2; 
-				isbranch_in2 = isbranch2;
-				$display("Allocating Inst @%4.0fns: PRF=%0d, ISBR=%b, BT:%b, BA:%0d",	$time, dest_idx2, isbranch2, bt_pd2, ba_pd2);
-			end
-
-		end else begin
-			din1_req = 0;
-			din2_req = 0;
-		end
-		
-  end
-  endtask
-
-  // Task to update an instruction 
-  task up_inst;
-	input [1:0] num_inst;
-	input [`ROB_IDX-1:0] rob1, rob2;
-	input bt_ex1, bt_ex2;
-	input [63:0] ba_ex1, ba_ex2; 
-  begin
-
-		rob_idx_in1 = rob1;
-		rob_idx_in2 = rob2;
-
-    if (num_inst >= 1) begin
-			dup1_req = 1;
-			dup2_req = 0;
-			
-			bt_ex_in1 = bt_ex1;
-			ba_ex_in1 = ba_ex1;
-			$display("Updating ROB #%0d @%4.0fns: BT=%b, BA=%0d",	rob1, $time, bt_ex1, ba_ex1);
-
-			if (num_inst == 2) begin
-				dup2_req = 1;
-				
-				bt_ex_in1 = bt_ex1;
-				ba_ex_in1 = ba_ex1;
-				$display("Updating ROB #%0d @%4.0fns: BT=%b, BA=%0d",	rob2, $time, bt_ex2, ba_ex2);
-			end
-
-		end else begin
-			dup1_req = 0;
-			dup2_req = 0;
-		end
-		
-  end
-  endtask
-
+	
+	
 	initial
 	  begin
+		NPC = 0;
     clk = 1'b0;
-    // Reset ROB
-    reset = 1'b1;@(negedge clk); reset = 1'b0; 
+    clk_count = 0;
 
     // Initialize input signals
     reset_all();
-  
     @(negedge clk);
+		show_contents();
+    @(negedge clk);
+		show_contents();
 		
 		// #############################
 		// USAGE:
@@ -248,45 +258,30 @@ module testbench;
 		// #############################
 
     $display("=============================================================");
-    $display("@@@ Test case #1: Insert & Remove one at a time");
+    $display("@@@ Test case #1: Insert");
     $display("=============================================================\n");
     
-    $display("============[        INSERT       ]==========================\n");
-		// insert one at a time
-		new_inst(2,2,3,0,0,0,0,0,0);
-    @(negedge clk);show_contents();show_io();
-		new_inst(2,2,3,1,0,0,0,0,0);
-    @(negedge clk);show_contents();show_io();
-		new_inst(1,5,3,0,0,0,0,0,0);
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-    @(negedge clk);show_contents();show_io();
-		new_inst(0,5,3,0,0,0,0,0,0);
-    @(negedge clk);show_contents();show_io();
+		insert(1,1,0);@(negedge clk);show_contents();
+		insert(2,1,1);@(negedge clk);show_contents();
+		insert(2,0,1);@(negedge clk);show_contents();
+		insert(2,0,1);@(negedge clk);show_contents();
+		insert(2,0,1);@(negedge clk);show_contents();
+		insert(0,0,1);@(negedge clk)
 
-    $display("============[        REMOVE       ]==========================\n");
-		up_inst(2,0,1,0,0,0,0);
-    @(negedge clk);show_contents();show_io();
-		up_inst(1,4,0,0,0,0,0);
-    @(negedge clk);show_contents();show_io();
-		up_inst(0,4,0,0,0,0,0);
-
-
-		// Test case #2: Pull items
+		// Test case #2: Update items
     $display("=============================================================");
-    $display("@@@ Test case #2: Insert and remove two at a time");
+    $display("@@@ Test case #2: Update address");
     $display("=============================================================\n");
-
+		mem2lsq_response = 5;
+		up(2,1,5);@(negedge clk);show_contents();
+		up(2,2,3);@(negedge clk);show_contents();
+		up(1,7,3);@(negedge clk);show_contents();
+		up(1,0,3);@(negedge clk);show_contents();
+		up(0,1,3);@(negedge clk);show_contents();
+		up(0,1,3);@(negedge clk);show_contents();
+		rob_head = 4; 
+		up(0,1,3);@(negedge clk);show_contents();
+		up(0,1,3);@(negedge clk);show_contents();
 
 
 		// Test case #3: Insert & pull items at the same time 

@@ -27,7 +27,7 @@ all:    simv
 
 TESTBENCH = 	sys_defs.vh	    \
 		testbench/testbench_lsq.v
-SIMFILES =	testbench/mem.v verilog/lsq.v  
+SIMFILES =	testbench/mem.v verilog/lsq.v verilog/cb.v 
 
 
 #####

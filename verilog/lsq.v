@@ -15,7 +15,7 @@ module lsq (clk, reset,
 						// Outputs to EX
 						out_valid, rob_idx_out, pdest_idx_out, mem_value_out, rd_mem_out, wr_mem_out,
 						// Outputs to MEM
-						lsq2mem_command, lsq2mem_addr, lsq2mem_data,
+						lsq2mem_command, lsq2mem_addr, lsq2mem_data
 						);
 
 // Input Definitions
@@ -64,6 +64,7 @@ module lsq (clk, reset,
 	reg [63:0] 	data_addr [`LSQ_SZ-1:0];
 	reg [63:0] 	data_regv [`LSQ_SZ-1:0];
 	reg [`LSQ_SZ-1:0] 	wr_mem;
+	reg [`LSQ_SZ-1:0] 	launched;
 	reg [`LSQ_SZ-1:0] 	ready_launch;
 	reg [`LSQ_SZ-1:0] 	ready_commit;
 	reg [`LSQ_IDX-1:0]  lsq_map [`NUM_MEM_TAGS:1];
@@ -83,11 +84,18 @@ module lsq (clk, reset,
 	wire [`SCALAR-1:0] commit;
 	wire launch;
 
+	reg [63:0] next_data_addr1, next_data_addr2, next_data_regv1, next_data_regv2;
+	reg next_wr_mem1, next_wr_mem2, next_ready_launch1,	next_ready_launch2,	next_ready_commit1,	next_ready_commit2;
+
+	// FIXME: get rid of it later
+	wire flush;
+	assign flush = 1'b0;
+	
 	// Memory launch decision
 	// Currently both ld/st are only launched at the lsq head
 	wire dcache_miss, dcache_hit, stall;
 
-	assign launch = !empty &&
+	assign launch = !empty && !launched[head] &&
  								  (wr_mem[head])? (rob_idx_out[`SEL(`ROB_IDX,1)] == rob_head)&&ready_launch[head]: // for stores, need to check rob status
 									 							  ready_launch[head]; // for loads, ready_launch is sufficient info
 
@@ -97,12 +105,8 @@ module lsq (clk, reset,
 	assign lsq2mem_data = data_regv[head];
 
 	assign dcache_miss = launch && !wr_mem[head] && !dcache2lsq_valid;
-	assign dcache_hit = launch && !wr_mem[head] && dcache2lsq_valid && (dcahce2lsq_tag=={4{1'b0}});
-	assign stall = dcache_miss && (mem2lsq_tag==0); // no tickets available at mem; need to stall
-
-	// if launching a load, store the mem ticket
-
-	assign next_lsq_map																							 
+	assign dcache_hit = launch && !wr_mem[head] && dcache2lsq_valid && (dcache2lsq_tag=={4{1'b0}});
+	assign stall = (dcache_miss && (mem2lsq_response==0)) || (dcache2lsq_valid && dcache2lsq_tag!={4{1'b0}}); // need to stall: either no tickets available at mem or cache is busy returning stuff
 
 	// Committing decision
 	assign commit[0] = !empty && 
@@ -116,7 +120,7 @@ module lsq (clk, reset,
 	// ===================================================
 
 	// combinational outputs
-	assign lsq_idx_out = {head_p1, head}
+	assign lsq_idx_out = {head_p1, head};
 	assign out_valid = commit;
 	assign mem_value_out = {data_regv[head_p1],data_regv[head]};
 	assign rd_mem_out = {!wr_mem[head_p1],!wr_mem[head]};
@@ -215,8 +219,8 @@ module lsq (clk, reset,
 			data_addr[tail_p1]    <= `SD next_data_addr2;
 			data_regv[tail]       <= `SD next_data_regv1;
 			data_regv[tail_p1]    <= `SD next_data_regv2;
-			wr_mem[tail]      		<= `SD next_data_wr_mem1;
-			wr_mem[tail_p1]       <= `SD next_data_wr_mem2;
+			wr_mem[tail]      		<= `SD next_wr_mem1;
+			wr_mem[tail_p1]       <= `SD next_wr_mem2;
 			ready_launch[tail]    <= `SD next_ready_launch1;
 		  ready_launch[tail_p1] <= `SD next_ready_launch2;
 			ready_commit[tail]    <= `SD next_ready_commit1;
@@ -232,6 +236,11 @@ module lsq (clk, reset,
 					data_regv[lsq_idx_in[`SEL(`LSQ_IDX,2)]] <= `SD regv_in[`SEL(64,2)];
 					ready_launch[lsq_idx_in[`SEL(`LSQ_IDX,2)]] <= `SD 1'b1;
 				end
+			end
+
+			// memory launch status
+			if (launch && !stall) begin
+				launched[head] <= `SD 1'b1;
 			end
 
 			// ticket => lsq mapping
@@ -266,8 +275,10 @@ module lsq (clk, reset,
   for(i=0;i<`LSQ_SZ;i=i+1) begin : REG_RESET
       always @(posedge clk) begin
 				if (reset) begin
-            data_addr[i] <= `SD {64{1'b0}};
-            data_regv[i] <= `SD {64{1'b0}};
+            data_addr[i] 		<= `SD {64{1'b0}};
+            data_regv[i] 		<= `SD {64{1'b0}};
+						wr_mem[i] 	    <= `SD 1'b0;
+						launched[i] 		<= `SD 1'b0;
             ready_launch[i] <= `SD 1'b0;
             ready_commit[i] <= `SD 1'b0;
 				end
@@ -281,7 +292,6 @@ module lsq (clk, reset,
 		end
 	end
   endgenerate
-
 
 	// ===================================================
 	// Circular buffers for entries not awaiting updates
