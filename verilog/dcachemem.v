@@ -78,17 +78,27 @@ module dcachemem_set (clock, reset, access,
 
 	reg	[63:0]									data		[1:0];
 	reg [`DCACHE_TAG_BITS-1:0]	tags		[1:0];
-	reg	[1:0]										valids;
-	reg	[1:0]										recent;
-	reg													rd_miss, rd_way;
+	reg	[1:0]										valids, recent;
+	reg													rd_miss, rd_way, wr_way;
+
 
 	always @* begin
 		rd_miss	= 0;
 		rd_way	= 0;
+		wr_way	= 0;
 		if(access) begin
-			if			((rd_tag == tags[1]) && valids[1]) rd_way = 1'b1;
-			else if	((rd_tag == tags[0]) && valids[0]) rd_way = 1'b0;
-			else		rd_miss = 1'b1;
+			if(wr_en) begin
+				if			(wr_tag == tags[1])	wr_way = 1'b1;
+				else if	(wr_tag == tags[0])	wr_way = 1'b0;
+				else if (recent == 2'b01)		wr_way = 1'b1;
+				else if (recent == 2'b10)		wr_way = 1'b0;
+				else		wr_way = 1'b0;
+			end
+			else begin
+				if			((rd_tag == tags[1]) && valids[1]) rd_way = 1'b1;
+				else if	((rd_tag == tags[0]) && valids[0]) rd_way = 1'b0;
+				else		rd_miss = 1'b1;
+			end
 		end
 	end
 
@@ -99,41 +109,17 @@ module dcachemem_set (clock, reset, access,
 		end // if (reset)
 		else if(access) begin
 			if(wr_en) begin // if WRITE
-				// WRITE HIT
-				if(wr_tag == tags[1]) begin
+				if(wr_way == 1'b1) begin 
 					data[1]		<= `SD wr_data;
 					tags[1]		<= `SD wr_tag;
 					recent		<= `SD 2'b10;
 					valids[1]	<= `SD 1'b1;
 				end
-				else if (wr_tag == tags[0]) begin
+				else if (wr_way == 1'b0) begin
 					data[0]		<= `SD wr_data;
 					tags[0]		<= `SD wr_tag;
 					recent		<= `SD 2'b01;
 					valids[0]	<= `SD 1'b1;
-				end
-				// WRITE MISS
-				else begin
-					case (recent)
-						2'b01	:		begin
-												data[1]		<= `SD wr_data;
-												tags[1]		<= `SD wr_tag;
-												recent		<= `SD 2'b10;
-												valids[1]	<= `SD 1'b1;
-											end
-						2'b10	:		begin
-												data[0]		<= `SD wr_data;
-												tags[0]		<= `SD wr_tag;
-												recent		<= `SD 2'b01;
-												valids[0]	<= `SD 1'b1;
-											end
-						default:	begin	
-												data[0]	<= `SD wr_data;
-												tags[0]	<= `SD wr_tag;
-												recent	<= `SD 2'b01;
-												valids[0]	<= `SD 1'b1;
-											end
-					endcase
 				end
 			end // if(wr_en)
 			else if (!rd_miss) begin // if READ HIT
