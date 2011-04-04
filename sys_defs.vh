@@ -23,7 +23,7 @@
 
 // probably not a good idea to change this second one
 `define VIRTUAL_CLOCK_PERIOD   30.0 // Clock period from dc_shell
-`define VERILOG_CLOCK_PERIOD   5.0 // Clock period from test bench
+`define VERILOG_CLOCK_PERIOD   10.0 // Clock period from test bench
 
 `define MEM_LATENCY_IN_CYCLES ($rtoi(100.0/`VIRTUAL_CLOCK_PERIOD+0.99999))
 // the 0.49999 is to force ceiling(100/period).  The default behavior for
@@ -315,7 +315,7 @@
 `define EX_ALU	2'b11
 
 // D-cache Defines
-`define DCACHE_IDX_BITS	(8)      
+`define DCACHE_IDX_BITS	(4)      
 `define DCACHE_TAG_BITS (13-`DCACHE_IDX_BITS)	// 13 indicates MEM_64BIT_LINES (=2^13)
 `define DCACHE_LINES		(1<<`DCACHE_IDX_BITS)
 
