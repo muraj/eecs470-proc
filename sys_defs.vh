@@ -315,7 +315,12 @@
 `define EX_ALU	2'b11
 
 // D-cache Defines
+`define DCACHE_2WAY	// comment this out if direct-mapped
 `define DCACHE_IDX_BITS	(4)      
-`define DCACHE_TAG_BITS (13-`DCACHE_IDX_BITS)	// 13 indicates MEM_64BIT_LINES (=2^13)
-`define DCACHE_LINES		(1<<`DCACHE_IDX_BITS)
+`define DCACHE_SETS		(1<<`DCACHE_IDX_BITS)
+`ifdef DCACHE_2WAY
+	`define DCACHE_TAG_BITS (14-`DCACHE_IDX_BITS)	
+`else
+	`define DCACHE_TAG_BITS (13-`DCACHE_IDX_BITS)	// 13 indicates MEM_64BIT_LINES (=2^13)
+`endif
 

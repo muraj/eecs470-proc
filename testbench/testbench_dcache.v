@@ -25,7 +25,7 @@ module testbench;
 	wire [63:0]	mem_rd_data;
 
 	// Between Dcachemem and Dcache
-	wire												wr_en, rd_valid;
+	wire												wr_en, rd_valid, en;
 	wire [`DCACHE_IDX_BITS-1:0]	wr_idx, rd_idx;
 	wire [`DCACHE_TAG_BITS-1:0]	wr_tag, rd_tag;
 	wire [63:0]									wr_data, rd_data;
@@ -52,7 +52,7 @@ module testbench;
              .mem2proc_tag(mem_tag)
        		   );
 
-	dcachemem dcachemem0 (.clock(clk), .reset(reset),
+	dcachemem dcachemem0 (.clock(clk), .reset(reset), .en(en),
    	      	         		.wr1_en(wr_en), .wr1_tag(wr_tag), .wr1_idx(wr_idx), .wr1_data(wr_data),
     	  	            	.rd1_tag(rd_tag), .rd1_idx(rd_idx), .rd1_data(rd_data), .rd1_valid(rd_valid)
 												);
@@ -63,9 +63,9 @@ module testbench;
        		    	  .proc2Dcache_addr(cache_addr_in), .proc2Dcache_command(cache_command_in), .proc2Dcache_data(cache_data_in),	// From Proc(LSQ)
          		    	.cachemem_data(rd_data), .cachemem_valid(rd_valid),  																												// From Dcachemem
            			  // outputs
-     			        .Dcache2Dmem_command(mem_command), .Dcache2Dmem_addr(mem_addr), .Dcache2Dmem_data(mem_wr_data),							// To Dmem
-          		    .Dcache2proc_data(cache_data_out), .Dcache2proc_valid(cache_valid_out), .Dcache2proc_tag(cache_tag_out), 		// To Proc(LSQ)
-             			.rd_idx(rd_idx), .rd_tag(rd_tag), .wr_idx(wr_idx), .wr_tag(wr_tag), .wr_data(wr_data), .wr_en(wr_en)				// To Dcachemem
+     			        .Dcache2Dmem_command(mem_command), .Dcache2Dmem_addr(mem_addr), .Dcache2Dmem_data(mem_wr_data),								// To Dmem
+          		    .Dcache2proc_data(cache_data_out), .Dcache2proc_valid(cache_valid_out), .Dcache2proc_tag(cache_tag_out), 			// To Proc(LSQ)
+             			.rd_idx(rd_idx), .rd_tag(rd_tag), .wr_idx(wr_idx), .wr_tag(wr_tag), .wr_data(wr_data), .wr_en(wr_en), .en(en)	// To Dcachemem
         			    );
 
 						
@@ -105,27 +105,56 @@ module testbench;
 
 	task show_cache;
 		begin
-			`define DISPLAY_ENTRY(i) $fdisplay(cache_fileno, "  %3h  |  %3h  |  %00000000000016h  |  %d", i, dcachemem0.tags[i], dcachemem0.data[i], dcachemem0.valids[i]);  
-			$fdisplay(cache_fileno, "=============[ CYCLE: %06.1f ]==============", cycle);
-			$fdisplay(cache_fileno, "  IDX  |  TAG  |        DATA        | VALID ");
-			$fdisplay(cache_fileno, "--------------------------------------------");
-			`DISPLAY_ENTRY(0)
-			`DISPLAY_ENTRY(1)
-			`DISPLAY_ENTRY(2)
-			`DISPLAY_ENTRY(3)
-			`DISPLAY_ENTRY(4)
-			`DISPLAY_ENTRY(5)
-			`DISPLAY_ENTRY(6)
-			`DISPLAY_ENTRY(7)
-			`DISPLAY_ENTRY(8)
-			`DISPLAY_ENTRY(9)
-			`DISPLAY_ENTRY(10)
-			`DISPLAY_ENTRY(11)
-			`DISPLAY_ENTRY(12)
-			`DISPLAY_ENTRY(13)
-			`DISPLAY_ENTRY(14)
-			`DISPLAY_ENTRY(15)
-			$fdisplay(cache_fileno, "============================================\n\n");
+			`ifdef DCACHE_2WAY
+				`define DISPLAY_ENTRY(i) $fdisplay(cache_fileno, "  %3h  |  %3h  |  %00000000000016h  |  %d / %d\n       |  %3h  |  %00000000000016h  |  %d / %d", i, dcachemem0.sets[i].sets.tags[0], dcachemem0.sets[i].sets.data[0], dcachemem0.sets[i].sets.valids[0], dcachemem0.sets[i].sets.recent[0], dcachemem0.sets[i].sets.tags[1], dcachemem0.sets[i].sets.data[1], dcachemem0.sets[i].sets.valids[1], dcachemem0.sets[i].sets.recent[1]);  
+			`else
+				`define DISPLAY_ENTRY(i) $fdisplay(cache_fileno, "  %3h  |  %3h  |  %00000000000016h  |  %d", i, dcachemem0.tags[i], dcachemem0.data[i], dcachemem0.valids[i]);  
+			`endif
+
+			`ifdef DCACHE_2WAY
+				$fdisplay(cache_fileno, "=============[ CYCLE: %06.1f ]=====================", cycle);
+				$fdisplay(cache_fileno, "  IDX  |  TAG  |        DATA        | VALID/RECENT ");
+				$fdisplay(cache_fileno, "---------------------------------------------------");
+				`DISPLAY_ENTRY(0)
+				`DISPLAY_ENTRY(1)
+				`DISPLAY_ENTRY(2)
+				`DISPLAY_ENTRY(3)
+				`DISPLAY_ENTRY(4)
+				`DISPLAY_ENTRY(5)
+				`DISPLAY_ENTRY(6)
+				`DISPLAY_ENTRY(7)
+				`DISPLAY_ENTRY(8)
+				`DISPLAY_ENTRY(9)
+				`DISPLAY_ENTRY(10)
+				`DISPLAY_ENTRY(11)
+				`DISPLAY_ENTRY(12)
+				`DISPLAY_ENTRY(13)
+				`DISPLAY_ENTRY(14)
+				`DISPLAY_ENTRY(15)
+				$fdisplay(cache_fileno, "===================================================\n\n");  
+
+			`else
+				$fdisplay(cache_fileno, "=============[ CYCLE: %06.1f ]==============", cycle);
+				$fdisplay(cache_fileno, "  IDX  |  TAG  |        DATA        | VALID ");
+				$fdisplay(cache_fileno, "--------------------------------------------");
+				`DISPLAY_ENTRY(0)
+				`DISPLAY_ENTRY(1)
+				`DISPLAY_ENTRY(2)
+				`DISPLAY_ENTRY(3)
+				`DISPLAY_ENTRY(4)
+				`DISPLAY_ENTRY(5)
+				`DISPLAY_ENTRY(6)
+				`DISPLAY_ENTRY(7)
+				`DISPLAY_ENTRY(8)
+				`DISPLAY_ENTRY(9)
+				`DISPLAY_ENTRY(10)
+				`DISPLAY_ENTRY(11)
+				`DISPLAY_ENTRY(12)
+				`DISPLAY_ENTRY(13)
+				`DISPLAY_ENTRY(14)
+				`DISPLAY_ENTRY(15)
+				$fdisplay(cache_fileno, "============================================\n\n");
+			`endif
 		end
 	endtask
 
@@ -218,12 +247,14 @@ initial begin
 
 	@(posedge clk); `SD; `SD; show_cache(); inst_load(2,	17);
 	@(posedge clk); `SD; `SD; show_cache(); inst_load(2,	7);
+	@(posedge clk); `SD; `SD; show_cache(); inst_store(2,	1,	64'h1212121212121212);
+	@(posedge clk); `SD; `SD; show_cache(); inst_load(2,	17);
 	@(posedge clk); `SD; `SD; show_cache(); inst_none();
 
 
 
 
-	@(posedge clk); `SD; `SD; show_cache();
+	@(posedge clk); `SD; `SD; show_cache(); inst_none();
 	@(posedge clk); `SD; `SD; show_cache();
 	@(posedge clk); `SD; `SD; show_cache();
 	@(posedge clk); `SD; `SD; show_cache();

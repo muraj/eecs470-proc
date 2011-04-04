@@ -10,7 +10,7 @@ module dcache(clock, reset,
               // outputs
               Dcache2Dmem_command, Dcache2Dmem_addr, Dcache2Dmem_data,	// To Dmem
               Dcache2proc_data, Dcache2proc_valid, Dcache2proc_tag, 		// To Proc(LSQ)
-              rd_idx, rd_tag, wr_idx, wr_tag, wr_data, wr_en						// To Dcachemem
+              rd_idx, rd_tag, wr_idx, wr_tag, wr_data, wr_en, en				// To Dcachemem
              );
 
   input         clock, reset;
@@ -29,7 +29,7 @@ module dcache(clock, reset,
   output reg [`DCACHE_IDX_BITS-1:0] rd_idx, wr_idx;
   output reg [`DCACHE_TAG_BITS-1:0] rd_tag, wr_tag;
 	output reg [63:0]									wr_data;
-  output reg        								wr_en;
+  output reg        								wr_en, en;
 
 	reg	[63:0]	addr_reg	[15:0];
 	reg	[63:0]	next_addr_reg, wr_addr;
@@ -41,15 +41,16 @@ module dcache(clock, reset,
 
 	always @* begin
 		// Default Values
-  	Dcache2Dmem_addr = 0;	Dcache2Dmem_data = 0;	Dcache2Dmem_command = `BUS_NONE;	// To DMEM
-   	rd_idx = 0;	rd_tag = 0;	wr_idx = 0;	wr_tag = 0;	wr_data = 0;	wr_en = 0;			// To dcachemem
-	  Dcache2proc_data = 0;	Dcache2proc_valid = 0;	Dcache2proc_tag = 0;						// To Proc (LSQ)
-		next_addr_reg = 0;	wr_addr = 0;	rd_miss = 0;																// Internal Signals
+  	Dcache2Dmem_addr = 0;	Dcache2Dmem_data = 0;	Dcache2Dmem_command = `BUS_NONE;			// To DMEM
+   	rd_idx = 0;	rd_tag = 0;	wr_idx = 0;	wr_tag = 0;	wr_data = 0;	wr_en = 0; en = 0;	// To dcachemem
+	  Dcache2proc_data = 0;	Dcache2proc_valid = 0;	Dcache2proc_tag = 0;								// To Proc (LSQ)
+		next_addr_reg = 0;	wr_addr = 0;	rd_miss = 0;																		// Internal Signals
 
 		// Dmem2Dcache_tag = 0 -> Do whatever Proc requests
 		if (Dmem2Dcache_tag == 4'b0) begin 
 			// If Proc requests LOAD
 			if (proc2Dcache_command == `BUS_LOAD) begin
+				en									= 1'b1;
 				rd_tag							= proc2Dcache_addr[`DCACHE_IDX_BITS+`DCACHE_TAG_BITS+2:`DCACHE_IDX_BITS+3];
 				rd_idx							=	proc2Dcache_addr[`DCACHE_IDX_BITS+2:3];
 				Dcache2proc_data		= cachemem_data;
@@ -67,6 +68,7 @@ module dcache(clock, reset,
 			end
 			// If Proc requests STORE -> Write the data into both DMEM and cachemem
 			else if (proc2Dcache_command == `BUS_STORE) begin
+				en									= 1'b1;
 				wr_tag							= proc2Dcache_addr[`DCACHE_IDX_BITS+`DCACHE_TAG_BITS+2:`DCACHE_IDX_BITS+3];
 				wr_idx							=	proc2Dcache_addr[`DCACHE_IDX_BITS+2:3];
 				wr_en								= 1'b1;
@@ -79,6 +81,7 @@ module dcache(clock, reset,
 
 		// Dmem2Dcache_tag != 0 (some loaded value have been come out from DMEM) -> Store the loaded value into cachemem, and also pass it to Proc(LSQ). LSQ should be stalled. 
 		else begin
+			en			= 1'b1;
 			wr_addr	= addr_reg[Dmem2Dcache_tag];
 			wr_tag	= wr_addr[`DCACHE_IDX_BITS+`DCACHE_TAG_BITS+2:`DCACHE_IDX_BITS+3];
 			wr_idx	=	wr_addr[`DCACHE_IDX_BITS+2:3];
