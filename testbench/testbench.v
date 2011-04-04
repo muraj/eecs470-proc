@@ -112,15 +112,18 @@ initial begin
 end
 always @(posedge clock) begin
  if(~reset) begin
-  $fdisplay(rs_fileno, "|======================================== Cycle: %10d ====================================================|", clock_count);
+  $fdisplay(rs_fileno, "|======================================== Cycle: %10d ======================================================|", clock_count);
   $fdisplay(rs_fileno, "id_dp_IR %h id_dp_valid %b", pipeline_0.id_dp_IR, pipeline_0.id_dp_valid_inst);
-  $fdisplay(rs_fileno, "|                            RS0                           |                           RS1                      |");
-  $fdisplay(rs_fileno, "| IDX |   IR   |       NPC      | ROB | RA | RB | RD | R/F |   IR   |       NPC      | ROB | RA | RB | RD | R/F |");
-  $fdisplay(rs_fileno, "|===============================================================================================================|");
+  $fdisplay(rs_fileno, "|                            RS0                            |                           RS1                       |");
+  $fdisplay(rs_fileno, "| IDX |   IR    |       NPC      | ROB | RA | RB | RD | R/F |    IR   |       NPC      | ROB | RA | RB | RD | R/F |");
+  $fdisplay(rs_fileno, "|=================================================================================================================|");
   `define DISPLAY_RS(i) \
       $fdisplay(rs_fileno, "|%4d |%9s|%16h|  %02d | %02d | %02d | %02d | %b/%b |%9s|%16h|  %02d | %02d | %02d | %02d | %b/%b |", i, \
                 get_instr_string(rs1_IR[i], !rs1_free[i]), rs1_npc[i], rs1_rob_idx[i], rs1_prega_idx[i], rs1_pregb_idx[i], rs1_pdest_idx[i], rs1_rdy[i], rs1_free[i], \
-                get_instr_string(rs2_IR[i], !rs2_free[i]), rs2_npc[i], rs2_rob_idx[i], rs2_prega_idx[i], rs2_pregb_idx[i], rs2_pdest_idx[i], rs2_rdy[i], rs2_free[i]);
+                `ifdef SUPERSCALAR  \
+                get_instr_string(rs2_IR[i], !rs2_free[i]), rs2_npc[i], rs2_rob_idx[i], rs2_prega_idx[i], rs2_pregb_idx[i], rs2_pdest_idx[i], rs2_rdy[i], rs2_free[i]  \
+                `endif  \
+                );
   `DISPLAY_RS(0) `DISPLAY_RS(1) `DISPLAY_RS(2)
   `DISPLAY_RS(3) `DISPLAY_RS(4) `DISPLAY_RS(5)
   `DISPLAY_RS(6) `DISPLAY_RS(7) `DISPLAY_RS(8)
@@ -149,10 +152,10 @@ end
  end                          
 always @(posedge clock) begin 
  if(~reset) begin
-  $fdisplay(rob_fileno, "\n|=============================== Cycle: %10d ================================|", clock_count);
+  $fdisplay(rob_fileno, "\n|================================ Cycle: %10d ================================|", clock_count);
   $fdisplay(rob_fileno, "branch_miss: %b correct_target: %h npc_out1: %h npc_out2: %h", pipeline_0.rob0.branch_miss, pipeline_0.rob0.correct_target, pipeline_0.rob0.npc_out1, pipeline_0.rob0.npc_out2);
-  $fdisplay(rob_fileno, "| H/T | IDX |    IR    |        NPC       | RDY | PDR | ADR | BRA/TKN |  Branch Address  |  Branch Addr EX  |");
-  $fdisplay(rob_fileno, "|==================================================================================|");
+  $fdisplay(rob_fileno, "| H/T | IDX |     IR    |        NPC       | RDY | PDR | ADR | BRA/TKN |  Branch Address  |  Branch Addr EX  |");
+  $fdisplay(rob_fileno, "|===================================================================================|");
   `define DISPLAY_ROB(i) \
     $fdisplay(rob_fileno, "| %1s %1s | %3d | %9s | %h |  %b  | %3d | %3d |  %b / %b  | %16h | %16h |",  \
               i === head ? "H" : " ",                         \
@@ -360,13 +363,13 @@ end
 integer pipe_fileno;
 initial begin
   pipe_fileno = $fopen("pipeline.out");
-  $fdisplay(pipe_fileno, "Cycle:       IF     |      ID      |      DP      |      IS      |      EX      |      CO      |      RE      |        WB        | MEM  ADDR |");
+  $fdisplay(pipe_fileno, "Cycle:       IF      |      ID       |      DP       |      IS       |      EX       |      CO       |      RE       |            WB            | MEM  ADDR  |");
 end
 always @(negedge clock) begin
  if(~reset) begin
    $fwrite(pipe_fileno, "%5d:", clock_count);
    `define DISPLAY_STAGE(npc, ir, valid) \
-    $fwrite(pipe_fileno, "%5d:%9s|", npc, get_instr_string(ir, valid));
+    $fwrite(pipe_fileno, "%5d:%10s|", npc, get_instr_string(ir, valid));
    `DISPLAY_STAGE(if_NPC_out[`SEL(64,1)],if_IR_out[`SEL(32,1)], if_valid_inst_out[0])
    `DISPLAY_STAGE(if_id_NPC[`SEL(64,1)], if_id_IR[`SEL(32,1)], if_id_valid_inst[0])
    `DISPLAY_STAGE(id_dp_NPC[`SEL(64,1)], id_dp_IR[`SEL(32,1)], id_dp_valid_inst[0])
@@ -375,9 +378,9 @@ always @(negedge clock) begin
    `DISPLAY_STAGE(ex_co_NPC[`SEL(64,1)], ex_co_IR[`SEL(32,1)], ex_co_valid_inst[0])
    `DISPLAY_STAGE(rob_retire_NPC[`SEL(64,1)], rob_retire_IR[`SEL(32,1)], rob_retire_valid_inst[0])
    if(pipeline_commit_wr_en[0])
-     $fwrite(pipe_fileno, " REG[%2d]=%8x |", pipeline_commit_wr_idx[`SEL(5,1)], pipeline_commit_wr_data[`SEL(64,1)]);
+     $fwrite(pipe_fileno, " REG[%2d]=%16x |", pipeline_commit_wr_idx[`SEL(5,1)], pipeline_commit_wr_data[`SEL(64,1)]);
    else
-     $fwrite(pipe_fileno, "                  |");
+     $fwrite(pipe_fileno, "                          |");
    $fwrite(pipe_fileno, "\n      ");
    `DISPLAY_STAGE(if_NPC_out[`SEL(64,2)],if_IR_out[`SEL(32,2)], if_valid_inst_out[1])
    `DISPLAY_STAGE(if_id_NPC[`SEL(64,2)], if_id_IR[`SEL(32,2)], if_id_valid_inst[1])
@@ -387,9 +390,9 @@ always @(negedge clock) begin
    `DISPLAY_STAGE(ex_co_NPC[`SEL(64,2)], ex_co_IR[`SEL(32,2)], ex_co_valid_inst[1])
    `DISPLAY_STAGE(rob_retire_NPC[`SEL(64,2)], rob_retire_IR[`SEL(32,2)], rob_retire_valid_inst[1])
    if(pipeline_commit_wr_en[1])
-     $fwrite(pipe_fileno, " REG[%2d]=%8x |", pipeline_commit_wr_idx[`SEL(5,2)], pipeline_commit_wr_data[`SEL(64,2)]);
+     $fwrite(pipe_fileno, " REG[%2d]=%16x |", pipeline_commit_wr_idx[`SEL(5,2)], pipeline_commit_wr_data[`SEL(64,2)]);
    else
-     $fwrite(pipe_fileno, "                  |");
+     $fwrite(pipe_fileno, "                          |");
    $fwrite(pipe_fileno, "\n");
  end
  if(pipeline_error_status != `NO_ERROR)
@@ -399,10 +402,10 @@ end
 
 
   // Strings to hold instruction opcode
-  reg  [8*7:0] if_instr_str[`SCALAR-1:0];
-  reg  [8*7:0] id_instr_str[`SCALAR-1:0];
-  reg  [8*7:0] dp_instr_str[`SCALAR-1:0];
-  reg  [8*7:0] co_instr_str[`SCALAR-1:0];
+  reg  [8*8:0] if_instr_str[`SCALAR-1:0];
+  reg  [8*8:0] id_instr_str[`SCALAR-1:0];
+  reg  [8*8:0] dp_instr_str[`SCALAR-1:0];
+  reg  [8*8:0] co_instr_str[`SCALAR-1:0];
 
   // Instantiate the Pipeline
   oo_pipeline pipeline_0 (// Inputs
@@ -645,7 +648,7 @@ end
   `endif  //SUPERSCALAR
   end
 
-  function [8*7:0] get_instr_string;
+  function [8*8:0] get_instr_string;
     input [31:0] IR;
     input        instr_valid;
     begin

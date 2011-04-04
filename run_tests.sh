@@ -50,10 +50,10 @@ do
 	(cd $comp_dir; make > /dev/null) || exit;
 	diff -I '^#' writeback.out $comp_dir/writeback.out > results.txt; # Ignore extra comments
 	printf "%-40s " "$(basename $f)";
-	printf "%-9s " `grep CPI ${1:+${1}_}program.out | cut -d " " -f 9`;
-	printf "%-9s" `grep CPI ${comp_dir}/program.out | cut -d " " -f 9`;
+	printf "%-9f " `grep CPI ${1:+${1}_}program.out | cut -d " " -f 9`;
+	printf "%-9f" `grep CPI ${comp_dir}/program.out | cut -d " " -f 9`;
 	if [ -s results.txt ]; then
-		echo -e "\033[31m FAIL\033[0m";
+		echo -e "\033[1;31m FAIL\033[0m";
     if ! $QUIET_MODE ; then
   		read -n 1 -p "Continue [Y/n]? " yno 1>&2;
   		echo '' 1>&2;
@@ -66,7 +66,7 @@ do
   		esac
     fi
 	else
-		echo -e "\033[32m PASS\033[0m";
+		echo -e "\033[1;32m PASS\033[0m";
 		rm results.txt;
 	fi
 done

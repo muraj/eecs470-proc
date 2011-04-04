@@ -30,7 +30,7 @@ start:  lda     $r2,0x27bb
         lda     $r0,0xfd
         sll     $r2,8,$r2
         bis     $r2,$r0,$r2
-  lda     $r3,0xb50
+        lda     $r3,0xb50
         sll     $r3,12,$r3
         lda     $r0,0x4f3
         bis     $r3,$r0,$r3

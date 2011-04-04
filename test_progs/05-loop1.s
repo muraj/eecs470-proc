@@ -12,8 +12,6 @@ loop:
 	addq $r0, 0x1 , $r0
   nop
 	subq $r0, 0xFF, $r1
+  nop
 	blt $r1, loop
 call_pal 0x555
-xor $r31, $r31, $r0
-xor $r31, $r31, $r0
-xor $r31, $r31, $r0

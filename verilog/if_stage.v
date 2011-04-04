@@ -54,8 +54,8 @@ module if_stage(// Inputs
   assign proc2Imem_addr = {PC_reg[63:3], 3'b0};
 
     // output two instructions at a time
-  assign if_IR_out[`SEL(32,1)] = Imem2proc_data[31:0];
-  assign if_IR_out[`SEL(32,2)] = Imem2proc_data[63:32];
+  assign if_IR_out[`SEL(32,1)] = PC_reg[2] ? Imem2proc_data[63:32] : Imem2proc_data[31:0];
+  assign if_IR_out[`SEL(32,2)] = PC_reg[2] ? `NOOP_INST : Imem2proc_data[63:32];
 
     // default next PC value
   assign PC_plus_4 = PC_reg + 4;
@@ -65,7 +65,9 @@ module if_stage(// Inputs
 		// Otherwise we use the result of branch predictor
 		// The default is PC+8
     // (halting is handled with the enable PC_enable;
-  assign next_PC = (rob_mispredict)? rob_target_pc : (id_bp_taken)? id_bp_pc : PC_plus_8;
+  assign next_PC = (rob_mispredict)? rob_target_pc :      // Branch mispredict?
+                   (id_bp_taken)? id_bp_pc :              // Branch predicted taken
+                   (PC_reg[2])? PC_plus_4 : PC_plus_8;    // Branch to misaligned address
 
     // The take-branch signal must override stalling (otherwise it may be lost)
   assign PC_enable = (Imem_valid & !stall) || rob_mispredict || id_bp_taken;  //!stall || rob_mispredict || id_bp_taken;
@@ -75,7 +77,7 @@ module if_stage(// Inputs
   assign if_NPC_out[`SEL(64,2)] = PC_plus_8;
 
   assign if_valid_inst_out[`SEL(1,1)] = !id_bp_taken && Imem_valid;
-  assign if_valid_inst_out[`SEL(1,2)] = !id_bp_taken && Imem_valid;
+  assign if_valid_inst_out[`SEL(1,2)] = !id_bp_taken && Imem_valid && !PC_reg[2];
 
 //  assign next_ready_for_valid = (ready_for_valid | mem_wb_valid_inst) & 
 //                                !if_valid_inst_out;

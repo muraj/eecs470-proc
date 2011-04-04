@@ -231,7 +231,7 @@ module oo_pipeline (// Inputs
   assign pipeline_completed_insts = rob_retire_valid_inst[0] + rob_retire_valid_inst[1];
   // FIXME
   assign pipeline_error_status = 
-    (id_dp_illegal & id_dp_valid_inst) ? `HALTED_ON_ILLEGAL :
+    (id_dp_illegal & id_dp_valid_inst != 0) ? `HALTED_ON_ILLEGAL :
     (rob_retire_valid_inst[0] && pipeline_commit_IR[`SEL(32,1)] == 32'h555 ? `HALTED_ON_HALT :
     (rob_retire_valid_inst[1] && pipeline_commit_IR[`SEL(32,2)] == 32'h555 ? `HALTED_ON_HALT : `NO_ERROR));
 
@@ -339,7 +339,7 @@ module oo_pipeline (// Inputs
 
   always @(posedge clock)
   begin
-    if(reset)
+    if(reset | rob_mispredict)
     begin
       if_id_NPC        <= `SD 0;
       if_id_IR         <= `SD `NOOP_INST;
@@ -398,7 +398,7 @@ module oo_pipeline (// Inputs
 
   always @(posedge clock)
   begin
-    if (reset)
+    if (reset | rob_mispredict)
     begin
       id_dp_NPC           <= `SD 0;
       id_dp_IR            <= `SD `NOOP_INST;
@@ -468,7 +468,7 @@ module oo_pipeline (// Inputs
 						.prega_idx_out(rat_prega_idx), .prega_valid_out(prf_valid_prega),
             .pregb_idx_out(rat_pregb_idx), .pregb_valid_out(prf_valid_pregb),
             //CDB input
-            .cdb_en(ex_cdb_valid_out), .cdb_tag(ex_cdb_tag_out), //FIXME
+            .cdb_en(ex_cdb_valid_out), .cdb_tag(ex_cdb_tag_out),
 						.pdest_idx_out(rat_pdest_idx), .retire_pdest_idx_in(rob_retire_pdest_idx),
 						// enable signals for rat and rrat
 						.issue(id_dp_valid_inst), .retire(rob_retire_valid_inst)
@@ -514,7 +514,7 @@ module oo_pipeline (// Inputs
       .copy(1'b0), .reg_vals_in({`PRF_SZ*64{1'b0}})
       );
 
-  SUPER_RS rs0 (.clk(clock), .reset(reset),
+  SUPER_RS rs0 (.clk(clock), .reset(reset | rob_mispredict),
                 //INPUTS
                 .inst_valid(id_dp_valid_inst), .prega_idx(rat_prega_idx), .pregb_idx(rat_pregb_idx), .pdest_idx(rat_pdest_idx), .prega_valid(prf_valid_prega), .pregb_valid(prf_valid_pregb), //RAT
                 .ALUop(id_dp_alu_func), .rd_mem(id_dp_rd_mem), .wr_mem(id_dp_wr_mem), .rs_IR(id_dp_IR), . npc(id_dp_NPC), .cond_branch(id_dp_cond_branch), .uncond_branch(id_dp_uncond_branch),     //Issue Stage
@@ -563,7 +563,7 @@ module oo_pipeline (// Inputs
 
   always @(posedge clock)
   begin
-    if (reset)
+    if (reset | rob_mispredict)
     begin
 			is_ex_LSQ_idx			<= `SD 0;
 			is_ex_pdest_idx		<= `SD {`SCALAR{`ZERO_REG}};
@@ -600,7 +600,7 @@ module oo_pipeline (// Inputs
 
 assign ex_co_valid_inst = ex_cdb_valid_out;	// These signals are redundant. Remove one of them.
 
-ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset),
+ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 													// Inputs
 													.LSQ_idx(is_ex_LSQ_idx), .pdest_idx(is_ex_pdest_idx), 
 													.prega_value(is_ex_prega_value), .pregb_value(is_ex_pregb_value), 
