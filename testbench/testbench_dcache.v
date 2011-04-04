@@ -245,11 +245,12 @@ initial begin
 	@(posedge clk); `SD; `SD; show_cache(); inst_store(15,	20,		64'h000000000000000d);
 	@(posedge clk); `SD; `SD; show_cache(); inst_none();
 
-	@(posedge clk); `SD; `SD; show_cache(); inst_load(2,	17);
-	@(posedge clk); `SD; `SD; show_cache(); inst_load(2,	7);
+	@(posedge clk); `SD; `SD; show_cache(); inst_load(2,	17); // READ HIT, DATA=64'hdeadbeefdeadbeef
+	@(posedge clk); `SD; `SD; show_cache(); inst_load(2,	7);	 // READ MISS, DATA=64'hcccccccccccccccc should be returned later
 	@(posedge clk); `SD; `SD; show_cache(); inst_store(2,	1,	64'h1212121212121212);
 	@(posedge clk); `SD; `SD; show_cache(); inst_load(2,	17);
 	@(posedge clk); `SD; `SD; show_cache(); inst_none();
+	@(posedge clk); `SD; `SD; show_cache(); inst_store(2,	1,	64'h1234123412341234);
 
 
 

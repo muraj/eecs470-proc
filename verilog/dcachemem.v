@@ -99,26 +99,42 @@ module dcachemem_set (clock, reset, access,
 		end // if (reset)
 		else if(access) begin
 			if(wr_en) begin // if WRITE
-				case (recent)
-					2'b01	:	begin
-										data[1]		<= `SD wr_data;
-										tags[1]		<= `SD wr_tag;
-										recent		<= `SD 2'b10;
-										valids[1]	<= `SD 1'b1;
-									end
-					2'b10	:	begin
-										data[0]		<= `SD wr_data;
-										tags[0]		<= `SD wr_tag;
-										recent		<= `SD 2'b01;
-										valids[0]	<= `SD 1'b1;
-									end
-					default:	begin	
-											data[0]	<= `SD wr_data;
-											tags[0]	<= `SD wr_tag;
-											recent	<= `SD 2'b01;
-											valids[0]	<= `SD 1'b1;
-										end
-				endcase
+				// WRITE HIT
+				if(wr_tag == tags[1]) begin
+					data[1]		<= `SD wr_data;
+					tags[1]		<= `SD wr_tag;
+					recent		<= `SD 2'b10;
+					valids[1]	<= `SD 1'b1;
+				end
+				else if (wr_tag == tags[0]) begin
+					data[0]		<= `SD wr_data;
+					tags[0]		<= `SD wr_tag;
+					recent		<= `SD 2'b01;
+					valids[0]	<= `SD 1'b1;
+				end
+				// WRITE MISS
+				else begin
+					case (recent)
+						2'b01	:		begin
+												data[1]		<= `SD wr_data;
+												tags[1]		<= `SD wr_tag;
+												recent		<= `SD 2'b10;
+												valids[1]	<= `SD 1'b1;
+											end
+						2'b10	:		begin
+												data[0]		<= `SD wr_data;
+												tags[0]		<= `SD wr_tag;
+												recent		<= `SD 2'b01;
+												valids[0]	<= `SD 1'b1;
+											end
+						default:	begin	
+												data[0]	<= `SD wr_data;
+												tags[0]	<= `SD wr_tag;
+												recent	<= `SD 2'b01;
+												valids[0]	<= `SD 1'b1;
+											end
+					endcase
+				end
 			end // if(wr_en)
 			else if (!rd_miss) begin // if READ HIT
 				if			(rd_way==1'b1) recent <= `SD 2'b10;
