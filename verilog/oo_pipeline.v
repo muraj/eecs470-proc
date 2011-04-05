@@ -661,7 +661,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
   //////////////////////////////////////////////////
 
 
-  lsq lsq0 (.clk(clk), .reset(reset),
+  lsq lsq0 (.clk(clock), .reset(reset),
 						.full(), .full_almost(),
 						// Inputs at Dispatch
 						.rob_idx_in(rob_idx_out), .pdest_idx_in(rat_pdest_idx), .rd_mem_in(id_dp_rd_mem), .wr_mem_in(id_dp_wr_mem),
@@ -682,12 +682,12 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 					 );
 
 
-	dcachemem dcachemem0 (.clock(clk), .reset(reset), .en(dcachemem_en),
+	dcachemem dcachemem0 (.clock(clock), .reset(reset), .en(dcachemem_en),
    	      	         		.wr1_en(dcachemem_wr_en), .wr1_tag(dcachemem_wr_tag), .wr1_idx(dcachemem_wr_idx), .wr1_data(dcachemem_wr_data),
     	  	            	.rd1_tag(dcachemem_rd_tag), .rd1_idx(dcachemem_rd_idx), .rd1_data(dcachemem_rd_data), .rd1_valid(dcachemem_rd_valid)
 												);
 
-	dcache dcache0 (.clock(clk), .reset(reset),
+	dcache dcache0 (.clock(clock), .reset(reset),
        		      	// inputs
           		    .Dmem2Dcache_response(Dmem2proc_response), .Dmem2Dcache_tag(Dmem2proc_tag), .Dmem2Dcache_data(Dmem2proc_data),	// From Dmem
        		    	  .proc2Dcache_addr(lsq2dcache_addr), .proc2Dcache_command(lsq2dcache_command), .proc2Dcache_data(lsq2dcache_data),	// From Proc(LSQ)

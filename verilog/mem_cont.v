@@ -68,8 +68,8 @@ module MEM_CONT ( clk, reset,
 		else begin
 			result_reg				<= `SD LSQ_mem_value;
 			result_valid_reg	<= `SD LSQ_done & LSQ_rd_mem;
-			pdest_idx_reg			<= `SD LSQ_pdest_idx;
-			IR_reg						<= `SD 0; // FIXME
+			pdest_idx_reg			<= `SD (!LSQ_done) ? `ZERO_PRF : LSQ_pdest_idx;
+			IR_reg						<= `SD (!LSQ_done) ? `NOOP_INST : 0;
 			npc_reg						<= `SD 0; // FIXME
 			rob_idx_reg				<= `SD LSQ_rob_idx;
 			done_reg					<= `SD LSQ_done;
