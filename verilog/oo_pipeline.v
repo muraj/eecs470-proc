@@ -179,6 +179,10 @@ module oo_pipeline (// Inputs
 	wire [`SCALAR-1:0] 					ex_branch_NT_out;
 	wire [`SCALAR-1:0]					ex_ALU_free;
 	wire [`SCALAR-1:0]					ex_MULT_free;
+	wire [`LSQ_IDX*`SCALAR-1:0] ex_lsq_idx_out;
+	wire [64*`SCALAR-1:0]       ex_addr_out;
+	wire [64*`SCALAR-1:0]   	  ex_regv_out;
+	wire [`SCALAR-1:0]					ex_lsq_req;
 
   // RAT wires
   wire  [`SCALAR*`PRF_IDX-1:0] rat_prega_idx;
@@ -214,19 +218,40 @@ module oo_pipeline (// Inputs
   wire [63:0] bp_pc;
   wire [`SCALAR-1:0] id_dp_isbranch;
 
-  // For ROB
-  wire [`SCALAR*`ROB_IDX-1:0] rob_idx_out;
-  wire [`SCALAR*`ARF_IDX-1:0] rob_retire_dest_idx;
-  wire [`SCALAR*`PRF_IDX-1:0] rob_retire_pdest_idx;
-  output wire [`SCALAR-1:0]          rob_retire_valid_inst;
-  output wire [64*`SCALAR-1:0]       rob_retire_NPC;
-  output wire [32*`SCALAR-1:0]       rob_retire_IR;
+  // ROB Wires
+  output wire [`SCALAR-1:0]    rob_retire_valid_inst;
+  output wire [64*`SCALAR-1:0] rob_retire_NPC;
+  output wire [32*`SCALAR-1:0] rob_retire_IR;
 	wire rob_full, rob_full_almost;
-  wire [`SCALAR*64-1:0] rob_ba_out;
-  wire [63:0] rob_target_pc;
-  wire [`SCALAR-1:0] rob_bt_out;
-  wire [`SCALAR-1:0] rob_retire_isbranch;
-	wire [`ROB_IDX-1:0] rob_head;
+  wire [`SCALAR*`ROB_IDX-1:0]  rob_idx_out;
+  wire [`SCALAR*`ARF_IDX-1:0]  rob_retire_dest_idx;
+  wire [`SCALAR*`PRF_IDX-1:0]  rob_retire_pdest_idx;
+  wire [`SCALAR*64-1:0]				 rob_ba_out;
+  wire [`SCALAR-1:0] 					 rob_bt_out;
+  wire [`SCALAR-1:0] 					 rob_retire_isbranch;
+	wire [`ROB_IDX-1:0] 				 rob_head;
+  wire [63:0] 								 rob_target_pc;
+	
+	// LSQ Wires
+	wire [`SCALAR-1:0]					lsq_out_valid;
+	wire [`ROB_IDX*`SCALAR-1:0]	lsq_rob_idx_out; 
+	wire [`PRF_IDX*`SCALAR-1:0]	lsq_pdest_idx_out; 
+	wire [64*`SCALAR-1:0]				lsq_mem_value_out; 
+	wire [`SCALAR-1:0]					lsq_rd_mem_out;		 
+	wire [`SCALAR-1:0]					lsq_wr_mem_out;		 
+	wire [`LSQ_IDX*`SCALAR-1:0] lsq_idx_out;
+	wire [1:0]  lsq2dcache_command;
+	wire [63:0] lsq2dcache_addr;
+	wire [63:0] lsq2dcache_data;
+
+	// Dcache Wires
+	wire [`DCACHE_TAG_BITS-1:0] dcachemem_rd_tag, dcachemem_wr_tag;
+	wire [`DCACHE_IDX_BITS-1:0] dcachemem_rd_idx, dcachemem_wr_idx;
+	wire [63:0] dcachemem_rd_data, dcachemem_wr_data;
+	wire dcachemem_en;
+	wire dcachemem_wr_en;
+	wire dcachemem_rd_valid;
+
 
   // From the original version
   assign pipeline_completed_insts = rob_retire_valid_inst[0] + rob_retire_valid_inst[1];
@@ -487,6 +512,8 @@ module oo_pipeline (// Inputs
             .npc_in1(id_dp_NPC[`SEL(64,1)]), .npc_in2(id_dp_NPC[`SEL(64,2)]),
             .pdest_in1(rat_pdest_idx[`SEL(`PRF_IDX,1)]), .pdest_in2(rat_pdest_idx[`SEL(`PRF_IDX,2)]), 
             .adest_in1(id_dp_dest_reg_idx[`SEL(5,1)]), .adest_in2(id_dp_dest_reg_idx[`SEL(5,2)]),
+						// Outputs @ dispatch
+						.rob_idx_out1(rob_idx_out[`SEL(`ROB_IDX,1)]), .rob_idx_out2(rob_idx_out[`SEL(`ROB_IDX,2)]),
 						// Branch @ dispatch
             .ba_pd_in1(id_dp_NPC[`SEL(64,1)]), .ba_pd_in2(id_dp_NPC[`SEL(64,2)]), //FIXME 
             .bt_pd_in1(1'b0), .bt_pd_in2(1'b0), //FIXME
@@ -495,7 +522,6 @@ module oo_pipeline (// Inputs
 						.ba_ex_in1(ex_cdb_value_out[`SEL(64,1)]), .ba_ex_in2(ex_cdb_value_out[`SEL(64,2)]), .bt_ex_in1(ex_branch_NT_out[0]), .bt_ex_in2(ex_branch_NT_out[1]),
 						// For retire
             .dout1_valid(rob_retire_valid_inst[0]), .dout2_valid(rob_retire_valid_inst[1]), 
-						.rob_idx_out1(rob_idx_out[`SEL(`ROB_IDX,1)]), .rob_idx_out2(rob_idx_out[`SEL(`ROB_IDX,2)]),
 						.ir_out1(rob_retire_IR[`SEL(32,1)]), .ir_out2(rob_retire_IR[`SEL(32,2)]), 
             .npc_out1(rob_retire_NPC[`SEL(64,1)]), .npc_out2(rob_retire_NPC[`SEL(64,2)]),
             .pdest_out1(rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]), .pdest_out2(rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]),
@@ -611,23 +637,70 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 													.IR(is_ex_IR), .npc(is_ex_NPC), .rob_idx(is_ex_rob_idx), .EX_en(is_ex_valid_inst),
 
 													// Inputs (from LSQ)
-													.LSQ_rob_idx(0), .LSQ_pdest_idx(0), .LSQ_mem_value(0), .LSQ_done(0), .LSQ_rd_mem(0), .LSQ_wr_mem(0),
+													.LSQ_rob_idx(lsq_rob_idx_out), .LSQ_pdest_idx(lsq_pdest_idx_out), .LSQ_mem_value(lsq_mem_value_out), .LSQ_done(lsq_out_valid), .LSQ_rd_mem(lsq_rd_mem_out), .LSQ_wr_mem(lsq_wr_mem_out),
 
 													// Outputs
 													.cdb_tag(ex_cdb_tag_out), .cdb_valid(ex_cdb_valid_out), .cdb_value(ex_cdb_value_out), 
-													.cdb_MEM_result_valid(ex_mem_value_valid_out), 	// to CDB
+													.cdb_MEM_result_valid(ex_mem_value_valid_out), 	  // to CDB
 													.cdb_rob_idx(ex_rob_idx_out), .cdb_BR_result(ex_branch_NT_out), 
-													.cdb_npc(ex_co_NPC), .cdb_IR(ex_co_IR),					// to CDB
-													.ALU_free(ex_ALU_free), .MULT_free(ex_MULT_free), 																	// to RS
+													.cdb_npc(ex_co_NPC), .cdb_IR(ex_co_IR),					  // to CDB
+													.ALU_free(ex_ALU_free), .MULT_free(ex_MULT_free), // to RS
 
 													// Outputs (to LSQ)
-													.EX_LSQ_idx(), .EX_MEM_ADDR(), .EX_MEM_reg_value(), .EX_MEM_valid(),
+
+													.EX_LSQ_idx(ex_lsq_idx_out), .EX_MEM_ADDR(ex_addr_out), .EX_MEM_reg_value(ex_regv_out), .EX_MEM_valid(ex_lsq_req),
 
 													// Outputs (to PRF)
 													.ALU_result_out(), .ALU_pdest_idx_out(), .ALU_done_reg(),
 													.MULT_result_out(), .MULT_pdest_idx_out(), .MULT_done_reg(),
 													.MEM_result_out(), .MEM_pdest_idx_out(), .MEM_result_valid_out()
 						              );
+
+
+  //////////////////////////////////////////////////
+  //                                              //
+  //                LSQ & DCACHE                  //
+  //                                              //
+  //////////////////////////////////////////////////
+
+
+  lsq lsq0 (.clk(clk), .reset(reset),
+						.full(), .full_almost(),
+						// Inputs at Dispatch
+						.rob_idx_in(rob_idx_out), .pdest_idx_in(rat_pdest_idx), .rd_mem_in(id_dp_rd_mem), .wr_mem_in(id_dp_wr_mem),
+						// Inputs from EX
+						.up_req(ex_lsq_req), .lsq_idx_in(ex_lsq_idx_out), .addr_in(ex_addr_out), .regv_in(ex_regv_out),
+						// Inputs from MEM
+						.mem2lsq_response(Dmem2proc_response),
+						// Inputs from DCACHE
+						.dcache2lsq_valid(dcache2lsq_valid), .dcache2lsq_tag(dcache2lsq_tag), .dcache2lsq_data(dcache2lsq_data),
+						// Inputs from ROB
+						.rob_head(rob_head),
+						// Output at Dispatch
+						.lsq_idx_out(lsq_idx_out),
+						// Outputs to EX
+						.out_valid(lsq_out_valid), .rob_idx_out(lsq_rob_idx_out), .pdest_idx_out(lsq_pdest_idx_out), .mem_value_out(lsq_mem_value_out), .rd_mem_out(lsq_rd_mem_out), .wr_mem_out(lsq_wr_mem_out),
+						// Outputs to DCACHE
+						.lsq2mem_command(lsq2dcache_command), .lsq2mem_addr(lsq2dcache_addr), .lsq2mem_data(lsq2dcache_data)
+					 );
+
+
+	dcachemem dcachemem0 (.clock(clk), .reset(reset), .en(dcachemem_en),
+   	      	         		.wr1_en(dcachemem_wr_en), .wr1_tag(dcachemem_wr_tag), .wr1_idx(dcachemem_wr_idx), .wr1_data(dcachemem_wr_data),
+    	  	            	.rd1_tag(dcachemem_rd_tag), .rd1_idx(dcachemem_rd_idx), .rd1_data(dcachemem_rd_data), .rd1_valid(dcachemem_rd_valid)
+												);
+
+	dcache dcache0 (.clock(clk), .reset(reset),
+       		      	// inputs
+          		    .Dmem2Dcache_response(Dmem2proc_response), .Dmem2Dcache_tag(Dmem2proc_tag), .Dmem2Dcache_data(Dmem2proc_data),	// From Dmem
+       		    	  .proc2Dcache_addr(lsq2dcache_addr), .proc2Dcache_command(lsq2mem_command), .proc2Dcache_data(lsq2dcache_data),	// From Proc(LSQ)
+         		    	.cachemem_data(dcachemem_rd_data), .cachemem_valid(dcachemem_rd_valid), // From Dcachemem
+           			  // outputs
+     			        .Dcache2Dmem_command(proc2Dmem_command), .Dcache2Dmem_addr(proc2Dmem_addr), .Dcache2Dmem_data(proc2Dmem_data),	// To Dmem
+          		    .Dcache2proc_data(dcache2lsq_data), .Dcache2proc_valid(dcache2lsq_valid), .Dcache2proc_tag(dcache2lsq_tag), 		// To Proc(LSQ)
+             			.rd_idx(dcachemem_rd_idx), .rd_tag(dcachemem_rd_tag), .wr_idx(dcachemem_wr_idx), .wr_tag(dcachemem_wr_tag), .wr_data(dcachemem_wr_data), .wr_en(dcachemem_wr_en), .en(dcachemem_en)	// To Dcachemem
+        			    );
+
 
 endmodule  // module oo_pipeline
 
