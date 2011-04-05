@@ -517,7 +517,7 @@ module ex_co_stage(clk, reset,
 									ALU_free, MULT_free, 																	// to RS
 
 									// Outputs (to LSQ)
-									EX_LSQ_idx, EX_MEM_ADDR, EX_MEM_reg_value,
+									EX_LSQ_idx, EX_MEM_ADDR, EX_MEM_reg_value, EX_MEM_valid,
 
 									// Outputs (to PRF)
 									ALU_result_out, ALU_pdest_idx_out, ALU_done_reg,
@@ -552,6 +552,7 @@ module ex_co_stage(clk, reset,
 	output [`LSQ_IDX*`SCALAR-1:0]	EX_LSQ_idx;
 	output [64*`SCALAR-1:0]				EX_MEM_ADDR;
 	output [64*`SCALAR-1:0]				EX_MEM_reg_value;
+	output [`SCALAR-1:0]					EX_MEM_valid;
 // END OF Outputs to the LSQ
 
 // Outputs to the CDB Interface 
@@ -671,7 +672,7 @@ module ex_co_stage(clk, reset,
 												.LSQ_pdest_idx(LSQ_pdest_idx[`SEL(`PRF_IDX,1)]), .LSQ_mem_value(LSQ_mem_value[`SEL(64,1)]), 
 												.LSQ_done(LSQ_done[`SEL(1,1)]), .LSQ_rd_mem(LSQ_rd_mem[`SEL(1,1)]), .LSQ_wr_mem(LSQ_wr_mem[`SEL(1,1)]),
 								 				//Outputs to LSQ
-								 				.MEM_LSQ_idx(EX_LSQ_idx[`SEL(`LSQ_IDX,1)]), .MEM_ADDR(EX_MEM_ADDR[`SEL(64,1)]), .MEM_reg_value(EX_MEM_reg_value[`SEL(64,1)]), 
+								 				.MEM_LSQ_idx(EX_LSQ_idx[`SEL(`LSQ_IDX,1)]), .MEM_ADDR(EX_MEM_ADDR[`SEL(64,1)]), .MEM_reg_value(EX_MEM_reg_value[`SEL(64,1)]), .MEM_valid(EX_MEM_valid[`SEL(1,1)]),
 								 				//Outputs to EX/CO registers
 								 				.result_reg(MEM_result_out[`SEL(64,1)]), .result_valid_reg(MEM_result_valid_out[`SEL(1,1)]), 
 												.pdest_idx_reg(MEM_pdest_idx_out[`SEL(`PRF_IDX,1)]), .IR_reg(MEM_IR_out[`SEL(32,1)]), 
@@ -723,7 +724,7 @@ module ex_co_stage(clk, reset,
 												.LSQ_pdest_idx(LSQ_pdest_idx[`SEL(`PRF_IDX,2)]), .LSQ_mem_value(LSQ_mem_value[`SEL(64,2)]), 
 												.LSQ_done(LSQ_done[`SEL(1,2)]), .LSQ_rd_mem(LSQ_rd_mem[`SEL(1,2)]), .LSQ_wr_mem(LSQ_wr_mem[`SEL(1,2)]),
 								 				//Outputs to LSQ
-								 				.MEM_LSQ_idx(EX_LSQ_idx[`SEL(`LSQ_IDX,2)]), .MEM_ADDR(EX_MEM_ADDR[`SEL(64,2)]), .MEM_reg_value(EX_MEM_reg_value[`SEL(64,2)]), 
+								 				.MEM_LSQ_idx(EX_LSQ_idx[`SEL(`LSQ_IDX,2)]), .MEM_ADDR(EX_MEM_ADDR[`SEL(64,2)]), .MEM_reg_value(EX_MEM_reg_value[`SEL(64,2)]), .MEM_valid(EX_MEM_valid[`SEL(1,2)]), 
 								 				//Outputs to EX/CO registers
 								 				.result_reg(MEM_result_out[`SEL(64,2)]), .result_valid_reg(MEM_result_valid_out[`SEL(1,2)]), 
 												.pdest_idx_reg(MEM_pdest_idx_out[`SEL(`PRF_IDX,2)]), .IR_reg(MEM_IR_out[`SEL(32,2)]), 

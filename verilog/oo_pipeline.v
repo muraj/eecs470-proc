@@ -621,7 +621,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 													.ALU_free(ex_ALU_free), .MULT_free(ex_MULT_free), 																	// to RS
 
 													// Outputs (to LSQ)
-													.EX_LSQ_idx(), .EX_MEM_ADDR(), .EX_MEM_reg_value(),
+													.EX_LSQ_idx(), .EX_MEM_ADDR(), .EX_MEM_reg_value(), .EX_MEM_valid(),
 
 													// Outputs (to PRF)
 													.ALU_result_out(), .ALU_pdest_idx_out(), .ALU_done_reg(),
