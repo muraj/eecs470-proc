@@ -32,7 +32,8 @@ TESTBENCH = 	sys_defs.vh	    \
 		testbench/mem.v		    \
 		testbench/pipe_print.c
 SIMFILES =	verilog/oo_pipeline.v	\
-		verilog/icache.v	\
+		verilog/icache.v	  \
+		verilog/dcache.v	  \
 		verilog/if_stage.v	\
 		verilog/id_stage.v	\
 		verilog/ex_stage.v	\
@@ -40,9 +41,11 @@ SIMFILES =	verilog/oo_pipeline.v	\
 		verilog/mult.v			\
 		verilog/mem_cont.v	\
 		verilog/cachemem.v  \
+		verilog/dcachemem.v \
 		verilog/rob.v			  \
 		verilog/cb.v				\
 		verilog/superrs.v   \
+		verilog/lsq.v       \
 		verilog/rs.v				\
 		verilog/rat.v				\
 		verilog/ps.v				\
