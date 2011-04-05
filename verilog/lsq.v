@@ -301,6 +301,6 @@ module lsq (clk, reset,
 	cb #(.CB_IDX(`LSQ_IDX), .CB_WIDTH(`ROB_IDX)) cb_rob_idx (.clk(clk), .reset(reset),	.move_tail(flush), .tail_new(tail_new), .din1_en(in_req[0]), .din2_en(in_req[1]), .dout1_req(commit[0]), .dout2_req(commit[1]), .din1(rob_idx_in[`SEL(`ROB_IDX,1)]), .din2(rob_idx_in[`SEL(`ROB_IDX,2)]), .dout1(rob_idx_out[`SEL(`ROB_IDX,1)]), .dout2(rob_idx_out[`SEL(`ROB_IDX,2)]), .full(), .full_almost(), .head(), .tail());
 	
 	// Circular buffer for pdest_idx
-	cb #(.CB_IDX(`LSQ_IDX), .CB_WIDTH(32)) cb_pdest_idx (.clk(clk), .reset(reset),	.move_tail(flush), .tail_new(tail_new), .din1_en(in_req[0]), .din2_en(in_req[1]), .dout1_req(commit[0]), .dout2_req(commit[1]), .din1(pdest_idx_in[`SEL(`PRF_IDX,1)]), .din2(pdest_idx_in[`SEL(`PRF_IDX,2)]), .dout1(pdest_idx_out[`SEL(`PRF_IDX,1)]), .dout2(pdest_idx_out[`SEL(`PRF_IDX,2)]), .full(), .full_almost(), .head(), .tail());
+	cb #(.CB_IDX(`LSQ_IDX), .CB_WIDTH(`PRF_IDX)) cb_pdest_idx (.clk(clk), .reset(reset),	.move_tail(flush), .tail_new(tail_new), .din1_en(in_req[0]), .din2_en(in_req[1]), .dout1_req(commit[0]), .dout2_req(commit[1]), .din1(pdest_idx_in[`SEL(`PRF_IDX,1)]), .din2(pdest_idx_in[`SEL(`PRF_IDX,2)]), .dout1(pdest_idx_out[`SEL(`PRF_IDX,1)]), .dout2(pdest_idx_out[`SEL(`PRF_IDX,2)]), .full(), .full_almost(), .head(), .tail());
 
 endmodule

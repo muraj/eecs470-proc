@@ -251,6 +251,11 @@ module oo_pipeline (// Inputs
 	wire dcachemem_en;
 	wire dcachemem_wr_en;
 	wire dcachemem_rd_valid;
+	wire [3:0]	dcache2lsq_tag;
+	wire [63:0]	dcache2lsq_data;
+	wire [3:0]	Dmem2proc_tag;
+	wire [63:0]	Dmem2proc_data;
+	wire				dcache2lsq_valid;
 
 
   // From the original version
@@ -271,16 +276,11 @@ module oo_pipeline (// Inputs
   `endif
   assign pipeline_commit_NPC = rob_retire_NPC;
 
-  assign proc2Dmem_command = `BUS_NONE;     //FIXME
 
-  assign proc2mem_command =
-           (proc2Dmem_command==`BUS_NONE)?proc2Imem_command:proc2Dmem_command;
-  assign proc2mem_addr =
-           (proc2Dmem_command==`BUS_NONE)?proc2Imem_addr:proc2Dmem_addr;
-  assign Dmem2proc_response = 
-      (proc2Dmem_command==`BUS_NONE) ? 0 : mem2proc_response;
-  assign Imem2proc_response =
-      (proc2Dmem_command==`BUS_NONE) ? mem2proc_response : 0;
+  assign proc2mem_command		= (proc2Dmem_command==`BUS_NONE) ? proc2Imem_command:proc2Dmem_command;
+  assign proc2mem_addr			= (proc2Dmem_command==`BUS_NONE) ? proc2Imem_addr:proc2Dmem_addr;
+  assign Dmem2proc_response	= (proc2Dmem_command==`BUS_NONE) ? 0 : mem2proc_response;
+  assign Imem2proc_response	= (proc2Dmem_command==`BUS_NONE) ? mem2proc_response : 0;
 
 
   // Actual cache (data and tag RAMs)
@@ -547,7 +547,7 @@ module oo_pipeline (// Inputs
                 //INPUTS
                 .inst_valid(id_dp_valid_inst), .prega_idx(rat_prega_idx), .pregb_idx(rat_pregb_idx), .pdest_idx(rat_pdest_idx), .prega_valid(prf_valid_prega), .pregb_valid(prf_valid_pregb), //RAT
                 .ALUop(id_dp_alu_func), .rd_mem(id_dp_rd_mem), .wr_mem(id_dp_wr_mem), .rs_IR(id_dp_IR), . npc(id_dp_NPC), .cond_branch(id_dp_cond_branch), .uncond_branch(id_dp_uncond_branch),     //Issue Stage
-                .multfu_free(ex_MULT_free), .exfu_free(ex_ALU_free), .memfu_free(2'b11), .cdb_valid(ex_cdb_valid_out), .cdb_tag(ex_cdb_tag_out), .entry_flush({`RS_SZ{0}}),   //Pipeline communication
+                .multfu_free(ex_MULT_free), .exfu_free(ex_ALU_free), .memfu_free(2'b11), .cdb_valid(ex_cdb_valid_out), .cdb_tag(ex_cdb_tag_out), .entry_flush({`SCALAR*`RS_SZ{1'b0}}),   //Pipeline communication
 //                .multfu_free(2'b0), .exfu_free(2'b0), .memfu_free(2'b11), .cdb_valid(cdb_valid), .cdb_tag(cdb_tag), .entry_flush({`RS_SZ{0}}),   //Pipeline communication - Disable ex_stage
                 .rob_idx(rob_idx_out), //ROB
                 .lsq_idx(lsq_idx_out), //LSQ
@@ -690,10 +690,10 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 	dcache dcache0 (.clock(clk), .reset(reset),
        		      	// inputs
           		    .Dmem2Dcache_response(Dmem2proc_response), .Dmem2Dcache_tag(Dmem2proc_tag), .Dmem2Dcache_data(Dmem2proc_data),	// From Dmem
-       		    	  .proc2Dcache_addr(lsq2dcache_addr), .proc2Dcache_command(lsq2mem_command), .proc2Dcache_data(lsq2dcache_data),	// From Proc(LSQ)
+       		    	  .proc2Dcache_addr(lsq2dcache_addr), .proc2Dcache_command(lsq2dcache_command), .proc2Dcache_data(lsq2dcache_data),	// From Proc(LSQ)
          		    	.cachemem_data(dcachemem_rd_data), .cachemem_valid(dcachemem_rd_valid), // From Dcachemem
            			  // outputs
-     			        .Dcache2Dmem_command(proc2Dmem_command), .Dcache2Dmem_addr(proc2Dmem_addr), .Dcache2Dmem_data(proc2Dmem_data),	// To Dmem
+     			        .Dcache2Dmem_command(proc2Dmem_command), .Dcache2Dmem_addr(proc2Dmem_addr), .Dcache2Dmem_data(proc2mem_data),	// To Dmem
           		    .Dcache2proc_data(dcache2lsq_data), .Dcache2proc_valid(dcache2lsq_valid), .Dcache2proc_tag(dcache2lsq_tag), 		// To Proc(LSQ)
              			.rd_idx(dcachemem_rd_idx), .rd_tag(dcachemem_rd_tag), .wr_idx(dcachemem_wr_idx), .wr_tag(dcachemem_wr_tag), .wr_data(dcachemem_wr_data), .wr_en(dcachemem_wr_en), .en(dcachemem_en)	// To Dcachemem
         			    );
