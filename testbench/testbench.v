@@ -70,6 +70,7 @@ module testbench;
   wire [31:0] rs1_IR[`RS_SZ-1:0];
   wire [63:0] rs1_npc[`RS_SZ-1:0];
   wire [`ROB_IDX-1:0] rs1_rob_idx[`RS_SZ-1:0];
+  wire [`LSQ_IDX-1:0] rs1_lsq_idx[`RS_SZ-1:0];
   wire [`RS_SZ-1:0] rs1_rdy;
   wire [`RS_SZ-1:0] rs1_free;
   wire [`PRF_IDX-1:0] rs1_prega_idx[`RS_SZ-1:0];
@@ -79,6 +80,7 @@ module testbench;
   wire [31:0] rs2_IR[`RS_SZ-1:0];
   wire [63:0] rs2_npc[`RS_SZ-1:0];
   wire [`ROB_IDX-1:0] rs2_rob_idx[`RS_SZ-1:0];
+  wire [`LSQ_IDX-1:0] rs2_lsq_idx[`RS_SZ-1:0];
   wire [`RS_SZ-1:0] rs2_rdy;
   wire [`RS_SZ-1:0] rs2_free;
   wire [`PRF_IDX-1:0] rs2_prega_idx[`RS_SZ-1:0];
@@ -92,6 +94,7 @@ genvar rs_iter;
     assign rs1_IR[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.rs_IR_out;
     assign rs1_npc[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.npc_out;
     assign rs1_rob_idx[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.rob_idx_out;
+    assign rs1_lsq_idx[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.lsq_idx_out;
     assign rs1_rdy[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.rdy;
     assign rs1_free[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.entry_free;
     assign rs1_prega_idx[rs_iter] = pipeline_0.rs0.rs0.entries[rs_iter].entry.prega_idx_out;
@@ -100,6 +103,7 @@ genvar rs_iter;
     assign rs2_IR[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rs_IR_out;
     assign rs2_npc[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.npc_out;
     assign rs2_rob_idx[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rob_idx_out;
+    assign rs2_lsq_idx[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.lsq_idx_out;
     assign rs2_rdy[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.rdy;
     assign rs2_free[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.entry_free;
     assign rs2_prega_idx[rs_iter] = pipeline_0.rs0.rs1.entries[rs_iter].entry.prega_idx_out;
@@ -114,14 +118,16 @@ always @(posedge clock) begin
  if(~reset) begin
   $fdisplay(rs_fileno, "|======================================== Cycle: %10d ======================================================|", clock_count);
   $fdisplay(rs_fileno, "id_dp_IR %h id_dp_valid %b", pipeline_0.id_dp_IR, pipeline_0.id_dp_valid_inst);
+  $fdisplay(rs_fileno, "dp_is_IR1: %s prega_idx1: %0d pregb_idx1: %0d", get_instr_string(pipeline_0.dp_is_IR[`SEL(32,1)], pipeline_0.dp_is_valid_inst[0]), pipeline_0.dp_prega_idx[`SEL(`PRF_IDX,1)], pipeline_0.dp_pregb_idx[`SEL(`PRF_IDX, 1)]);
+  $fdisplay(rs_fileno, "dp_is_IR2: %s prega_idx2: %0d pregb_idx2: %0d", get_instr_string(pipeline_0.dp_is_IR[`SEL(32,2)], pipeline_0.dp_is_valid_inst[1]), pipeline_0.dp_prega_idx[`SEL(`PRF_IDX,2)], pipeline_0.dp_pregb_idx[`SEL(`PRF_IDX, 2)]);
   $fdisplay(rs_fileno, "|                            RS0                            |                           RS1                       |");
-  $fdisplay(rs_fileno, "| IDX |   IR    |       NPC      | ROB | RA | RB | RD | R/F |    IR   |       NPC      | ROB | RA | RB | RD | R/F |");
+  $fdisplay(rs_fileno, "| IDX |   IR    |       NPC      | LSQ | ROB | RA | RB | RD | R/F |    IR   |       NPC      | LSQ | ROB | RA | RB | RD | R/F |");
   $fdisplay(rs_fileno, "|=================================================================================================================|");
   `define DISPLAY_RS(i) \
-      $fdisplay(rs_fileno, "|%4d |%9s|%16h|  %02d | %02d | %02d | %02d | %b/%b |%9s|%16h|  %02d | %02d | %02d | %02d | %b/%b |", i, \
-                get_instr_string(rs1_IR[i], !rs1_free[i]), rs1_npc[i], rs1_rob_idx[i], rs1_prega_idx[i], rs1_pregb_idx[i], rs1_pdest_idx[i], rs1_rdy[i], rs1_free[i], \
+      $fdisplay(rs_fileno, "|%4d |%9s|%16h| %03d | %03d | %02d | %02d | %02d | %b/%b |%9s|%16h| %03d | %03d | %02d | %02d | %02d | %b/%b |", i, \
+                get_instr_string(rs1_IR[i], !rs1_free[i]), rs1_npc[i], rs1_lsq_idx[i], rs1_rob_idx[i], rs1_prega_idx[i], rs1_pregb_idx[i], rs1_pdest_idx[i], rs1_rdy[i], rs1_free[i], \
                 `ifdef SUPERSCALAR  \
-                get_instr_string(rs2_IR[i], !rs2_free[i]), rs2_npc[i], rs2_rob_idx[i], rs2_prega_idx[i], rs2_pregb_idx[i], rs2_pdest_idx[i], rs2_rdy[i], rs2_free[i]  \
+                get_instr_string(rs2_IR[i], !rs2_free[i]), rs2_npc[i], rs2_lsq_idx[i], rs2_rob_idx[i], rs2_prega_idx[i], rs2_pregb_idx[i], rs2_pdest_idx[i], rs2_rdy[i], rs2_free[i]  \
                 `endif  \
                 );
   `DISPLAY_RS(0) `DISPLAY_RS(1) `DISPLAY_RS(2)

@@ -138,7 +138,6 @@ module oo_pipeline (// Inputs
   reg  [`SCALAR-1:0]    id_dp_valid_inst;
 
 	// Outputs from DISPATCH stage
-	wire	[`LSQ_IDX*`SCALAR-1:0]	dp_LSQ_idx;
 	wire	[`PRF_IDX*`SCALAR-1:0]	dp_pdest_idx;
 	wire	[`PRF_IDX*`SCALAR-1:0]	dp_prega_idx;
 	wire	[`PRF_IDX*`SCALAR-1:0]	dp_pregb_idx;
@@ -150,10 +149,10 @@ module oo_pipeline (// Inputs
 	output wire	[32*`SCALAR-1:0]	dp_is_IR;
 	output wire	[64*`SCALAR-1:0] 	dp_is_NPC;
 	wire	[`ROB_IDX*`SCALAR-1:0] 	dp_rob_idx;
+  wire  [`LSQ_IDX*`SCALAR-1:0]  dp_lsq_idx;
 	output wire	[`SCALAR-1:0] 		dp_is_valid_inst;
 
 	// Outputs from DISPATCH/EX Pipeline Register
-	reg [`LSQ_IDX*`SCALAR-1:0]	is_ex_LSQ_idx;
 	reg	[`PRF_IDX*`SCALAR-1:0]	is_ex_pdest_idx;
 	reg	[64*`SCALAR-1:0] 				is_ex_prega_value;
 	reg	[64*`SCALAR-1:0] 				is_ex_pregb_value;
@@ -164,6 +163,7 @@ module oo_pipeline (// Inputs
 	output reg	[64*`SCALAR-1:0] 				is_ex_NPC;
 	output reg	[`SCALAR-1:0] 	is_ex_valid_inst;
 	reg	[`ROB_IDX*`SCALAR-1:0] 	is_ex_rob_idx;
+	reg	[`LSQ_IDX*`SCALAR-1:0] 	is_ex_lsq_idx;
 
 		// only for DEBUGGING
 	output [64*`SCALAR-1:0]				ex_co_NPC;
@@ -550,6 +550,7 @@ module oo_pipeline (// Inputs
                 .multfu_free(ex_MULT_free), .exfu_free(ex_ALU_free), .memfu_free(2'b11), .cdb_valid(ex_cdb_valid_out), .cdb_tag(ex_cdb_tag_out), .entry_flush({`RS_SZ{0}}),   //Pipeline communication
 //                .multfu_free(2'b0), .exfu_free(2'b0), .memfu_free(2'b11), .cdb_valid(cdb_valid), .cdb_tag(cdb_tag), .entry_flush({`RS_SZ{0}}),   //Pipeline communication - Disable ex_stage
                 .rob_idx(rob_idx_out), //ROB
+                .lsq_idx(lsq_idx_out), //LSQ
 
                 //OUTPUT
                 .rs_stall(rs_stall), .rs_rdy(), //Hazard detect
@@ -557,7 +558,8 @@ module oo_pipeline (// Inputs
 								.ALUop_out(dp_ALUop), .rd_mem_out(dp_rd_mem), //FU
                 .wr_mem_out(dp_wr_mem), .rs_IR_out(dp_is_IR), .npc_out(dp_is_NPC), 
 								.rob_idx_out(dp_rob_idx), .en_out(dp_is_valid_inst), //FU
-                .rs_idx_out() //ROB
+                .rs_idx_out(), //ROB
+                .lsq_idx_out(dp_lsq_idx)
          			 );
 
   //////////////////////////////////////////////////
@@ -594,30 +596,31 @@ module oo_pipeline (// Inputs
   begin
     if (reset | rob_mispredict)
     begin
-			is_ex_LSQ_idx			<= `SD 0;
+			is_ex_lsq_idx			<= `SD 0;
 			is_ex_pdest_idx		<= `SD {`SCALAR{`ZERO_REG}};
 			is_ex_prega_value	<= `SD 0;
 			is_ex_pregb_value	<= `SD 0;
 			is_ex_ALUop				<= `SD 0;
 			is_ex_rd_mem			<= `SD 0;
 			is_ex_wr_mem			<= `SD 0;
-			is_ex_IR				<= `SD {`SCALAR{`NOOP_INST}};
+			is_ex_IR				  <= `SD {`SCALAR{`NOOP_INST}};
 			is_ex_NPC					<= `SD 0;
 			is_ex_rob_idx			<= `SD 0;
-			is_ex_valid_inst				<= `SD 0;
+			is_ex_lsq_idx			<= `SD 0;
+			is_ex_valid_inst	<= `SD 0;
     end // if (reset)
     else begin
-			is_ex_LSQ_idx			<= `SD 0;	// FIXME
 			is_ex_pdest_idx		<= `SD dp_pdest_idx;
 			is_ex_prega_value	<= `SD {prega_value[1], prega_value[0]};
 			is_ex_pregb_value	<= `SD {pregb_value[1], pregb_value[0]};
 			is_ex_ALUop				<= `SD dp_ALUop;
 			is_ex_rd_mem			<= `SD dp_rd_mem;
 			is_ex_wr_mem			<= `SD dp_wr_mem;
-			is_ex_IR				<= `SD dp_is_IR;
+			is_ex_IR				  <= `SD dp_is_IR;
 			is_ex_NPC					<= `SD dp_is_NPC;
 			is_ex_rob_idx			<= `SD dp_rob_idx;
-			is_ex_valid_inst				<= `SD dp_is_valid_inst;
+      is_ex_lsq_idx     <= `SD dp_lsq_idx;
+			is_ex_valid_inst	<= `SD dp_is_valid_inst;
     end // else: !if(reset)
   end // always
 
@@ -631,7 +634,7 @@ assign ex_co_valid_inst = ex_cdb_valid_out;	// These signals are redundant. Remo
 
 ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 													// Inputs
-													.LSQ_idx(is_ex_LSQ_idx), .pdest_idx(is_ex_pdest_idx), 
+													.LSQ_idx(is_ex_lsq_idx), .pdest_idx(is_ex_pdest_idx), 
 													.prega_value(is_ex_prega_value), .pregb_value(is_ex_pregb_value), 
 													.ALUop(is_ex_ALUop), .rd_mem(is_ex_rd_mem), .wr_mem(is_ex_wr_mem),
 													.IR(is_ex_IR), .npc(is_ex_NPC), .rob_idx(is_ex_rob_idx), .EX_en(is_ex_valid_inst),
@@ -648,13 +651,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 
 													// Outputs (to LSQ)
 
-													.EX_LSQ_idx(ex_lsq_idx_out), .EX_MEM_ADDR(ex_addr_out), .EX_MEM_reg_value(ex_regv_out), .EX_MEM_valid(ex_lsq_req),
-
-													// Outputs (to PRF)
-													.ALU_result_out(), .ALU_pdest_idx_out(), .ALU_done_reg(),
-													.MULT_result_out(), .MULT_pdest_idx_out(), .MULT_done_reg(),
-													.MEM_result_out(), .MEM_pdest_idx_out(), .MEM_result_valid_out()
-						              );
+													.EX_LSQ_idx(ex_lsq_idx_out), .EX_MEM_ADDR(ex_addr_out), .EX_MEM_reg_value(ex_regv_out), .EX_MEM_valid(ex_lsq_req));
 
 
   //////////////////////////////////////////////////

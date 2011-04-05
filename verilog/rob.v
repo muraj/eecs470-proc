@@ -41,7 +41,7 @@ module rob (clk, reset,
 	output [`ARF_IDX-1:0] adest_out1, adest_out2;
 	output [31:0] ir_out1, ir_out2;
 	output [63:0] npc_out1, npc_out2;
-	output reg branch_miss;
+	output wire branch_miss;
 	output [64*`SCALAR-1:0] ba_out;
 	output reg [63:0] correct_target;
 	output reg full, full_almost;
@@ -77,6 +77,11 @@ module rob (clk, reset,
 	wire [63:0] ba_pd_out1, ba_pd_out2;
 	wire isbranch_out1, isbranch_out2;
 
+  //Branch miss
+  wire branch_miss1 = (isbranch_out1) ? (data_bt_ex[head] != bt_pd_out1) || (data_ba_ex[head] != ba_pd_out1) : 0; 
+  wire branch_miss2 = (isbranch_out2) ? (data_bt_ex[head] != bt_pd_out2) || (data_ba_ex[head] != ba_pd_out2) : 0;
+  assign branch_miss = (retire1 & branch_miss1);  // | branch_miss2;
+
   // Data input indicators for outside world
 //	assign din1_rdy = !full;
 //	assign din2_rdy = !full && !full_almost;
@@ -90,7 +95,7 @@ module rob (clk, reset,
 
 	// Retiring decision
 	assign retire1 = !empty && data_rdy[head];
-	assign retire2 = !empty_almost && retire1 && data_rdy[head_p1];
+	assign retire2 = !empty_almost && retire1 && data_rdy[head_p1] && !branch_miss2;
 	
 	// ===================================================
 	// Duplicate cb functionality for things to be updated
@@ -112,6 +117,7 @@ module rob (clk, reset,
 	assign debug2	= data_bt_ex[head_p1]; //debug
 
 
+
 		
 	always @* begin
 		// default cases for data
@@ -130,7 +136,6 @@ module rob (clk, reset,
 		outcount = 2'd0;
 		dout1_valid = retire1;
 		dout2_valid = retire2;
-		branch_miss = 0;
 		move_tail = 0;
 		correct_target = 64'd0;
 
@@ -147,26 +152,19 @@ module rob (clk, reset,
 		end
 
 		// deal with branch misses
-		if (retire1 && isbranch_out1) begin
-			if ((data_bt_ex[head] != bt_pd_out1) || (data_ba_ex[head] != ba_pd_out1)) begin
-			//if ((data_bt_ex[head] != bt_pd_out1)) begin
-				branch_miss = 1;
+    if(retire1 && branch_miss1) begin
 				correct_target = data_ba_ex[head];
 				dout2_valid = 0;	
 				move_tail = 1;
 				tail_new = next_head;
-			end
-			
-		end else if (retire2 && isbranch_out2) begin
-			if ((data_bt_ex[head_p1] != bt_pd_out2) || (data_ba_ex[head_p1] != ba_pd_out2)) begin
-			//if ((data_bt_ex[head_p1] != bt_pd_out2)) begin
-				branch_miss = 1;
+  	end
+/*		else if (branch_miss2) begin
 			  correct_target = data_ba_ex[head_p1];
 				move_tail = 1;
 				tail_new = next_head;
 			end 
 		end
-
+*/
 		// deal with tail and data in (allocate)
 		if (move_tail) begin
 			next_tail = tail_new;

@@ -4,12 +4,14 @@ module RS(clk, reset,
                 ALUop, rd_mem, wr_mem, rs_IR,  npc, cond_branch, uncond_branch, //Issue Stage
                 mult_free, ALU_free, mem_free, cdb_valid, cdb_tag, entry_flush,//Pipeline communication
                 rob_idx,  //ROB
+                lsq_idx,  //LSQ
 
                 //OUTPUT
                 rs_free,  ALU_rdy, mem_rdy, mult_rdy, //Hazard detect
                 pdest_idx_out, prega_idx_out, pregb_idx_out, ALUop_out, rd_mem_out,   //FU
                 wr_mem_out, rs_IR_out, npc_out, rob_idx_out,                          //FU
-    			rs_idx_out															  //ROB
+          			rs_idx_out,															  //ROB
+                lsq_idx_out                               //LSQ
           );
 
   input wire  clk, reset;
@@ -26,6 +28,7 @@ module RS(clk, reset,
   input wire  [`SCALAR*`PRF_IDX-1:0] cdb_tag;
   input wire  [`RS_SZ-1:0] entry_flush;
   input wire  [`ROB_IDX-1:0] rob_idx;
+  input wire  [`LSQ_IDX-1:0] lsq_idx;
 
   output wire rs_free;
   output wire ALU_rdy, mem_rdy, mult_rdy;
@@ -35,6 +38,7 @@ module RS(clk, reset,
   output wire [31:0] rs_IR_out;
   output wire [63:0] npc_out;
   output wire [`ROB_IDX-1:0] rob_idx_out;
+  output wire [`LSQ_IDX-1:0] lsq_idx_out;
   output wire [`RS_IDX-1:0] rs_idx_out; // Output of ex encoder
 
   wire [`RS_SZ-1:0] entry_free;
@@ -48,6 +52,7 @@ module RS(clk, reset,
   wire [31:0] rs_IR_int [`RS_SZ-1:0];
   wire [63:0] npc_int [`RS_SZ-1:0]; 
   wire [`ROB_IDX-1:0] rob_idx_int [`RS_SZ-1:0];
+  wire [`LSQ_IDX-1:0] lsq_idx_int [`RS_SZ-1:0];
 
   wire [`RS_SZ-1:0] entry_en; // Output of issue selector
   wire [`RS_SZ-1:0] entry_ALU_sel, entry_mem_sel, entry_mult_sel; // Output of the encoders (ALU_sel, mem_sel, mult_sel)
@@ -62,6 +67,7 @@ module RS(clk, reset,
   assign rs_IR_out = rs_IR_int[rs_idx_out];
   assign npc_out = npc_int[rs_idx_out];
   assign rob_idx_out = rob_idx_int[rs_idx_out];
+  assign lsq_idx_out = lsq_idx_int[rs_idx_out];
   assign rs_free = | entry_free;
 
   assign ALU_rdy = | entry_ALU_rdy;
@@ -106,6 +112,7 @@ generate
                                   .cdb_valid(cdb_valid), 
                                   .cdb_tag(cdb_tag), 
                                   .rob_idx(rob_idx),
+                                  .lsq_idx(lsq_idx),
 
                           //OUTPUT
                                   .entry_free(entry_free[i]), 
@@ -120,7 +127,8 @@ generate
                                   .wr_mem_out(wr_mem_int[i]), 
                                   .rs_IR_out(rs_IR_int[i]), 
                                   .npc_out(npc_int[i]), 
-                                  .rob_idx_out(rob_idx_int[i])
+                                  .rob_idx_out(rob_idx_int[i]),
+                                  .lsq_idx_out(lsq_idx_int[i])
                                 );
     end
 endgenerate
@@ -132,11 +140,13 @@ module rs_entry(clk, reset,
                 ALUop, rd_mem, wr_mem, rs_IR,  npc, cond_branch, uncond_branch, //Issue Stage
                 mult_free, ex_free, mem_free, cdb_valid, cdb_tag, //Pipeline communication
                 rob_idx,  //ROB
+                lsq_idx,  //LSQ
 
                 //OUTPUT
                 entry_free, ALU_rdy, mem_rdy, mult_rdy,  //Pipeline Communication
                 pdest_idx_out, prega_idx_out, pregb_idx_out, ALUop_out, rd_mem_out,   //FU
-                wr_mem_out, rs_IR_out, npc_out, rob_idx_out                 //FU
+                wr_mem_out, rs_IR_out, npc_out, rob_idx_out,                 //FU
+                lsq_idx_out
                 );
 
 
@@ -155,6 +165,7 @@ module rs_entry(clk, reset,
   input wire  [`SCALAR-1:0] cdb_valid;
   input wire  [`SCALAR*`PRF_IDX-1:0] cdb_tag;
   input wire  [`ROB_IDX-1:0] rob_idx;
+  input wire  [`LSQ_IDX-1:0] lsq_idx;
 
   output reg  entry_free, ALU_rdy, mem_rdy, mult_rdy;
   output reg  [`PRF_IDX-1:0] pdest_idx_out, prega_idx_out, pregb_idx_out;
@@ -163,6 +174,7 @@ module rs_entry(clk, reset,
   output reg  [31:0] rs_IR_out;
   output reg  [63:0] npc_out;
   output reg  [`ROB_IDX-1:0] rob_idx_out;
+  output reg  [`LSQ_IDX-1:0] lsq_idx_out;
 
   reg  next_entry_free;
   reg  [`PRF_IDX-1:0] next_pdest_idx_out, next_prega_idx_out, next_pregb_idx_out;
@@ -171,6 +183,7 @@ module rs_entry(clk, reset,
   reg  [31:0] next_rs_IR_out;
   reg  [63:0] next_npc_out;
   reg  [`ROB_IDX-1:0] next_rob_idx_out;
+  reg  [`LSQ_IDX-1:0] next_lsq_idx_out;
   reg  prega_rdy, pregb_rdy;
   reg  next_prega_rdy, next_pregb_rdy;
 
@@ -197,6 +210,7 @@ module rs_entry(clk, reset,
     next_rs_IR_out = rs_IR_out;
     next_npc_out = npc_out;
     next_rob_idx_out = rob_idx_out;
+    next_lsq_idx_out = lsq_idx_out;
     next_prega_rdy = 0;
     next_pregb_rdy = 0;
 	  mem_rdy =  rdy & (rd_mem_out | wr_mem_out);
@@ -214,6 +228,7 @@ module rs_entry(clk, reset,
       next_rs_IR_out = rs_IR;
       next_npc_out = npc;
       next_rob_idx_out = rob_idx;
+      next_lsq_idx_out = lsq_idx;
       next_prega_rdy = prega_valid;
       next_pregb_rdy = pregb_valid;
     end
@@ -237,6 +252,7 @@ module rs_entry(clk, reset,
       rs_IR_out <= `SD `NOOP_INST;
       npc_out <= `SD 64'h0;
       rob_idx_out <= `SD {`ROB_IDX{1'b0}};
+      lsq_idx_out <= `SD {`LSQ_IDX{1'b0}};
       prega_rdy <= `SD 1'b0;
       pregb_rdy <= `SD 1'b0;
 
@@ -252,6 +268,7 @@ module rs_entry(clk, reset,
       rs_IR_out <= `SD next_rs_IR_out;
       npc_out <= `SD next_npc_out;
       rob_idx_out <= `SD next_rob_idx_out;
+      lsq_idx_out <= `SD next_lsq_idx_out;
       prega_rdy <= `SD next_prega_rdy;
       pregb_rdy <= `SD next_pregb_rdy;
 
