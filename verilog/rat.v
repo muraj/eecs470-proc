@@ -182,15 +182,15 @@ module rat (clk, reset, flush,
 					fl[retire_prev_prf[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
           // Invalidate the valid bit
           valid_list[retire_prev_prf[`SEL(`PRF_IDX,1)]] <= `SD 1'b0;
+	  			// if way2 overwrites way1, then need to free up way1
+  				if (retire_file[1] && retire_dest_idx_in[`SEL(ARF_IDX,1)] == retire_dest_idx_in[`SEL(ARF_IDX,2)]) begin
+  					rfl[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
+  					// in the regular free list as well
+  					fl[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
+            // Invalidate the valid bit
+            valid_list[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b0;
+	  			end //retire_dest_idx_in
 				end //retire_pref_prf
-				// if way2 overwrites way1, then need to free up way1
-				if (retire_dest_idx_in[`SEL(ARF_IDX,1)] == retire_dest_idx_in[`SEL(ARF_IDX,2)]) begin
-					rfl[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
-					// in the regular free list as well
-					fl[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
-          // Invalidate the valid bit
-          valid_list[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b0;
-				end //retire_dest_idx_in
 
 			end //retire_file[0]
 			if (retire_file[1]) begin

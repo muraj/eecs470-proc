@@ -237,9 +237,8 @@ endgenerate
 always @(posedge clock) begin 
  if(~reset) begin
   $fdisplay(rat_fileno, "\n|=============================================== Cycle: %10d =========================================|", clock_count);
-  $fdisplay(rat_fileno, "prega_idx_out_file: %h, pregb_idx_out_file: %h prega_idx_out: %h pregb_idx_out: %h",
-            pipeline_0.rat0.prega_idx_out_file, pipeline_0.rat0.pregb_idx_out_file, pipeline_0.rat0.prega_idx_out, pipeline_0.rat0.pregb_idx_out);
-  $fdisplay(rat_fileno, "prega_valid: %b, pregb_valid: %b", pipeline_0.rat0.prega_valid_out, pipeline_0.rat0.pregb_valid_out);
+  if(pipeline_0.rat0.flush)
+    $fdisplay(rat_fileno, "****** FLUSH ******");
   $fdisplay(rat_fileno, "| IDX | RAT PRF | RRAT PRF | IDX | RAT PRF | RRAT PRF | IDX | RAT PRF | RRAT PRF | IDX | RAT PRF | RRAT PRF |");
   $fdisplay(rat_fileno, "|===========================================================================================================|");
   `define DISPLAY_RAT(i) \
@@ -261,19 +260,19 @@ always @(posedge clock) begin
   `DISPLAY_RAT(28) `DISPLAY_RAT(29) $fwrite(rat_fileno, "|\n");
   `DISPLAY_RAT(14) `DISPLAY_RAT(15)
   `DISPLAY_RAT(30) `DISPLAY_RAT(31) $fwrite(rat_fileno, "|\n");
-  $fdisplay(rat_fileno, "Free List:        %b", pipeline_0.rat0.fl);
-  $fwrite(rat_fileno,   "                 0|");
-  for(rat_loop=4;rat_loop <= `PRF_SZ; rat_loop=rat_loop+4) begin : RAT_LOOP0
-    $fwrite(rat_fileno, "%3d|", rat_loop);
-  end
+  `define DISPLAY_NUMBER_LIST \
+  for(rat_loop=0;rat_loop <= `PRF_SZ; rat_loop=rat_loop+4) begin \
+    $fwrite(rat_fileno, "%3d|", `PRF_SZ - rat_loop);      \
+  end \
   $fwrite(rat_fileno, "\n");
-  $fdisplay(rat_fileno, "Retire Free List: %b", pipeline_0.rat0.rfl);
-  $fwrite(rat_fileno,   "                 0|");
-  for(rat_loop=4;rat_loop <= `PRF_SZ; rat_loop=rat_loop+4) begin : RAT_LOOP1
-    $fwrite(rat_fileno, "%3d|", rat_loop);
-  end
-  $fwrite(rat_fileno, "\n");
-  $fdisplay(rat_fileno, "Valid List:       %b", pipeline_0.rat0.valid_list);
+  $fdisplay(rat_fileno, "Free List:         %b", pipeline_0.rat0.fl);
+  $fwrite(rat_fileno,   "               ");
+  `DISPLAY_NUMBER_LIST
+  $fdisplay(rat_fileno, "Retire Free List:  %b", pipeline_0.rat0.rfl);
+  $fwrite(rat_fileno,   "               ");
+  `DISPLAY_NUMBER_LIST
+  $fdisplay(rat_fileno, "Valid List:        %b", pipeline_0.rat0.valid_list);
+  $fwrite(rat_fileno,   "               ");
  end
   if(pipeline_error_status != `NO_ERROR)
     $fclose(rat_fileno);
