@@ -28,7 +28,7 @@ module testbench;
   reg        reset;
   reg [31:0] clock_count;
   reg [31:0] instr_count;
-  integer    wb_fileno;
+  integer    wb_fileno, mem_fileno;
 
   wire [1:0]  proc2mem_command;
   wire [63:0] proc2mem_addr;
@@ -146,24 +146,25 @@ module testbench;
   task show_mem_with_decimal;
    input [31:0] start_addr;
    input [31:0] end_addr;
+   input integer fileno;
    integer k;
    integer showing_data;
    begin
-    $display("@@@");
+    $fdisplay(fileno, "@@@");
     showing_data=0;
     for(k=start_addr;k<=end_addr; k=k+1)
       if (memory.unified_memory[k] != 0)
       begin
-        $display("@@@ mem[%5d] = %x : %0d", k*8, memory.unified_memory[k], 
+        $fdisplay(fileno, "@@@ mem[%5d] = %x : %0d", k*8, memory.unified_memory[k], 
                                                  memory.unified_memory[k]);
         showing_data=1;
       end
       else if(showing_data!=0)
       begin
-        $display("@@@");
+        $fdisplay(fileno, "@@@");
         showing_data=0;
       end
-    $display("@@@");
+    $fdisplay(fileno,"@@@");
    end
   endtask  // task show_mem_with_decimal
 
@@ -257,8 +258,10 @@ module testbench;
       // deal with any halting conditions
       if(pipeline_error_status!=`NO_ERROR)
       begin
-        $display("@@@ Unified Memory contents hex on left, decimal on right: ");
-        show_mem_with_decimal(0,`MEM_64BIT_LINES - 1); 
+        mem_fileno = $fopen("memory.out");
+        $fdisplay(mem_fileno, "@@@ Unified Memory contents hex on left, decimal on right: ");
+        show_mem_with_decimal(0,`MEM_64BIT_LINES - 1, mem_fileno); 
+        $fclose(mem_fileno);
           // 8Bytes per line, 16kB total
 
         $display("@@  %t : System halted\n@@", $realtime);

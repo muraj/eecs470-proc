@@ -1,19 +1,8 @@
-/* Test simple branch logic on always taken 
-   int r0 = 0;
-   int r1 = 0xFF;
-   while(r1 < 0){
-	   r0 += 1;
-	   r1 = r0 - 0xFF;
-   }
+/* Test simple branch logic on always taken (CPI optimized)
+  for(int r0=0xFF; r0>0; r0--);
 */
-lda $r0, 0x00
-lda $r1, 0x00
+lda $r0, 0xFF
 loop:
-	addq $r0, 0x1 , $r0
-  nop
-	subq $r0, 0xFF, $r1
-	blt $r1, loop
+	subq $r0, 0x01, $r0
+	bgt $r0, loop
 call_pal 0x555
-xor $r31, $r31, $r0
-xor $r31, $r31, $r0
-xor $r31, $r31, $r0

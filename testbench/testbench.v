@@ -17,7 +17,7 @@ module testbench;
   reg        reset;
   reg [31:0] clock_count;
   reg [31:0] instr_count;
-  integer    wb_fileno;
+  integer    wb_fileno, mem_fileno;
 
   wire [1:0]  proc2mem_command;
   wire [63:0] proc2mem_addr;
@@ -116,13 +116,10 @@ initial begin
 end
 always @(posedge clock) begin
  if(~reset) begin
-  $fdisplay(rs_fileno, "|======================================== Cycle: %10d ======================================================|", clock_count);
-  $fdisplay(rs_fileno, "id_dp_IR %h id_dp_valid %b", pipeline_0.id_dp_IR, pipeline_0.id_dp_valid_inst);
-  $fdisplay(rs_fileno, "dp_is_IR1: %s prega_idx1: %0d pregb_idx1: %0d", get_instr_string(pipeline_0.dp_is_IR[`SEL(32,1)], pipeline_0.dp_is_valid_inst[0]), pipeline_0.dp_prega_idx[`SEL(`PRF_IDX,1)], pipeline_0.dp_pregb_idx[`SEL(`PRF_IDX, 1)]);
-  $fdisplay(rs_fileno, "dp_is_IR2: %s prega_idx2: %0d pregb_idx2: %0d", get_instr_string(pipeline_0.dp_is_IR[`SEL(32,2)], pipeline_0.dp_is_valid_inst[1]), pipeline_0.dp_prega_idx[`SEL(`PRF_IDX,2)], pipeline_0.dp_pregb_idx[`SEL(`PRF_IDX, 2)]);
-  $fdisplay(rs_fileno, "|                            RS0                            |                           RS1                       |");
+  $fdisplay(rs_fileno, "|============================================== Cycle: %10d ============================================================|", clock_count);
+  $fdisplay(rs_fileno, "|                               RS0                               |                              RS1                          |");
   $fdisplay(rs_fileno, "| IDX |   IR    |       NPC      | LSQ | ROB | RA | RB | RD | R/F |    IR   |       NPC      | LSQ | ROB | RA | RB | RD | R/F |");
-  $fdisplay(rs_fileno, "|=================================================================================================================|");
+  $fdisplay(rs_fileno, "|=============================================================================================================================|");
   `define DISPLAY_RS(i) \
       $fdisplay(rs_fileno, "|%4d |%9s|%16h| %03d | %03d | %02d | %02d | %02d | %b/%b |%9s|%16h| %03d | %03d | %02d | %02d | %02d | %b/%b |", i, \
                 get_instr_string(rs1_IR[i], !rs1_free[i]), rs1_npc[i], rs1_lsq_idx[i], rs1_rob_idx[i], rs1_prega_idx[i], rs1_pregb_idx[i], rs1_pdest_idx[i], rs1_rdy[i], rs1_free[i], \
@@ -158,10 +155,9 @@ end
  end                          
 always @(posedge clock) begin 
  if(~reset) begin
-  $fdisplay(rob_fileno, "\n|================================ Cycle: %10d ================================|", clock_count);
-  $fdisplay(rob_fileno, "branch_miss: %b correct_target: %h npc_out1: %h npc_out2: %h", pipeline_0.rob0.branch_miss, pipeline_0.rob0.correct_target, pipeline_0.rob0.npc_out1, pipeline_0.rob0.npc_out2);
+  $fdisplay(rob_fileno, "\n|=========================================== Cycle: %10d ==============================================|", clock_count);
   $fdisplay(rob_fileno, "| H/T | IDX |     IR    |        NPC       | RDY | PDR | ADR | BRA/TKN |  Branch Address  |  Branch Addr EX  |");
-  $fdisplay(rob_fileno, "|===================================================================================|");
+  $fdisplay(rob_fileno, "|============================================================================================================|");
   `define DISPLAY_ROB(i) \
     $fdisplay(rob_fileno, "| %1s %1s | %3d | %9s | %h |  %b  | %3d | %3d |  %b / %b  | %16h | %16h |",  \
               i === head ? "H" : " ",                         \
@@ -372,6 +368,7 @@ initial begin
 end
 always @(negedge clock) begin
  if(~reset) begin
+   `SD `SD    //Delay for mem.v to catch up
    $fwrite(pipe_fileno, "%5d:", clock_count);
    `define DISPLAY_STAGE(npc, ir, valid) \
     $fwrite(pipe_fileno, "%5d:%10s|", npc, get_instr_string(ir, valid));
@@ -386,6 +383,20 @@ always @(negedge clock) begin
      $fwrite(pipe_fileno, " REG[%2d]=%16x |", pipeline_commit_wr_idx[`SEL(5,1)], pipeline_commit_wr_data[`SEL(64,1)]);
    else
      $fwrite(pipe_fileno, "                          |");
+   if(proc2mem_command == `BUS_LOAD) begin
+     $fwrite(pipe_fileno, "BUS_LOAD MEM[%0h]", proc2mem_addr);
+     if(mem2proc_response != 0)
+       $fwrite(pipe_fileno, " accepted %0d", mem2proc_response);
+     else
+       $fwrite(pipe_fileno, " rejected");
+   end
+   else if(proc2mem_command == `BUS_STORE) begin
+     $fwrite(pipe_fileno, "BUS_STORE MEM[%0h] = %0h", proc2mem_addr, proc2mem_data);
+     if(mem2proc_response != 0)
+       $fwrite(pipe_fileno, " accepted %0d", mem2proc_response);
+     else
+       $fwrite(pipe_fileno, " rejected");
+   end
    $fwrite(pipe_fileno, "\n      ");
    `DISPLAY_STAGE(if_NPC_out[`SEL(64,2)],if_IR_out[`SEL(32,2)], if_valid_inst_out[1])
    `DISPLAY_STAGE(if_id_NPC[`SEL(64,2)], if_id_IR[`SEL(32,2)], if_id_valid_inst[1])
@@ -500,24 +511,25 @@ end
   task show_mem_with_decimal;
    input [31:0] start_addr;
    input [31:0] end_addr;
+   input integer fileno;
    integer k;
    integer showing_data;
    begin
-    $display("@@@");
+    $fdisplay(fileno, "@@@");
     showing_data=0;
     for(k=start_addr;k<=end_addr; k=k+1)
       if (memory.unified_memory[k] != 0)
       begin
-        $display("@@@ mem[%5d] = %x : %0d", k*8, memory.unified_memory[k], 
+        $fdisplay(fileno, "@@@ mem[%5d] = %x : %0d", k*8, memory.unified_memory[k],
                                                  memory.unified_memory[k]);
         showing_data=1;
       end
       else if(showing_data!=0)
       begin
-        $display("@@@");
+        $fdisplay(fileno, "@@@");
         showing_data=0;
       end
-    $display("@@@");
+    $fdisplay(fileno,"@@@");
    end
   endtask  // task show_mem_with_decimal
 
@@ -613,8 +625,10 @@ end
       // deal with any halting conditions
       if(pipeline_error_status!=`NO_ERROR)
       begin
-        $display("\n@@@ Unified Memory contents hex on left, decimal on right: ");
-//        show_mem_with_decimal(0,`MEM_64BIT_LINES - 1); 
+        mem_fileno = $fopen("memory.out");
+        $fdisplay(mem_fileno, "@@@ Unified Memory contents hex on left, decimal on right: ");
+        show_mem_with_decimal(0,`MEM_64BIT_LINES - 1, mem_fileno); 
+        $fclose(mem_fileno);
           // 8Bytes per line, 16kB total
 
         $display("@@  %t : System halted\n@@", $realtime);
