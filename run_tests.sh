@@ -41,7 +41,7 @@ if ! [ -f $comp_dir/Makefile ]; then
   exit 1;
 fi
 echo "Comparing results against directory in-order proc in $comp_dir";
-printf "%-40s %-9s %-9s %-4s\n" "File" "Our CPI" "Their CPI" "Test";
+printf "%-40s %9s %9s %4s\n" "File" "Our CPI" "Their CPI" "Test";
 for f in ${prog:-test_progs/*.s}
 do
 	(./vs-asm $f > ./program.mem 2> /dev/null) || exit;
@@ -50,10 +50,15 @@ do
 	(cd $comp_dir; make > /dev/null) || exit;
 	diff -I '^#' writeback.out $comp_dir/writeback.out > results.txt; # Ignore extra comments
 	printf "%-40s " "$(basename $f)";
-	printf "%-9f " `grep CPI ${1:+${1}_}program.out | cut -d " " -f 9`;
-	printf "%-9f" `grep CPI ${comp_dir}/program.out | cut -d " " -f 9`;
+	printf "%9.6f " `grep "^@.\+CPI$" ${1:+${1}_}program.out | cut -d " " -f 9`;
+	printf "%9.6f" `grep "^@.\+CPI$" ${comp_dir}/program.out | cut -d " " -f 9`;
 	if [ -s results.txt ]; then
-		echo -e "\033[1;31m FAIL\033[0m";
+    grep "@@@ System halted on HALT instruction" program.out &> /dev/null
+    if [ $? -ne 0 ]; then
+      echo -e " \033[1;37;41mERROR\033[0m";
+    else
+  		echo -e " \033[1;31mFAIL\033[0m";
+    fi
     if ! $QUIET_MODE ; then
   		read -n 1 -p "Continue [Y/n]? " yno 1>&2;
   		echo '' 1>&2;

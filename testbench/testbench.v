@@ -476,6 +476,10 @@ end
   begin
     #(`VERILOG_CLOCK_PERIOD/2.0);
     clock = ~clock;
+    if(~reset) begin
+      $write("%c@@ %10d cycles / %10d instrs = %8.4f CPI",
+        8'd13, clock_count+1, instr_count, (clock_count+1.0) / instr_count);
+    end
   end
 
   // Task to display # of elapsed clock edges
@@ -483,7 +487,7 @@ end
         real cpi;
 
         begin
-     cpi = (clock_count + 1.0) / instr_count;
+     cpi = (clock_count + 1.0) / (instr_count + (pipeline_error_status == `HALTED_ON_HALT));
      $display("@@  %0d cycles / %0d instrs = %f CPI\n@@",
         clock_count+1, instr_count, cpi);
            $display("@@  %4.2f ns total time to execute\n@@\n",
@@ -545,10 +549,6 @@ end
     $display("@@  %t  Deasserting System reset......\n@@\n@@", $realtime);
     wb_fileno = $fopen("writeback.out");
 
-//   $monitor("@@ cycle: %d  if_NPC_out: %h  if_IR_out: %h  if_id_NPC: %h  id_dp_NPC: %h  id_dp_IR: %h  imem_valid: %b  m2p_data: %h",
-//             clock_count, if_NPC_out, if_IR_out, if_id_NPC, id_dp_NPC, id_dp_IR, pipeline_0.if_stage_0.Imem_valid, mem2proc_data);
-    $monitor("@@ cycle: %0d  if_NPC_out: %h  id_dp_NPC: %h  if_IR_out: %h  if_valid: %b rs_stall: %b  completed_inst: %0d",
-            clock_count, if_NPC_out, id_dp_NPC, if_IR_out, pipeline_0.if_stage_0.if_valid_inst_out, pipeline_0.rs0.rs_stall, pipeline_completed_insts);
   end
 
 
@@ -613,7 +613,7 @@ end
       // deal with any halting conditions
       if(pipeline_error_status!=`NO_ERROR)
       begin
-        $display("@@@ Unified Memory contents hex on left, decimal on right: ");
+        $display("\n@@@ Unified Memory contents hex on left, decimal on right: ");
 //        show_mem_with_decimal(0,`MEM_64BIT_LINES - 1); 
           // 8Bytes per line, 16kB total
 
