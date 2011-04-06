@@ -157,7 +157,7 @@ module EX_CO_Mux (	//Inputs
 		pe #(.OUT_WIDTH(3)) pe1 (.gnt({2'b00, granted_cdb1}), .enc(cdb1_idx));
 		pe #(.OUT_WIDTH(3)) pe2 (.gnt({2'b00, granted_cdb2}), .enc(cdb2_idx));
 		assign cdb_tag 							= {pdest_idx[cdb2_idx], pdest_idx[cdb1_idx]};
-		assign cdb_valid 						=	{ |cdb2_idx, |cdb1_idx};
+		assign cdb_valid 						=	{ |granted_cdb2, |granted_cdb1};
 		assign cdb_value						= {result[cdb2_idx], result[cdb1_idx]}; 
 		assign cdb_rob_idx					=	{rob_idx[cdb2_idx], rob_idx[cdb1_idx]};
 		assign cdb_MEM_result_valid	= {result_valid_MEM[cdb2_idx], result_valid_MEM[cdb1_idx]};

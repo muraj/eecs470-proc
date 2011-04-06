@@ -46,7 +46,7 @@ module MEM_CONT ( clk, reset,
 	assign MEM_valid = EX_en_in;
 
 	wire [63:0]	mem_disp 	= { {48{IR_in[15]}}, IR_in[15:0]};
-	assign	MEM_LSQ_IDX		= LSQ_idx;
+	assign	MEM_LSQ_idx		= LSQ_idx;
 	assign	MEM_ADDR 			= mem_disp + pregb_in;
 	assign	MEM_reg_value = prega_in;
 
@@ -67,7 +67,7 @@ module MEM_CONT ( clk, reset,
 		end
 		else begin
 			result_reg				<= `SD LSQ_mem_value;
-			result_valid_reg	<= `SD LSQ_done & LSQ_rd_mem;
+			result_valid_reg	<= `SD LSQ_done & (LSQ_rd_mem | LSQ_wr_mem);
 			pdest_idx_reg			<= `SD (!LSQ_done) ? `ZERO_PRF : LSQ_pdest_idx;
 			IR_reg						<= `SD (!LSQ_done) ? `NOOP_INST : 0;
 			npc_reg						<= `SD 0; // FIXME
