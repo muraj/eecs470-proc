@@ -14,7 +14,8 @@
 //
 //////////////////////////////////////////////
 
-`define DEBUG_QUIT 4000  //Quit after DEBUG_QUIT cycles
+// Should be pulled from the program dynamically perhaps, anything less than 40000 causes 06-mult-lda.s to fail
+`define DEBUG_QUIT 40000  //Quit after DEBUG_QUIT cycles
 
 `define NUM_MEM_TAGS           15
 
