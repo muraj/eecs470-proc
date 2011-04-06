@@ -15,11 +15,12 @@
   the correct numbers.
 */
         data = 0x1000
-	lda	$r0,data
-        br	$r1,start
+				lda	$r0,data
+	      br	start
 	.quad 	2862933555777941757
 	.quad 	3037000493
-start:  ldq     $r2,0($r1)
+start:  lda			$r1,0x0008
+				ldq     $r2,0($r1)
 				ldq     $r3,8($r1)
         mulq    $r1,$r2,$r10
         addq    $r10,$r3,$r10

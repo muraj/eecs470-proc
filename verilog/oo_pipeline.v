@@ -243,6 +243,7 @@ module oo_pipeline (// Inputs
 	wire [1:0]  lsq2dcache_command;
 	wire [63:0] lsq2dcache_addr;
 	wire [63:0] lsq2dcache_data;
+	wire lsq_full, lsq_full_almost;
 
 	// Dcache Wires
 	wire [`DCACHE_TAG_BITS-1:0] dcachemem_rd_tag, dcachemem_wr_tag;
@@ -412,9 +413,9 @@ module oo_pipeline (// Inputs
   //////////////////////////////////////////////////
 
     // structural hazard
-	assign stall_id[0] = &rs_stall | rob_full;
+	assign stall_id[0] = &rs_stall | rob_full | lsq_full;
 	`ifdef SUPERSCALAR
-	assign stall_id[1] = ^rs_stall | rob_full_almost;
+	assign stall_id[1] = ^rs_stall | rob_full_almost | lsq_full_almost;
 	`endif
     
   // isbranch generation
@@ -662,7 +663,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 
 
   lsq lsq0 (.clk(clock), .reset(reset | rob_mispredict), 
-						.full(), .full_almost(),
+						.full(lsq_full), .full_almost(lsq_full_almost),
 						// Inputs at Dispatch
 						.rob_idx_in(rob_idx_out), .pdest_idx_in(rat_pdest_idx), .rd_mem_in(id_dp_rd_mem), .wr_mem_in(id_dp_wr_mem),
 						// Inputs from EX

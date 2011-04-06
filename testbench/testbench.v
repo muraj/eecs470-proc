@@ -156,7 +156,7 @@ end
 always @(posedge clock) begin 
  if(~reset) begin
   $fdisplay(rob_fileno, "\n|=========================================== Cycle: %10d ==============================================|", clock_count);
-  $fdisplay(rob_fileno, "| H/T | IDX |     IR    |        NPC       | RDY | PDR | ADR | BRA/TKN |  Branch Address  |  Branch Addr EX  |");
+  $fdisplay(rob_fileno, "| H/T | IDX |     IR    |        NPC       | RDY | PDR | ADR | BRA/TKN |  Branch Addr PD  |  Branch Addr EX  |");
   $fdisplay(rob_fileno, "|============================================================================================================|");
   `define DISPLAY_ROB(i) \
     $fdisplay(rob_fileno, "| %1s %1s | %3d | %9s | %h |  %b  | %3d | %3d |  %b / %b  | %16h | %16h |",  \
