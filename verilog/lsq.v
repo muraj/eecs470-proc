@@ -13,7 +13,8 @@ module lsq (clk, reset,
 						// Output at Dispatch
 						lsq_idx_out,
 						// Outputs to EX
-						out_valid, rob_idx_out, pdest_idx_out, mem_value_out, rd_mem_out, wr_mem_out,
+						out_valid, rob_idx_out, pdest_idx_out, mem_value_out, 
+						rd_mem_out, wr_mem_out, npc_out, ir_out,
 						// Outputs to MEM
 						lsq2mem_command, lsq2mem_addr, lsq2mem_data
 						);
@@ -52,10 +53,13 @@ module lsq (clk, reset,
 	output [64*`SCALAR-1:0]				mem_value_out; // data for load
 	output [`SCALAR-1:0]					rd_mem_out;		 // loads
 	output [`SCALAR-1:0]					wr_mem_out;		 // stores
+	output [64*`SCALAR-1:0]				npc_out;
+	output [32*`SCALAR-1:0]				ir_out;
 	
 	output [1:0]	lsq2mem_command;  // `BUS_NONE, `BUS_LOAD, `BUS_STORE
 	output [63:0] lsq2mem_addr;		  // address to mem
 	output [63:0] lsq2mem_data;			// data to mem
+
 
 
 	wire [`SCALAR-1:0]	in_req;   // allocation requests at dispatch
@@ -100,10 +104,6 @@ module lsq (clk, reset,
 	reg [63:0] next_npc1, next_npc2;
 	reg [31:0] next_ir1, next_ir2;
 
-	// FIXME: get rid of it later
-	wire flush;
-	assign flush = 1'b0;
-	
 	// Memory launch decision
 	// Currently both ld/st are only launched at the lsq head
 	wire dcache_miss, dcache_hit, stall;
@@ -150,7 +150,7 @@ module lsq (clk, reset,
 	assign head_p2 = head + 2'd2;
 	
 	assign cur_size = (next_tail>=next_head)? (next_tail - next_head) : (next_tail + `LSQ_SZ - next_head);
-	assign next_iocount = (flush)? cur_size : iocount + incount - outcount;
+	assign next_iocount = (reset)? cur_size : iocount + incount - outcount;
 	assign next_full = next_iocount == `LSQ_SZ;
 	assign next_full_almost = next_iocount == (`LSQ_SZ-1);
 	assign next_empty = next_iocount == 0;
@@ -197,51 +197,47 @@ module lsq (clk, reset,
 		end
 
 		// deal with tail and data in (allocate)
-		if (flush) begin
-			next_tail = tail_new;
-		end else begin
-			if (incount == 2'd1) begin
-					next_tail = tail_p1;
-					lsq_idx_out = (in_req[0])? {tail_p1, tail}: {tail, tail_p1};
+		if (incount == 2'd1) begin
+				next_tail = tail_p1;
+				lsq_idx_out = (in_req[0])? {tail_p1, tail}: {tail, tail_p1};
 
-					next_data_addr1 = {64{1'b0}};
-					next_data_regv1 = {64{1'b0}};
-					next_ready_launch1 = 1'b0;
-					next_ready_commit1 = 1'b0;
-					next_wr_mem1 = (in_req[0])? wr_mem_in[0]: wr_mem_in[1];
-
-					next_pdest_idx1 = (in_req[0])? pdest_idx_in[`SEL(`PRF_IDX,1)]: pdest_idx_in[`SEL(`PRF_IDX,2)];
-					next_rob_idx1 = (in_req[0])? rob_idx_in[`SEL(`ROB_IDX,1)]: rob_idx_in[`SEL(`ROB_IDX,2)];
-					next_npc1 = (in_req[0])? npc_in[`SEL(64,1)]: npc_in[`SEL(64,2)];
-					next_ir1 = (in_req[0])? ir_in[`SEL(32,1)]: ir_in[`SEL(32,2)];
-
-			end
-			if (incount == 2'd2) begin
-				next_tail = tail_p2;
-				lsq_idx_out = {tail_p1, tail};
-				
 				next_data_addr1 = {64{1'b0}};
 				next_data_regv1 = {64{1'b0}};
 				next_ready_launch1 = 1'b0;
 				next_ready_commit1 = 1'b0;
-				next_wr_mem1 = wr_mem_in[0];
+				next_wr_mem1 = (in_req[0])? wr_mem_in[0]: wr_mem_in[1];
 
-				next_pdest_idx1 = pdest_idx_in[`SEL(`PRF_IDX,1)];
-				next_rob_idx1 = rob_idx_in[`SEL(`ROB_IDX,1)];
-				next_npc1 = npc_in[`SEL(64,1)];
-				next_ir1 = ir_in[`SEL(32,1)];
+				next_pdest_idx1 = (in_req[0])? pdest_idx_in[`SEL(`PRF_IDX,1)]: pdest_idx_in[`SEL(`PRF_IDX,2)];
+				next_rob_idx1 = (in_req[0])? rob_idx_in[`SEL(`ROB_IDX,1)]: rob_idx_in[`SEL(`ROB_IDX,2)];
+				next_npc1 = (in_req[0])? npc_in[`SEL(64,1)]: npc_in[`SEL(64,2)];
+				next_ir1 = (in_req[0])? ir_in[`SEL(32,1)]: ir_in[`SEL(32,2)];
 
-				next_data_addr2 = {64{1'b0}};
-				next_data_regv2 = {64{1'b0}};
-				next_ready_launch2 = 1'b0;
-				next_ready_commit2 = 1'b0;
-				next_wr_mem2 = wr_mem_in[1];
+		end
+		if (incount == 2'd2) begin
+			next_tail = tail_p2;
+			lsq_idx_out = {tail_p1, tail};
+			
+			next_data_addr1 = {64{1'b0}};
+			next_data_regv1 = {64{1'b0}};
+			next_ready_launch1 = 1'b0;
+			next_ready_commit1 = 1'b0;
+			next_wr_mem1 = wr_mem_in[0];
 
-				next_pdest_idx2 = pdest_idx_in[`SEL(`PRF_IDX,2)];
-				next_rob_idx2 = rob_idx_in[`SEL(`ROB_IDX,2)];
-				next_npc2 = npc_in[`SEL(64,2)];
-				next_ir2 = ir_in[`SEL(32,2)];
-			end
+			next_pdest_idx1 = pdest_idx_in[`SEL(`PRF_IDX,1)];
+			next_rob_idx1 = rob_idx_in[`SEL(`ROB_IDX,1)];
+			next_npc1 = npc_in[`SEL(64,1)];
+			next_ir1 = ir_in[`SEL(32,1)];
+
+			next_data_addr2 = {64{1'b0}};
+			next_data_regv2 = {64{1'b0}};
+			next_ready_launch2 = 1'b0;
+			next_ready_commit2 = 1'b0;
+			next_wr_mem2 = wr_mem_in[1];
+
+			next_pdest_idx2 = pdest_idx_in[`SEL(`PRF_IDX,2)];
+			next_rob_idx2 = rob_idx_in[`SEL(`ROB_IDX,2)];
+			next_npc2 = npc_in[`SEL(64,2)];
+			next_ir2 = ir_in[`SEL(32,2)];
 		end
 
 	end // always @*

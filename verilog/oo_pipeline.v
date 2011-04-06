@@ -661,7 +661,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
   //////////////////////////////////////////////////
 
 
-  lsq lsq0 (.clk(clock), .reset(reset),
+  lsq lsq0 (.clk(clock), .reset(reset | rob_mispredict), 
 						.full(), .full_almost(),
 						// Inputs at Dispatch
 						.rob_idx_in(rob_idx_out), .pdest_idx_in(rat_pdest_idx), .rd_mem_in(id_dp_rd_mem), .wr_mem_in(id_dp_wr_mem),
@@ -677,6 +677,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 						.lsq_idx_out(lsq_idx_out),
 						// Outputs to EX
 						.out_valid(lsq_out_valid), .rob_idx_out(lsq_rob_idx_out), .pdest_idx_out(lsq_pdest_idx_out), .mem_value_out(lsq_mem_value_out), .rd_mem_out(lsq_rd_mem_out), .wr_mem_out(lsq_wr_mem_out),
+						.ir_out(), .npc_out(),
 						// Outputs to DCACHE
 						.lsq2mem_command(lsq2dcache_command), .lsq2mem_addr(lsq2dcache_addr), .lsq2mem_data(lsq2dcache_data)
 					 );

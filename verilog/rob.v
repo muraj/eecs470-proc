@@ -48,11 +48,11 @@ module rob (clk, reset,
 	output [`SCALAR-1:0] isbranch_out;
 	output [`SCALAR-1:0] bt_out;
 
-	reg [63-1:0] 			data_ba_ex [`ROB_SZ-1:0];
+	reg [63:0] 				data_ba_ex [`ROB_SZ-1:0];
 	reg [`ROB_SZ-1:0] data_bt_ex;
 	reg [`ROB_SZ-1:0] data_rdy;
 
-	reg [63-1:0] next_data_ba_ex1, next_data_ba_ex2;
+	reg [63:0] next_data_ba_ex1, next_data_ba_ex2;
 	reg next_data_bt_ex1, next_data_bt_ex2;
 	reg next_data_rdy1, next_data_rdy2;
 
