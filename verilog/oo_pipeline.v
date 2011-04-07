@@ -388,7 +388,7 @@ module oo_pipeline (// Inputs
   //////////////////////////////////////////////////
   id_stage id_stage_0 (// Inputs
                        .clock     (clock),
-                       .reset   (reset),
+                       .reset   (reset), // Not used for anything
                        .if_id_IR   (if_id_IR),
                        .if_id_valid_inst(if_id_valid_inst),
                        
