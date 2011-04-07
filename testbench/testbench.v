@@ -409,6 +409,8 @@ always @(negedge clock) begin
      $fwrite(pipe_fileno, " REG[%2d]=%16x |", pipeline_commit_wr_idx[`SEL(5,2)], pipeline_commit_wr_data[`SEL(64,2)]);
    else
      $fwrite(pipe_fileno, "                          |");
+   if(mem2proc_tag != 0)
+     $fwrite(pipe_fileno, "RETURN %d", mem2proc_tag);
    $fwrite(pipe_fileno, "\n");
  end
  if(pipeline_error_status != `NO_ERROR)
@@ -595,10 +597,10 @@ end
                $realtime);
     else
     begin
-      if(pipeline_completed_insts>0) begin  //FIXME
-        $fdisplay(wb_fileno, "# SCALAR 1, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
+      if(pipeline_completed_insts>0) begin
+        /*$fdisplay(wb_fileno, "# SCALAR 1, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
                   co_instr_str[0], pipeline_commit_IR[`SEL(32,1)], clock_count,
-                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]);
+                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]);*/
         if(pipeline_commit_wr_en[0])
           $fdisplay(wb_fileno, "PC=%x, REG[%d]=%x",
                     pipeline_commit_NPC[`SEL(64, 1)]-4,
@@ -608,10 +610,10 @@ end
           $fdisplay(wb_fileno, "PC=%x, ---", pipeline_commit_NPC[`SEL(64,1)]-4);
       end
       `ifdef SUPERSCALAR
-      if(pipeline_completed_insts>1) begin  //FIXME
-        $fdisplay(wb_fileno, "# SCALAR 2, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
+      if(pipeline_completed_insts>1) begin
+        /*$fdisplay(wb_fileno, "# SCALAR 2, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
                   co_instr_str[1], pipeline_commit_IR[`SEL(32,2)], clock_count,
-                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]);
+                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]);*/
         if(pipeline_commit_wr_en[1])
           $fdisplay(wb_fileno, "PC=%x, REG[%d]=%x",
                     pipeline_commit_NPC[`SEL(64, 2)]-4,
