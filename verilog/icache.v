@@ -26,7 +26,8 @@ module icache(// inputs
               current_tag,
               last_index,
               last_tag,
-              data_write_enable
+              data_write_enable,
+              stall_icache
              );
 
   input         clock;
@@ -38,6 +39,7 @@ module icache(// inputs
   input  [63:0] proc2Icache_addr;
   input  [63:0] cachemem_data;
   input         cachemem_valid;
+  input         stall_icache;
 
   output  [1:0] proc2Imem_command;
   output [63:0] proc2Imem_addr;
@@ -101,10 +103,11 @@ module icache(// inputs
     else
     begin
       valid[Imem2proc_tag]               <= `SD 1'b0;
-      prefetch_miss <= `SD ~cachemem_valid;
+      if(!stall_icache)
+        prefetch_miss <= `SD ~cachemem_valid;
       if(next_counter == 0)   //Restarted! Start again!
         prefetch_PC                      <= `SD {proc2Icache_addr[63:3], 3'b0};
-      if(Imem2proc_response != 0) begin
+      if(Imem2proc_response != 0 && !stall_icache) begin
         prefetch_counter                 <= `SD next_counter;
         valid[Imem2proc_response]        <= `SD 1'b1;
         requested_PC[Imem2proc_response] <= `SD next_addr;

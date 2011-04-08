@@ -324,7 +324,8 @@ module oo_pipeline (// Inputs
                   .current_tag(Icache_rd_tag),
                   .last_index(Icache_wr_idx),
                   .last_tag(Icache_wr_tag),
-                  .data_write_enable(Icache_wr_en)
+                  .data_write_enable(Icache_wr_en),
+                  .stall_icache(proc2Dmem_command != `BUS_NONE)
                  );
 
 
