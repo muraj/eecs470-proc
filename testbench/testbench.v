@@ -362,18 +362,18 @@ always @(posedge clock) begin
     branches_executed <= `SD 0;
     branches_mispredicted <= `SD 0;
   end
-end
-always @(negedge clock) begin
-  if(rob_retire_valid_inst[0] && pipeline_0.rob_retire_isbranch[0]) begin
-    branches_executed = branches_executed + 1;
-    branches_mispredicted = branches_mispredicted + (pipeline_0.rob_mispredict);
+  else begin
+    if(rob_retire_valid_inst[0] && pipeline_0.rob_retire_isbranch[0]) begin
+      branches_executed <= `SD branches_executed + 1;
+      branches_mispredicted <= `SD branches_mispredicted + (pipeline_0.rob_mispredict);
+    end
+  `ifdef SUPERSCALAR
+    if(rob_retire_valid_inst[1] && pipeline_0.rob_retire_isbranch[1]) begin
+      branches_executed <= `SD branches_executed + 1;
+      branches_mispredicted <= `SD branches_mispredicted + (pipeline_0.rob_mispredict);
+    end
+  `endif
   end
-`ifdef SUPERSCALAR
-  if(rob_retire_valid_inst[1] && pipeline_0.rob_retire_isbranch[1]) begin
-    branches_executed = branches_executed + 1;
-    branches_mispredicted = branches_mispredicted + (pipeline_0.rob_mispredict);
-  end
-`endif
 end
 
 
@@ -521,7 +521,7 @@ end
         begin
      cpi = (clock_count + 1.0) / (instr_count + (pipeline_error_status == `HALTED_ON_HALT));
      accuracy =  100.0*(1.0 - (1.0*branches_mispredicted) / branches_executed);
-     $display("@@ %10d mispredicts / %10d branches = %5.2f%% Branch Accuracy",
+     $display("@@ %0d mispredicts / %0d branches = %0.2f%% Branch Accuracy",
         branches_mispredicted, branches_executed, accuracy); //Branches
      $display("@@  %0d cycles / %0d instrs = %f CPI\n@@",
              clock_count+1, instr_count, cpi);        

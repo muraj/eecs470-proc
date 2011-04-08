@@ -88,7 +88,7 @@ module rob (clk, reset,
 
 	assign rob_idx_out1 = tail;
 	assign rob_idx_out2 = tail_p1;
-	assign isbranch_out = {isbranch_out1, isbranch_out2};
+	assign isbranch_out = {isbranch_out2, isbranch_out1};
 	// branch outputs
 	assign ba_out = {data_ba_ex[head],data_ba_ex[head_p1]};
 	assign bt_out = {data_bt_ex[head],data_bt_ex[head_p1]};

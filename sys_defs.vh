@@ -28,8 +28,8 @@
 
 `define MEM_LATENCY_IN_CYCLES ($rtoi(100.0/`VIRTUAL_CLOCK_PERIOD+0.99999))
 //`define MEM_LATENCY_IN_CYCLES 1
-// the 0.49999 is to force ceiling(100/period).  The default behavior for
-// float to integer conversion is rounding to nearest
+// the 0.99999 is to force ceiling(100/period).  The default behavior for
+// float to integer conversion is round down or truncate
 
 //////////////////////////////////////////////
 //
