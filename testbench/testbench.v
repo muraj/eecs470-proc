@@ -17,7 +17,8 @@ module testbench;
   reg        reset;
   reg [31:0] clock_count;
   reg [31:0] instr_count;
-  integer    wb_fileno, mem_fileno;
+  integer    branches_executed, branches_mispredicted;
+  reg [31:0] wb_fileno, mem_fileno;
 
   wire [1:0]  proc2mem_command;
   wire [63:0] proc2mem_addr;
@@ -356,8 +357,24 @@ always @(negedge clock) begin
     $fclose(ex_fileno);
 end
 
-
-
+always @(posedge clock) begin
+  if(reset) begin
+    branches_executed <= `SD 0;
+    branches_mispredicted <= `SD 0;
+  end
+end
+always @(negedge clock) begin
+  if(rob_retire_valid_inst[0] && pipeline_0.rob_retire_isbranch[0]) begin
+    branches_executed = branches_executed + 1;
+    branches_mispredicted = branches_mispredicted + (pipeline_0.rob_mispredict);
+  end
+`ifdef SUPERSCALAR
+  if(rob_retire_valid_inst[1] && pipeline_0.rob_retire_isbranch[1]) begin
+    branches_executed = branches_executed + 1;
+    branches_mispredicted = branches_mispredicted + (pipeline_0.rob_mispredict);
+  end
+`endif
+end
 
 
 
@@ -491,21 +508,25 @@ end
     #(`VERILOG_CLOCK_PERIOD/2.0);
     clock = ~clock;
     if(~reset) begin
-      $write("%c@@ %10d cycles / %10d instrs = %8.4f CPI",
-        8'd13, clock_count+1, instr_count, (clock_count+1.0) / instr_count);
+      $write("%c@@ %10d mispredicts / %10d branches = %5.2f%% Branch Accuracy  %10d cycles / %10d instrs = %8.4f CPI",
+        8'd13, branches_mispredicted, branches_executed, 100.0*(1.0 - (1.0*branches_mispredicted) / branches_executed), //Branches
+        clock_count+1, instr_count, (clock_count+1.0) / instr_count);                                 //CPI
     end
   end
 
   // Task to display # of elapsed clock edges
   task show_clk_count;
         real cpi;
-
+        real accuracy;
         begin
      cpi = (clock_count + 1.0) / (instr_count + (pipeline_error_status == `HALTED_ON_HALT));
+     accuracy =  100.0*(1.0 - (1.0*branches_mispredicted) / branches_executed);
+     $display("@@ %10d mispredicts / %10d branches = %5.2f%% Branch Accuracy",
+        branches_mispredicted, branches_executed, accuracy); //Branches
      $display("@@  %0d cycles / %0d instrs = %f CPI\n@@",
-        clock_count+1, instr_count, cpi);
-           $display("@@  %4.2f ns total time to execute\n@@\n",
-                    clock_count*`VIRTUAL_CLOCK_PERIOD);
+             clock_count+1, instr_count, cpi);        
+     $display("@@  %4.2f ns total time to execute\n@@\n",
+        clock_count*`VIRTUAL_CLOCK_PERIOD);
         end
         
   endtask  // task show_clk_count 

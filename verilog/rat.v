@@ -166,7 +166,7 @@ module rat (clk, reset, flush,
 			fl <= `SD rfl;
       valid_list <= `SD (~rfl & valid_list);
 		end //flush
-    else begin
+//    else begin
 
 			if (issue_file[0])
 				fl[free_prf[`SEL(`PRF_IDX,1)]] <= `SD 1'b0; // new prf allocated
@@ -204,7 +204,7 @@ module rat (clk, reset, flush,
           valid_list[retire_prev_prf[`SEL(`PRF_IDX,2)]] <= `SD 1'b0;
 				end //retire_file[1]
 			end
-		end
+//		end
 	end
 
 endmodule

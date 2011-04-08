@@ -93,7 +93,9 @@ module regfile(rda_idx, rda_out,                // read port A
   generate
   genvar i;
   for(i=0;i<REG_SZ;i=i+1) begin : REG_RESET
-      assign reg_vals_out[`SEL(DATA_WIDTH, i+1)] = registers[i];
+      assign reg_vals_out[`SEL(DATA_WIDTH, i+1)] = (wr_en[0] && i == wr_idx[`SEL(IDX_WIDTH,1)]) ? wr_data[`SEL(DATA_WIDTH,1)] : //Write forward the copy.  Needed for rob
+                                                   (wr_en[1] && i == wr_idx[`SEL(IDX_WIDTH,2)]) ? wr_data[`SEL(DATA_WIDTH,2)] :
+                                                   registers[i];
       always @(posedge wr_clk) begin
         if (i == ZERO_REGISTER)
             registers[i] <= `SD ZERO_REG_VAL;
