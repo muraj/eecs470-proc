@@ -117,6 +117,7 @@ end
 always @(posedge clock) begin
  if(~reset) begin
   $fdisplay(rs_fileno, "|============================================== Cycle: %10d ============================================================|", clock_count);
+  $fdisplay(rs_fileno, "id_dp_valid_inst: %b stall_id: %b rs0.inst_valid: %b", pipeline_0.id_dp_valid_inst, pipeline_0.stall_id, pipeline_0.rs0.inst_valid);
   $fdisplay(rs_fileno, "|                               RS0                               |                              RS1                          |");
   $fdisplay(rs_fileno, "| IDX |   IR    |       NPC      | LSQ | ROB | RA | RB | RD | R/F |    IR   |       NPC      | LSQ | ROB | RA | RB | RD | R/F |");
   $fdisplay(rs_fileno, "|=============================================================================================================================|");

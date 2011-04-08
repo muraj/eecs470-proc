@@ -415,13 +415,13 @@ module oo_pipeline (// Inputs
     // structural hazard
 	assign stall_id[0] = &rs_stall | rob_full | lsq_full;
 	`ifdef SUPERSCALAR
-	assign stall_id[1] = ^rs_stall | rob_full_almost | lsq_full_almost;
+	assign stall_id[1] = stall_id[0] | (^rs_stall | rob_full_almost | lsq_full_almost);
 	`endif
     
   // isbranch generation
   assign id_dp_isbranch = id_dp_cond_branch | id_dp_uncond_branch;
 
-  assign id_dp_enable = !stall_id;
+  assign id_dp_enable = stall_id == 0;
 
   always @(posedge clock)
   begin
@@ -459,7 +459,7 @@ module oo_pipeline (// Inputs
         id_dp_illegal       <= `SD id_illegal_out;
         id_dp_valid_inst    <= `SD id_valid_inst_out;
       `ifdef SUPERSCALAR
-      end else if (stall_id[1]) begin
+      end else if (stall_id == 2'b01) begin //Almost full case
 			// need to move ir2 to ir1
         id_dp_NPC           [`SEL(64,1)] <= `SD id_dp_NPC					   [`SEL(64,2)];
         id_dp_IR            [`SEL(32,1)] <= `SD id_dp_IR					   [`SEL(32,2)];
@@ -498,7 +498,7 @@ module oo_pipeline (// Inputs
             .cdb_en(ex_cdb_valid_out), .cdb_tag(ex_cdb_tag_out),
 						.pdest_idx_out(rat_pdest_idx), .retire_pdest_idx_in(rob_retire_pdest_idx),
 						// enable signals for rat and rrat
-						.issue(id_dp_valid_inst), .retire(rob_retire_valid_inst)
+						.issue(id_dp_valid_inst & ~stall_id), .retire(rob_retire_valid_inst)
 				 	 );
 
   rob rob0 (.clk(clock), .reset(reset),
@@ -546,7 +546,7 @@ module oo_pipeline (// Inputs
 
   SUPER_RS rs0 (.clk(clock), .reset(reset | rob_mispredict),
                 //INPUTS
-                .inst_valid(id_dp_valid_inst), .prega_idx(rat_prega_idx), .pregb_idx(rat_pregb_idx), .pdest_idx(rat_pdest_idx), .prega_valid(prf_valid_prega), .pregb_valid(prf_valid_pregb), //RAT
+                .inst_valid((id_dp_valid_inst & ~stall_id)), .prega_idx(rat_prega_idx), .pregb_idx(rat_pregb_idx), .pdest_idx(rat_pdest_idx), .prega_valid(prf_valid_prega), .pregb_valid(prf_valid_pregb), //RAT
                 .ALUop(id_dp_alu_func), .rd_mem(id_dp_rd_mem), .wr_mem(id_dp_wr_mem), .rs_IR(id_dp_IR), . npc(id_dp_NPC), .cond_branch(id_dp_cond_branch), .uncond_branch(id_dp_uncond_branch),     //Issue Stage
                 .multfu_free(ex_MULT_free), .exfu_free(ex_ALU_free), .memfu_free(2'b11), .cdb_valid(ex_cdb_valid_out), .cdb_tag(ex_cdb_tag_out), .entry_flush({`SCALAR*`RS_SZ{1'b0}}),   //Pipeline communication
 //                .multfu_free(2'b0), .exfu_free(2'b0), .memfu_free(2'b11), .cdb_valid(cdb_valid), .cdb_tag(cdb_tag), .entry_flush({`RS_SZ{0}}),   //Pipeline communication - Disable ex_stage
