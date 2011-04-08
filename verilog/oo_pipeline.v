@@ -459,7 +459,7 @@ module oo_pipeline (// Inputs
         id_dp_illegal       <= `SD id_illegal_out;
         id_dp_valid_inst    <= `SD id_valid_inst_out;
       `ifdef SUPERSCALAR
-      end else if (stall_id == 2'b01) begin //Almost full case
+      end else if (stall_id == 2'b10) begin //Almost full case
 			// need to move ir2 to ir1
         id_dp_NPC           [`SEL(64,1)] <= `SD id_dp_NPC					   [`SEL(64,2)];
         id_dp_IR            [`SEL(32,1)] <= `SD id_dp_IR					   [`SEL(32,2)];

@@ -246,6 +246,8 @@ module testbench;
 
        // print the writeback information to writeback.out
        if(pipeline_completed_insts>0) begin
+         /*$fdisplay(wb_fileno, "# SCALAR 1, IR=%s %h Cycle=%0d",
+                  wb_instr_str, mem_wb_IR, clock_count);*/
          if(pipeline_commit_wr_en)
            $fdisplay(wb_fileno, "PC=%x, REG[%d]=%x",
                      pipeline_commit_NPC-4,

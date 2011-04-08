@@ -1,5 +1,6 @@
 // Number of cachelines. must update both on a change
-`define ICACHE_IDX_BITS       5      // log2(ICACHE_LINES)
+`define ICACHE_IDX_BITS       7      // log2(ICACHE_LINES)
+`define ICACHE_TAG_BITS      21      //These should go in sys_defs.vh
 `define ICACHE_LINES (1<<`ICACHE_IDX_BITS)
 
 module icache(// inputs
@@ -44,63 +45,71 @@ module icache(// inputs
   output [63:0] Icache_data_out;     // value is memory[proc2Icache_addr]
   output        Icache_valid_out;    // when this is high
 
-  output  [6:0] current_index;
-  output [21:0] current_tag;
-  output  [6:0] last_index;
-  output [21:0] last_tag;
+  output  [`ICACHE_IDX_BITS-1:0] current_index;
+  output  [`ICACHE_TAG_BITS-1:0] current_tag;
+  output  [`ICACHE_IDX_BITS-1:0] last_index;
+  output  [`ICACHE_TAG_BITS-1:0] last_tag;
   output        data_write_enable;
 
-  reg [3:0] current_mem_tag;
 
-  reg miss_outstanding;
-
-  wire  [6:0] current_index;
-  wire [21:0] current_tag;
-
+  wire  [`ICACHE_IDX_BITS-1:0] current_index;
+  wire  [`ICACHE_TAG_BITS-1:0] current_tag;
   assign {current_tag, current_index} = proc2Icache_addr[31:3];
 
-  reg   [6:0] last_index;
-  reg  [21:0] last_tag;
 
-  wire changed_addr = (current_index!=last_index) || (current_tag!=last_tag);
+  reg [15:0] valid;
+  reg [63:0] requested_PC [15:0];
 
-  wire send_request = miss_outstanding && !changed_addr;
+  generate
+  genvar i;
+  for(i=0;i<16;i=i+1) begin : RESET_BUFFER
+    always @(posedge clock) begin
+      if(reset) begin
+        valid[i]          <= `SD 1'b0;
+        requested_PC[i]   <= `SD 64'b0;
+      end
+    end
+  end
+  endgenerate
 
-  wire [63:0] Icache_data_out = cachemem_data;
+  reg  [63:0] prefetch_PC, prefetch_counter;
+  reg  prefetch_miss;   //Did we miss last time?
+  wire [63:0] next_addr = prefetch_PC + (prefetch_counter << 3);  //x8
+  wire [63:0] next_counter = (proc2Icache_addr >= prefetch_PC && proc2Icache_addr <= next_addr+8) ? 
+                              (~prefetch_miss & ~cachemem_valid ? 0 : prefetch_counter + 1)
+                             : 0;
 
-  assign Icache_valid_out = cachemem_valid; 
+  assign Icache_data_out = (Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}) ? Imem2proc_data : cachemem_data;
+  assign Icache_valid_out = (Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}) || cachemem_valid; 
 
-  assign proc2Imem_addr = {proc2Icache_addr[63:3],3'b0};
-  assign proc2Imem_command = 
-    (miss_outstanding && !changed_addr) ? `BUS_LOAD : `BUS_NONE;
+  assign proc2Imem_addr = next_addr;                  //Always ask for the next address to request
+  assign proc2Imem_command = reset ? `BUS_NONE : `BUS_LOAD;               //Always load unless we're reset
 
-  wire data_write_enable = (current_mem_tag==Imem2proc_tag) &&
-                           (current_mem_tag!=0);
+  wire data_write_enable = valid[Imem2proc_tag];      //Write to icache if this is one of the tags we're looking for
 
-  wire update_mem_tag = changed_addr | miss_outstanding | data_write_enable;
-
-  wire unanswered_miss = 
-      changed_addr ? !Icache_valid_out
-                   : miss_outstanding & (Imem2proc_response==0);
+  wire [63:0] last_PC = requested_PC[Imem2proc_tag];  //PC of the write to icache
+  assign {last_tag, last_index} = last_PC[31:3];      //Tag and index of the write to icache
 
   always @(posedge clock)
   begin
     if(reset)
     begin
-      last_index       <= `SD -1;   // These are -1 to get ball rolling when
-      last_tag         <= `SD -1;   // reset goes low because addr "changes"
-      current_mem_tag  <= `SD 0;              
-      miss_outstanding <= `SD 0;
+      prefetch_PC       <= `SD 0;
+      prefetch_counter  <= `SD 0;
+      prefetch_miss     <= `SD 0;
     end
     else
     begin
-      last_index       <= `SD current_index;
-      last_tag         <= `SD current_tag;
-      miss_outstanding <= `SD unanswered_miss;
-      if(update_mem_tag)
-        current_mem_tag <= `SD Imem2proc_response;
+      valid[Imem2proc_tag]               <= `SD 1'b0;
+      prefetch_miss <= `SD ~cachemem_valid;
+      if(next_counter == 0)   //Restarted! Start again!
+        prefetch_PC                      <= `SD {proc2Icache_addr[63:3], 3'b0};
+      if(Imem2proc_response != 0) begin
+        prefetch_counter                 <= `SD next_counter;
+        valid[Imem2proc_response]        <= `SD 1'b1;
+        requested_PC[Imem2proc_response] <= `SD next_addr;
+      end
     end
   end
-
 endmodule
 
