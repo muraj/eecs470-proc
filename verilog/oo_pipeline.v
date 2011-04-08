@@ -234,15 +234,17 @@ module oo_pipeline (// Inputs
 	
 	// LSQ Wires
 	wire [`SCALAR-1:0]					lsq_out_valid;
-	wire [`ROB_IDX*`SCALAR-1:0]	lsq_rob_idx_out; 
-	wire [`PRF_IDX*`SCALAR-1:0]	lsq_pdest_idx_out; 
-	wire [64*`SCALAR-1:0]				lsq_mem_value_out; 
-	wire [`SCALAR-1:0]					lsq_rd_mem_out;		 
-	wire [`SCALAR-1:0]					lsq_wr_mem_out;		 
+	wire [`ROB_IDX*`SCALAR-1:0]	lsq_rob_idx_out;
+	wire [`PRF_IDX*`SCALAR-1:0]	lsq_pdest_idx_out;
+	wire [64*`SCALAR-1:0]				lsq_mem_value_out;
+	wire [`SCALAR-1:0]					lsq_rd_mem_out;
+	wire [`SCALAR-1:0]					lsq_wr_mem_out;
 	wire [`LSQ_IDX*`SCALAR-1:0] lsq_idx_out;
 	wire [1:0]  lsq2dcache_command;
 	wire [63:0] lsq2dcache_addr;
 	wire [63:0] lsq2dcache_data;
+	wire [32*`SCALAR-1:0] lsq_ir_out;
+	wire [64*`SCALAR-1:0] lsq_npc_out;
 	wire lsq_full, lsq_full_almost;
 
 	// Dcache Wires
@@ -667,6 +669,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 						.full(lsq_full), .full_almost(lsq_full_almost),
 						// Inputs at Dispatch
 						.rob_idx_in(rob_idx_out), .pdest_idx_in(rat_pdest_idx), .rd_mem_in(id_dp_rd_mem), .wr_mem_in(id_dp_wr_mem),
+						.npc_in(id_dp_NPC), .ir_in(id_dp_IR), 
 						// Inputs from EX
 						.up_req(ex_lsq_req), .lsq_idx_in(ex_lsq_idx_out), .addr_in(ex_addr_out), .regv_in(ex_regv_out),
 						// Inputs from MEM
@@ -679,7 +682,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 						.lsq_idx_out(lsq_idx_out),
 						// Outputs to EX
 						.out_valid(lsq_out_valid), .rob_idx_out(lsq_rob_idx_out), .pdest_idx_out(lsq_pdest_idx_out), .mem_value_out(lsq_mem_value_out), .rd_mem_out(lsq_rd_mem_out), .wr_mem_out(lsq_wr_mem_out),
-						.ir_out(), .npc_out(),
+						.ir_out(lsq_ir_out), .npc_out(lsq_npc_out),
 						// Outputs to DCACHE
 						.lsq2mem_command(lsq2dcache_command), .lsq2mem_addr(lsq2dcache_addr), .lsq2mem_data(lsq2dcache_data)
 					 );
