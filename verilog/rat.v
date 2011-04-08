@@ -165,6 +165,10 @@ module rat (clk, reset, flush,
     else if (flush) begin
 			fl <= `SD rfl;
       valid_list <= `SD (~rfl & valid_list);
+
+			// need to protect branch's destination reg
+			fl[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b0;
+			valid_list[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
 		end //flush
 //    else begin
 
