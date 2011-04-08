@@ -8,6 +8,7 @@ module MEM_CONT ( clk, reset,
 								 //Inputs from LSQ
 								 	LSQ_rob_idx, LSQ_pdest_idx, LSQ_mem_value, 
 									LSQ_done, LSQ_rd_mem, LSQ_wr_mem,
+									LSQ_IR, LSQ_npc,
 								 //Outputs to LSQ
 								 	MEM_LSQ_idx, MEM_ADDR, MEM_reg_value, MEM_valid, 
 								 //Outputs to EX/CO registers
@@ -29,6 +30,8 @@ module MEM_CONT ( clk, reset,
 	input [`PRF_IDX-1:0]	LSQ_pdest_idx;
 	input [63:0]					LSQ_mem_value;
 	input 								LSQ_done, LSQ_rd_mem, LSQ_wr_mem;
+	input [31:0]					LSQ_IR;
+	input [63:0]					LSQ_npc;
 	// Outputs to LSQ
 	output [`LSQ_IDX-1:0]	MEM_LSQ_idx;
 	output [63:0]					MEM_ADDR, MEM_reg_value;
@@ -69,8 +72,8 @@ module MEM_CONT ( clk, reset,
 			result_reg				<= `SD LSQ_mem_value;
 			result_valid_reg	<= `SD LSQ_done & (LSQ_rd_mem | LSQ_wr_mem);
 			pdest_idx_reg			<= `SD (!LSQ_done) ? `ZERO_PRF : LSQ_pdest_idx;
-			IR_reg						<= `SD (!LSQ_done) ? `NOOP_INST : 0;
-			npc_reg						<= `SD 0; // FIXME
+			IR_reg						<= `SD (!LSQ_done) ? `NOOP_INST : LSQ_IR;
+			npc_reg						<= `SD LSQ_npc; // FIXME
 			rob_idx_reg				<= `SD LSQ_rob_idx;
 			done_reg					<= `SD LSQ_done;
 		end

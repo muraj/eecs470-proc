@@ -510,6 +510,7 @@ module ex_co_stage(clk, reset,
 
 									// Inputs (from LSQ)
 									LSQ_rob_idx, LSQ_pdest_idx, LSQ_mem_value, LSQ_done, LSQ_rd_mem, LSQ_wr_mem,
+									LSQ_IR, LSQ_npc,
 
 									// Outputs
 									cdb_tag, cdb_valid, cdb_value, cdb_MEM_result_valid, 	// to CDB
@@ -546,6 +547,8 @@ module ex_co_stage(clk, reset,
 	input [64*`SCALAR-1:0]				LSQ_mem_value;
 	input [`SCALAR-1:0]						LSQ_done;
 	input [`SCALAR-1:0]						LSQ_rd_mem, LSQ_wr_mem;
+	input [32*`SCALAR-1:0]				LSQ_IR;
+	input [64*`SCALAR-1:0]				LSQ_npc;
 // END OF Inputs from the LSQ
 
 // Outputs to the LSQ
@@ -671,6 +674,7 @@ module ex_co_stage(clk, reset,
 								 				.LSQ_rob_idx(LSQ_rob_idx[`SEL(`ROB_IDX,1)]), 
 												.LSQ_pdest_idx(LSQ_pdest_idx[`SEL(`PRF_IDX,1)]), .LSQ_mem_value(LSQ_mem_value[`SEL(64,1)]), 
 												.LSQ_done(LSQ_done[`SEL(1,1)]), .LSQ_rd_mem(LSQ_rd_mem[`SEL(1,1)]), .LSQ_wr_mem(LSQ_wr_mem[`SEL(1,1)]),
+												.LSQ_IR(LSQ_IR[`SEL(32,1)]), .LSQ_npc(LSQ_npc[`SEL(64,1)]),
 								 				//Outputs to LSQ
 								 				.MEM_LSQ_idx(EX_LSQ_idx[`SEL(`LSQ_IDX,1)]), .MEM_ADDR(EX_MEM_ADDR[`SEL(64,1)]), .MEM_reg_value(EX_MEM_reg_value[`SEL(64,1)]), .MEM_valid(EX_MEM_valid[`SEL(1,1)]),
 								 				//Outputs to EX/CO registers
@@ -723,6 +727,7 @@ module ex_co_stage(clk, reset,
 								 				.LSQ_rob_idx(LSQ_rob_idx[`SEL(`ROB_IDX,2)]), 
 												.LSQ_pdest_idx(LSQ_pdest_idx[`SEL(`PRF_IDX,2)]), .LSQ_mem_value(LSQ_mem_value[`SEL(64,2)]), 
 												.LSQ_done(LSQ_done[`SEL(1,2)]), .LSQ_rd_mem(LSQ_rd_mem[`SEL(1,2)]), .LSQ_wr_mem(LSQ_wr_mem[`SEL(1,2)]),
+												.LSQ_IR(LSQ_IR[`SEL(32,2)]), .LSQ_npc(LSQ_npc[`SEL(64,2)]),
 								 				//Outputs to LSQ
 								 				.MEM_LSQ_idx(EX_LSQ_idx[`SEL(`LSQ_IDX,2)]), .MEM_ADDR(EX_MEM_ADDR[`SEL(64,2)]), .MEM_reg_value(EX_MEM_reg_value[`SEL(64,2)]), .MEM_valid(EX_MEM_valid[`SEL(1,2)]), 
 								 				//Outputs to EX/CO registers

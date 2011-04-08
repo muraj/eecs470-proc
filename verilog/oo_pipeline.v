@@ -645,6 +645,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 
 													// Inputs (from LSQ)
 													.LSQ_rob_idx(lsq_rob_idx_out), .LSQ_pdest_idx(lsq_pdest_idx_out), .LSQ_mem_value(lsq_mem_value_out), .LSQ_done(lsq_out_valid), .LSQ_rd_mem(lsq_rd_mem_out), .LSQ_wr_mem(lsq_wr_mem_out),
+													.LSQ_IR(lsq_ir_out), .LSQ_npc(lsq_npc_out),
 
 													// Outputs
 													.cdb_tag(ex_cdb_tag_out), .cdb_valid(ex_cdb_valid_out), .cdb_value(ex_cdb_value_out), 

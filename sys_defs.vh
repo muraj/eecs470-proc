@@ -291,7 +291,8 @@
 `ifdef SUPERSCALAR
     `define SCALAR (2)
 `else
-    `define SCALAR (1)
+    `define SCALAR (1)XM5	VDD	n2		n1		VDD	dgpfet	w=0.36u	l=2.6u
+
 `endif
 `define ARF_IDX (5)
 `define PRF_IDX (6)
