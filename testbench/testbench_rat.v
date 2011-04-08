@@ -12,7 +12,7 @@ module testbench;
   reg   [`SCALAR*`RAT_IDX-1:0] rega_idx_in, regb_idx_in, dest_idx_in, retire_dest_idx_in;
 	reg  	[`SCALAR*`PRF_IDX-1:0] retire_pdest_idx_in;
   reg		[`SCALAR-1:0] issue, retire;
-	reg   [`SCALAR]
+
 	wire	[`SCALAR*`PRF_IDX-1:0] prega_idx_out, pregb_idx_out, pdest_idx_out;
 	wire  [`SCALAR-1:0] prega_valid_out, pregb_valid_out;
 
@@ -269,7 +269,7 @@ initial begin
 	check(2,2,31,0);
 	new_inst(2,3,3);show_io();@(negedge clk);show_RAT(); // PRF 61 != ARF 3, PRF 3 to ARF 3
 	check(3,3,31,0);
-	show_freelist(); //should show Way1 registers are not free althought they are not mapped
+	show_freelist(); //should show Way1 registers are not free althought they are not mapped5
 	issue = 2'd0;
 	retire_inst(1,1,63,1,1);show_io();@(negedge clk);show_RAT();show_freelist(); 
 	retire_inst(1,1,1,1,1);show_io();@(negedge clk);show_RAT();show_freelist();
