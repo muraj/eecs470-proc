@@ -416,7 +416,7 @@ module oo_pipeline (// Inputs
     // structural hazard
 	assign stall_id[0] = &rs_stall | rob_full | lsq_full;
 	`ifdef SUPERSCALAR
-	assign stall_id[1] = stall_id[0] | (^rs_stall | rob_full_almost | lsq_full_almost);
+	assign stall_id[1] = stall_id[0] | (^rs_stall | rob_full_almost | lsq_full | lsq_full_almost);
 	`endif
     
   // isbranch generation

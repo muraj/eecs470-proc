@@ -64,7 +64,8 @@ module lsq (clk, reset,
 
 	wire [`SCALAR-1:0]	in_req;   // allocation requests at dispatch
 	assign in_req[0] = (rd_mem_in[0] || wr_mem_in[0]) && !full;
-	assign in_req[1] = (rd_mem_in[1] || wr_mem_in[1]) && !full_almost;
+	assign in_req[1] = (in_req[0])? (rd_mem_in[1] || wr_mem_in[1]) && !full_almost: 
+																	(rd_mem_in[1] || wr_mem_in[1]) && !full;
 	
 // Internal Data Storage
 	reg [63:0] 				 data_addr [`LSQ_SZ-1:0];
@@ -108,9 +109,11 @@ module lsq (clk, reset,
 	// Currently both ld/st are only launched at the lsq head
 	wire dcache_miss, dcache_hit, stall;
 
+	assign debug = !launched[head];
+
 	assign launch = !empty && !launched[head] &&
- 								  (wr_mem[head])? (rob_idx[head] == rob_head)&&ready_launch[head]: // for stores, need to check rob status
-									 							  ready_launch[head]; // for loads, ready_launch is sufficient info
+ 								  ((wr_mem[head])? (rob_idx[head] == rob_head)&&ready_launch[head]: // for stores, need to check rob status
+									 							  ready_launch[head]); // for loads, ready_launch is sufficient info
 
 	assign lsq2mem_command = (launch)? ((wr_mem[head])? `BUS_STORE: `BUS_LOAD):
 																		 `BUS_NONE;
