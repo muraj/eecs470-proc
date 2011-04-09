@@ -23,7 +23,6 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 	wire [PRED_IDX-1:0] ROB_TAG[`SCALAR-1:0];
 	assign ROB_TAG[0] = ROB_NPC[PRED_IDX+1:2];
 `ifdef SUPERSCALAR
-  wire [PRED_IDX-1:0] ROB_TAG_DEBUG = ROB_NPC[PRED_IDX+64+1:64+2];
 	assign ROB_TAG[1] = ROB_NPC[PRED_IDX+64+1:64+2];
 `endif
 

@@ -68,12 +68,12 @@ module if_stage(// Inputs
   assign next_PC = (rob_mispredict)? rob_target_pc :      // Branch mispredict?
                    (id_bp_taken[0])? id_bp_pc[`SEL(64,1)] :              // Branch predicted taken
                    `ifdef SUPERSCALAR
-                   (id_bp_taken[1])? id_bp_pc[`SEL(64,2)] :              // Branch predicted taken
+                   ((!PC_reg[2]) & id_bp_taken[1])? id_bp_pc[`SEL(64,2)] :              // Branch predicted taken
                    `endif
                    (PC_reg[2])? PC_plus_4 : PC_plus_8;    // Branch to misaligned address
 
     // The take-branch signal must override stalling (otherwise it may be lost)
-  assign PC_enable = (Imem_valid & !stall) || rob_mispredict || id_bp_taken;  //!stall || rob_mispredict || id_bp_taken;
+  assign PC_enable = (Imem_valid & !stall) || rob_mispredict || |id_bp_taken;
 
     // Pass PC+4 and PC+8 down pipeline w/instruction
   assign if_NPC_out[`SEL(64,1)] = PC_plus_4;

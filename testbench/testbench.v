@@ -136,7 +136,7 @@ always @(posedge clock) begin
   `DISPLAY_RS(12) `DISPLAY_RS(13) `DISPLAY_RS(14)
   `DISPLAY_RS(15)
   if(pipeline_error_status != `NO_ERROR)
-    #(`VERILOG_CLOCK_PERIOD)
+    #(`VERILOG_CLOCK_PERIOD/2)
     $fclose(rs_fileno);
  end
 end
@@ -202,7 +202,7 @@ always @(posedge clock) begin
    `DISPLAY_ROB(31)
  end
  if(pipeline_error_status != `NO_ERROR)
-   #(`VERILOG_CLOCK_PERIOD)
+   #(`VERILOG_CLOCK_PERIOD/2)
    $fclose(rob_fileno);
 end
 generate
@@ -275,7 +275,7 @@ always @(posedge clock) begin
   $fwrite(rat_fileno,   "               ");
  end
   if(pipeline_error_status != `NO_ERROR)
-    #(`VERILOG_CLOCK_PERIOD)
+    #(`VERILOG_CLOCK_PERIOD/2)
     $fclose(rat_fileno);
 end
 
@@ -300,7 +300,7 @@ always @(negedge clock) begin
     end
   end
   if(pipeline_error_status != `NO_ERROR)
-    #(`VERILOG_CLOCK_PERIOD)
+    #(`VERILOG_CLOCK_PERIOD/2)
     $fclose(reg_fileno);
 end
 
@@ -420,7 +420,7 @@ always @(negedge clock) begin
     `DISPLAY_MULT2_STAGE(7)
   end
   if(pipeline_error_status != `NO_ERROR)
-    #(`VERILOG_CLOCK_PERIOD)
+    #(`VERILOG_CLOCK_PERIOD/2)
     $fclose(ex_fileno);
 end
 
@@ -499,7 +499,7 @@ always @(negedge clock) begin
    $fwrite(pipe_fileno, "\n");
  end
  if(pipeline_error_status != `NO_ERROR)
-   #(`VERILOG_CLOCK_PERIOD)
+   #(`VERILOG_CLOCK_PERIOD/2)
    $fclose(pipe_fileno);
 end
 `endif  //SYNTH
@@ -672,7 +672,7 @@ end
       `ifdef DEBUG_QUIT
       if(clock_count > `DEBUG_QUIT) begin
           $display("Debug quit");
-          #(`VERILOG_CLOCK_PERIOD)
+          #(`VERILOG_CLOCK_PERIOD/2)
           $fclose(wb_fileno);
           $finish;
       end
@@ -740,7 +740,7 @@ end
         $display("@@@\n@@");
         show_clk_count;
         $fclose(wb_fileno);
-        #(`VERILOG_CLOCK_PERIOD)
+        #(`VERILOG_CLOCK_PERIOD/2)
         $finish;
       end
 

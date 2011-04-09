@@ -154,7 +154,7 @@ module rob (clk, reset,
 
 		// deal with branch misses
     if(retire1 && branch_miss1) begin
-				correct_target = data_ba_ex[head];
+				correct_target = data_bt_ex[head] ? data_ba_ex[head] : npc_out1;
 				dout2_valid = 0;	
 				move_tail = 1;
 				tail_new = next_head;
