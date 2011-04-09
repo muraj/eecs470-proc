@@ -78,8 +78,9 @@ module rob (clk, reset,
 	wire isbranch_out1, isbranch_out2;
 
   //Branch miss
-  wire branch_miss1 = (isbranch_out1) ? (data_bt_ex[head] != bt_pd_out1) || (data_ba_ex[head] != ba_pd_out1) : 0; 
-  wire branch_miss2 = (isbranch_out2) ? (data_bt_ex[head] != bt_pd_out2) || (data_ba_ex[head] != ba_pd_out2) : 0;
+
+  wire branch_miss1 = (isbranch_out1) && ((data_bt_ex[head] != bt_pd_out1) || (data_bt_ex[head] && (data_ba_ex[head] != ba_pd_out1))); 
+  wire branch_miss2 = (isbranch_out2) && ((data_bt_ex[head_p1] != bt_pd_out2) || (data_bt_ex[head_p1] && (data_ba_ex[head_p1] != ba_pd_out2)));
   assign branch_miss = (retire1 & branch_miss1);  // | branch_miss2;
 
   // Data input indicators for outside world
@@ -90,8 +91,8 @@ module rob (clk, reset,
 	assign rob_idx_out2 = tail_p1;
 	assign isbranch_out = {isbranch_out2, isbranch_out1};
 	// branch outputs
-	assign ba_out = {data_ba_ex[head],data_ba_ex[head_p1]};
-	assign bt_out = {data_bt_ex[head],data_bt_ex[head_p1]};
+	assign ba_out = {data_ba_ex[head_p1],data_ba_ex[head]};
+	assign bt_out = {data_bt_ex[head_p1],data_bt_ex[head]};
 
 	// Retiring decision
 	assign retire1 = !empty && data_rdy[head];
