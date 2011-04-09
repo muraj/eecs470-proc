@@ -35,7 +35,7 @@ module rob (clk, reset,
 	input [63:0] ba_ex_in1, ba_ex_in2;
 	input [`ROB_IDX-1:0] rob_idx_in1, rob_idx_in2;
 	
-	output reg dout1_valid, dout2_valid;
+	output dout1_valid, dout2_valid;
 	output [`ROB_IDX-1:0] rob_idx_out1, rob_idx_out2;
 	output [`PRF_IDX-1:0] pdest_out1, pdest_out2;
 	output [`ARF_IDX-1:0] adest_out1, adest_out2;
@@ -112,6 +112,10 @@ module rob (clk, reset,
 	assign next_empty = next_iocount == 0;
 	assign next_empty_almost = next_iocount == 1;
 
+	assign dout1_valid = retire1;
+	assign dout2_valid = (dout1_valid & (ir_out1 == 32'h555)) ? 0 : 
+												((retire1 && branch_miss1) ? 0 : retire2);
+
 	always @* begin
 		// default cases for data
 		next_data_ba_ex1 = data_ba_ex[tail];
@@ -127,8 +131,8 @@ module rob (clk, reset,
 		tail_new = tail;
 		incount = 2'd0;
 		outcount = 2'd0;
-		dout1_valid = retire1;
-		dout2_valid = retire2;
+//		dout1_valid = retire1;
+//		dout2_valid = retire2;
 		move_tail = 0;
 		correct_target = 64'd0;
 
@@ -147,7 +151,7 @@ module rob (clk, reset,
 		// deal with branch misses
     if(retire1 && branch_miss1) begin
 				correct_target = data_bt_ex[head] ? data_ba_ex[head] : npc_out1;
-				dout2_valid = 0;	
+//				dout2_valid = 0;	
 				move_tail = 1;
 				tail_new = next_head;
   	end
