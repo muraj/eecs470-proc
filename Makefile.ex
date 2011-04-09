@@ -27,7 +27,7 @@ all:    simv
 
 
 TESTBENCH = 	sys_defs.vh	    \
-		testbench/testbench_ex.v verilog/ps.v verilog/pe.v verilog/alu.v verilog/mult.v verilog/mem_cont.v verilog/LSQ.v 
+		testbench/testbench_ex.v verilog/ps.v verilog/pe.v verilog/alu.v verilog/mult.v verilog/mem_cont.v testbench/LSQ.v 
 SIMFILES =	verilog/ex_stage.v
 SYNFILES = synth/ex_stage.vg
 

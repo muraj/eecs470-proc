@@ -66,8 +66,6 @@ module rob (clk, reset,
 	reg [1:0] incount, outcount;
 	reg empty, empty_almost;
 	
-	wire debug1, debug2;//debug
-
 	wire [`ROB_IDX-1:0] tail_p1, tail_p2, head_p1, head_p2, cur_size;
 	wire next_full, next_full_almost, next_empty, next_empty_almost;
 	
@@ -79,8 +77,8 @@ module rob (clk, reset,
 
   //Branch miss
 
-  wire branch_miss1 = (isbranch_out1) && ((data_bt_ex[head] != bt_pd_out1) || (data_bt_ex[head] && (data_ba_ex[head] != ba_pd_out1))); 
-  wire branch_miss2 = (isbranch_out2) && ((data_bt_ex[head_p1] != bt_pd_out2) || (data_bt_ex[head_p1] && (data_ba_ex[head_p1] != ba_pd_out2)));
+  wire branch_miss1 = (isbranch_out1) && ((data_bt_ex[head] != bt_pd_out1) || (data_bt_ex[head] ? (data_ba_ex[head] != ba_pd_out1) :1'b0));
+  wire branch_miss2 = (isbranch_out2) && ((data_bt_ex[head_p1] != bt_pd_out2) || (data_bt_ex[head_p1] ? (data_ba_ex[head_p1] != ba_pd_out2) : 1'b0));
   assign branch_miss = (retire1 & branch_miss1);  // | branch_miss2;
 
   // Data input indicators for outside world
@@ -114,12 +112,6 @@ module rob (clk, reset,
 	assign next_empty = next_iocount == 0;
 	assign next_empty_almost = next_iocount == 1;
 
-	assign debug1	= data_bt_ex[head]; //debug
-	assign debug2	= data_bt_ex[head_p1]; //debug
-
-
-
-		
 	always @* begin
 		// default cases for data
 		next_data_ba_ex1 = data_ba_ex[tail];
@@ -189,8 +181,6 @@ module rob (clk, reset,
 				end
 			end
 		end
-
-
 	end // always @*
 
 
@@ -206,6 +196,8 @@ module rob (clk, reset,
 			full_almost 	<= `SD 1'b0;
 			empty					<= `SD 1'b1;
 			empty_almost	<= `SD 1'b0;
+      data_rdy      <= `SD {`ROB_SZ{1'b0}};
+      data_bt_ex    <= `SD {`ROB_SZ{1'b0}};
 
 		end else begin
 			// data allocation
@@ -237,20 +229,6 @@ module rob (clk, reset,
 			empty_almost	<= `SD next_empty_almost;
 		end
 	end
-
-  generate
-  genvar i;
-  for(i=0;i<`ROB_SZ;i=i+1) begin : REG_RESET
-      always @(posedge clk) begin
-				if (reset) begin
-            data_ba_ex[i] <= `SD {64{1'b0}};
-            data_bt_ex[i] <= `SD 1'b0;
-            data_rdy[i] <= `SD 1'b0;
-				end
-      end
-  end
-  endgenerate
-
 
 	// ===================================================
 	// Circular buffers for entries not awaiting updates

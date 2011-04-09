@@ -19,8 +19,9 @@ suppress_message {"VER-130"}
 #/***********************************************************/
 read_file -f ddc [list "./cachemem128x64.ddc"]
 set_dont_touch cachemem128x64
-read_file -f verilog [list "../sys_defs.vh" "../verilog/pipeline.v" "../verilog/if_stage.v" "../verilog/id_stage.v" "../verilog/ex_stage.v" "../verilog/mem_stage.v" "../verilog/wb_stage.v" "../verilog/regfile.v" "../verilog/icache.v"]
-set design_name pipeline
+set syn_files [glob "../verilog/*.v"]
+read_file -f verilog [concat "../sys_defs.vh" $syn_files]
+set design_name oo_pipeline
 set clock_name clock
 set reset_name reset
 set CLK_PERIOD 30
@@ -41,7 +42,7 @@ set auto_wire_load_selection "false"
 set compile_seqmap_synchronous_extraction "true"
 
 # uncomment this and change number appropriately if on multi-core machine
-#set_host_options -max_cores 2
+set_host_options -max_cores 2
 
 #/***********************************************************/
 #/*  Clk Periods/uncertainty/transition                     */

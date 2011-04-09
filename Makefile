@@ -54,12 +54,8 @@ SIMFILES =	verilog/oo_pipeline.v	\
 		verilog/regfile.v
 SYNFILES = synth/oo_pipeline.vg
 
-# For visual debugger
-VISTESTBENCH = $(TESTBENCH:testbench.v=visual_testbench.v) \
-		testbench/visual_c_hooks.c
-
-synth/pipeline.vg:        $(SIMFILES) synth/oo_pipeline.tcl synth/cachemem128x64.vg
-	cd synth && dc_shell-t -f ./oo_pipeline.tcl | tee pipeline_synth.out 
+synth/oo_pipeline.vg:        $(SIMFILES) synth/pipeline.tcl synth/cachemem128x64.vg
+	cd synth && dc_shell-t -f ./pipeline.tcl | tee pipeline_synth.out 
 
 synth/cachemem128x64.vg:  verilog/cachemem.v
 	cd synth && dc_shell-t -f ./icache.tcl | tee cachemem128x64_synth.out
@@ -72,11 +68,6 @@ simv:	$(SIMFILES) $(TESTBENCH)
 
 int:	$(SIMFILES) $(TESTBENCH) 
 	$(VCS) $(INTFLAGS) $(TESTBENCH) $(SIMFILES) -o int_simv -RI
-
-# For visual debugger
-vis_simv:	$(SIMFILES) $(VISTESTBENCH)
-	$(VCS) $(VISFLAGS) $(VISTESTBENCH) $(SIMFILES) -o vis_simv 
-	./vis_simv
 
 syn_simv:	$(SYNFILES) $(TESTBENCH)
 	$(VCS) $(TESTBENCH) $(SYNFILES) $(LIB) -o syn_simv 
@@ -98,4 +89,4 @@ nuke:	clean
 	rm -rf *.out results.txt
 	rm -f synth/*.vg synth/*.rep synth/*.db synth/*.chk synth/command.log
 	rm -f synth/*.out synth/*.ddc command.log
-
+	rm -f synth/*.syn synth/*.mr synth/*.pvl synth/*.svf .vcsmx_rebuild

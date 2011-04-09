@@ -1,6 +1,6 @@
 // Number of cachelines. must update both on a change
 `define ICACHE_IDX_BITS       7      // log2(ICACHE_LINES)
-`define ICACHE_TAG_BITS      21      //These should go in sys_defs.vh
+`define ICACHE_TAG_BITS      22      //These should go in sys_defs.vh
 `define ICACHE_LINES (1<<`ICACHE_IDX_BITS)
 
 module icache(// inputs
@@ -62,18 +62,6 @@ module icache(// inputs
   reg [15:0] valid;
   reg [63:0] requested_PC [15:0];
 
-  generate
-  genvar i;
-  for(i=0;i<16;i=i+1) begin : RESET_BUFFER
-    always @(posedge clock) begin
-      if(reset) begin
-        valid[i]          <= `SD 1'b0;
-        requested_PC[i]   <= `SD 64'b0;
-      end
-    end
-  end
-  endgenerate
-
   reg  [63:0] prefetch_PC, prefetch_counter;
   reg  prefetch_miss;   //Did we miss last time?
   wire [63:0] next_addr = prefetch_PC + (prefetch_counter << 3);  //x8
@@ -99,6 +87,7 @@ module icache(// inputs
       prefetch_PC       <= `SD 0;
       prefetch_counter  <= `SD 0;
       prefetch_miss     <= `SD 0;
+      valid             <= `SD 15'b0;
     end
     else
     begin

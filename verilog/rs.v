@@ -107,7 +107,7 @@ generate
                                   .cond_branch(cond_branch), 
                                   .uncond_branch(uncond_branch), 
                                   .mult_free(mult_free),
-                                  .ex_free(ex_free), 
+                                  .ex_free(ALU_free), 
                                   .mem_free(mem_free), 
                                   .cdb_valid(cdb_valid), 
                                   .cdb_tag(cdb_tag), 

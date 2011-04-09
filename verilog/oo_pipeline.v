@@ -77,7 +77,7 @@ module oo_pipeline (// Inputs
   output [64*`SCALAR-1:0] pipeline_commit_NPC;
   output [32*`SCALAR-1:0] pipeline_commit_IR;
   wire   [64*`PRF_SZ-1:0] prf_regs;
-  wire   [63:0] prf_regs_out [`PRF_SZ:0];
+  wire   [63:0] prf_regs_out [`PRF_SZ-1:0];
   generate
   genvar prf_reg_idx;
   for(prf_reg_idx=0; prf_reg_idx < `PRF_SZ; prf_reg_idx = prf_reg_idx + 1) begin : WB_REG_2D
