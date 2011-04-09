@@ -107,6 +107,8 @@ module oo_pipeline (// Inputs
   reg  [64*`SCALAR-1:0] if_id_NPC;
   reg  [32*`SCALAR-1:0] if_id_IR;
   reg  [`SCALAR-1:0 ]   if_id_valid_inst;
+  reg  [`SCALAR*64-1:0] if_id_ba;
+  reg  [`SCALAR-1:0]    if_id_bt;
    
   // Outputs from ID stage
   wire [5*`SCALAR-1:0]  id_dest_reg_idx_out;
@@ -136,6 +138,8 @@ module oo_pipeline (// Inputs
   reg  [`SCALAR-1:0]    id_dp_halt;
   reg  [`SCALAR-1:0]    id_dp_illegal;
   reg  [`SCALAR-1:0]    id_dp_valid_inst;
+  reg  [`SCALAR*64-1:0] id_dp_ba;
+  reg  [`SCALAR-1:0]    id_dp_bt;
 
 	// Outputs from DISPATCH stage
 	wire	[`PRF_IDX*`SCALAR-1:0]	dp_pdest_idx;
@@ -215,8 +219,9 @@ module oo_pipeline (// Inputs
 
 	// Added declarations
   wire [`SCALAR-1:0] stall_id;
-  wire rob_mispredict, bp_taken;
-  wire [63:0] bp_pc;
+  wire rob_mispredict;
+  wire [`SCALAR-1:0] bp_taken;
+  wire [`SCALAR*64-1:0] bp_pc;
   wire [`SCALAR-1:0] id_dp_isbranch;
 
   // ROB Wires
@@ -338,9 +343,24 @@ module oo_pipeline (// Inputs
   //                                              //
   //////////////////////////////////////////////////
 
-	// should be removed
+`ifdef BRANCH_NOT_TAKEN
+// Always predict not taken
 	assign bp_taken = 0;
 	assign bp_pc = 0;
+`else
+  branch_predictor bp0(.clk (clock),
+                       .reset(reset),
+                       //** IF_STAGE **//
+                       .IF_NPC(if_NPC_out),
+                       .paddress(bp_pc),
+                       .ptaken(bp_taken),
+                       //**  ROB  **//
+                       .ROB_br_en(rob_retire_isbranch & rob_retire_valid_inst),
+                       .ROB_taken(rob_bt_out),
+                       .ROB_taken_address(rob_ba_out),
+                       .ROB_NPC(rob_retire_NPC));
+`endif
+
 
   if_stage if_stage_0 (// Inputs
                        .clock (clock),
@@ -375,12 +395,16 @@ module oo_pipeline (// Inputs
       if_id_NPC        <= `SD 0;
       if_id_IR         <= `SD `NOOP_INST;
       if_id_valid_inst <= `SD `FALSE;
+      if_id_ba         <= `SD 0;
+      if_id_bt         <= `SD 0;
     end // if (reset)
     else if (if_id_enable)
       begin
         if_id_NPC        <= `SD if_NPC_out;
         if_id_IR         <= `SD if_IR_out;
         if_id_valid_inst <= `SD if_valid_inst_out;
+        if_id_ba         <= `SD bp_pc;
+        if_id_bt         <= `SD bp_taken;
       end // if (if_id_enable)
   end // always
 
@@ -444,6 +468,8 @@ module oo_pipeline (// Inputs
       id_dp_halt          <= `SD 0;
       id_dp_illegal       <= `SD 0;
       id_dp_valid_inst    <= `SD 0;
+      id_dp_bt            <= `SD 0;
+      id_dp_ba            <= `SD 0;
     end // if (reset)
     else
     begin
@@ -462,6 +488,8 @@ module oo_pipeline (// Inputs
         id_dp_halt          <= `SD id_halt_out;
         id_dp_illegal       <= `SD id_illegal_out;
         id_dp_valid_inst    <= `SD id_valid_inst_out;
+        id_dp_bt            <= `SD if_id_bt;
+        id_dp_ba            <= `SD if_id_ba;
       `ifdef SUPERSCALAR
       end else if (stall_id == 2'b10) begin //Almost full case
 			// need to move ir2 to ir1
@@ -478,6 +506,8 @@ module oo_pipeline (// Inputs
         id_dp_halt          [`SEL(1,1)]  <= `SD id_dp_halt           [`SEL(1,2)];
         id_dp_illegal       [`SEL(1,1)]  <= `SD id_dp_illegal        [`SEL(1,2)];
         id_dp_valid_inst    [`SEL(1,1)]  <= `SD id_dp_valid_inst     [`SEL(1,2)];
+        id_dp_bt            [`SEL(1,1)]  <= `SD if_id_bt             [`SEL(1,2)];
+        id_dp_ba            [`SEL(64,1)] <= `SD if_id_ba             [`SEL(64,2)];
 			// mark ir2 as invalid
         id_dp_valid_inst    [`SEL(1,2)]  <= `SD 1'b0;  
         `endif //SUPERSCALAR
@@ -520,10 +550,10 @@ module oo_pipeline (// Inputs
 						// Outputs @ dispatch
 						.rob_idx_out1(rob_idx_out[`SEL(`ROB_IDX,1)]), .rob_idx_out2(rob_idx_out[`SEL(`ROB_IDX,2)]),
 						// Branch @ dispatch
-            .ba_pd_in1(id_dp_NPC[`SEL(64,1)]), .ba_pd_in2(id_dp_NPC[`SEL(64,2)]), //FIXME 
-            .bt_pd_in1(1'b0), .bt_pd_in2(1'b0), //FIXME
+            .ba_pd_in1(id_dp_ba[`SEL(64,1)]), .ba_pd_in2(id_dp_ba[`SEL(64,2)]), //FIXME 
+            .bt_pd_in1(id_dp_bt[0]), .bt_pd_in2(id_dp_bt[1]), //FIXME
             .isbranch_in1(id_dp_isbranch[0]), .isbranch_in2(id_dp_isbranch[1]),
-						// Real branch results
+						// Real branch results                                                              //vv-- What the crap yejoong? >:P
 						.ba_ex_in1(ex_cdb_branch_target_addr_out[`SEL(64,1)]), .ba_ex_in2(ex_cdb_branch_target_addr_out[`SEL(64,2)]), .bt_ex_in1(ex_branch_NT_out[0]), .bt_ex_in2(ex_branch_NT_out[1]),
 						// For retire
             .dout1_valid(rob_retire_valid_inst[0]), .dout2_valid(rob_retire_valid_inst[1]), 

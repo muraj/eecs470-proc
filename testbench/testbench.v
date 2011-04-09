@@ -136,6 +136,7 @@ always @(posedge clock) begin
   `DISPLAY_RS(12) `DISPLAY_RS(13) `DISPLAY_RS(14)
   `DISPLAY_RS(15)
   if(pipeline_error_status != `NO_ERROR)
+    #(`VERILOG_CLOCK_PERIOD)
     $fclose(rs_fileno);
  end
 end
@@ -157,16 +158,16 @@ end
  end                          
 always @(posedge clock) begin 
  if(~reset) begin
-  $fdisplay(rob_fileno, "\n|=========================================== Cycle: %10d ===================================================|", clock_count);
-  $fdisplay(rob_fileno, "| H/T | IDX |     IR    |        NPC       | RDY | PDR | ADR | BR / PD / EX |  Branch Addr PD  |  Branch Addr EX  |");
-  $fdisplay(rob_fileno, "|=================================================================================================================|");
+  $fdisplay(rob_fileno, "\n|============================================= Cycle: %10d ================================================|", clock_count);
+  $fdisplay(rob_fileno, "| H/T | IDX |     IR    |        NPC       | RDY | PDR | ADR | BRA/TKN/PTN |  Branch Addr PD  |  Branch Addr EX  |");
+  $fdisplay(rob_fileno, "|================================================================================================================|");
   `define DISPLAY_ROB(i) \
-    $fdisplay(rob_fileno, "| %1s %1s | %3d | %9s | %h |  %b  | %3d | %3d |  %b /  %b /  %b | %16h | %16h |",  \
+    $fdisplay(rob_fileno, "| %1s %1s | %3d | %9s | %h |  %b  | %3d | %3d |  %b / %b / %b  | %16h | %16h |",  \
               i === head ? "H" : " ",                         \
               i === tail ? "T" : " ", i,                      \
               get_instr_string(rob_ir[i], 1'b1),              \
               rob_npc[i], rob_rdy[i], rob_pdest[i], rob_adest[i],  \
-              cb_isbranch[i], cb_bt_pd[i], pipeline_0.rob0.data_bt_ex[i], cb_ba_pd[i], pipeline_0.rob0.data_ba_ex[i]);
+              cb_isbranch[i], pipeline_0.rob0.data_bt_ex[i], cb_bt_pd[i], cb_ba_pd[i], pipeline_0.rob0.data_ba_ex[i]);
    `DISPLAY_ROB(0)
    `DISPLAY_ROB(1)
    `DISPLAY_ROB(2)
@@ -201,6 +202,7 @@ always @(posedge clock) begin
    `DISPLAY_ROB(31)
  end
  if(pipeline_error_status != `NO_ERROR)
+   #(`VERILOG_CLOCK_PERIOD)
    $fclose(rob_fileno);
 end
 generate
@@ -273,6 +275,7 @@ always @(posedge clock) begin
   $fwrite(rat_fileno,   "               ");
  end
   if(pipeline_error_status != `NO_ERROR)
+    #(`VERILOG_CLOCK_PERIOD)
     $fclose(rat_fileno);
 end
 
@@ -297,6 +300,7 @@ always @(negedge clock) begin
     end
   end
   if(pipeline_error_status != `NO_ERROR)
+    #(`VERILOG_CLOCK_PERIOD)
     $fclose(reg_fileno);
 end
 
@@ -416,6 +420,7 @@ always @(negedge clock) begin
     `DISPLAY_MULT2_STAGE(7)
   end
   if(pipeline_error_status != `NO_ERROR)
+    #(`VERILOG_CLOCK_PERIOD)
     $fclose(ex_fileno);
 end
 
@@ -494,6 +499,7 @@ always @(negedge clock) begin
    $fwrite(pipe_fileno, "\n");
  end
  if(pipeline_error_status != `NO_ERROR)
+   #(`VERILOG_CLOCK_PERIOD)
    $fclose(pipe_fileno);
 end
 `endif  //SYNTH
@@ -666,6 +672,7 @@ end
       `ifdef DEBUG_QUIT
       if(clock_count > `DEBUG_QUIT) begin
           $display("Debug quit");
+          #(`VERILOG_CLOCK_PERIOD)
           $fclose(wb_fileno);
           $finish;
       end
@@ -733,6 +740,7 @@ end
         $display("@@@\n@@");
         show_clk_count;
         $fclose(wb_fileno);
+        #(`VERILOG_CLOCK_PERIOD)
         $finish;
       end
 

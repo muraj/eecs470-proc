@@ -28,28 +28,29 @@ all:    simv
 #####
 
 TESTBENCH = 	sys_defs.vh	    \
-		testbench/testbench.v	\
-		testbench/mem.v		    \
+		testbench/testbench.v			\
+		testbench/mem.v		    		\
 		testbench/pipe_print.c
 SIMFILES =	verilog/oo_pipeline.v	\
-		verilog/icache.v	  \
-		verilog/dcache.v	  \
-		verilog/if_stage.v	\
-		verilog/id_stage.v	\
-		verilog/ex_stage.v	\
-		verilog/alu.v				\
-		verilog/mult.v			\
-		verilog/mem_cont.v	\
-		verilog/cachemem.v  \
-		verilog/dcachemem.v \
-		verilog/rob.v			  \
-		verilog/cb.v				\
-		verilog/superrs.v   \
-		verilog/lsq.v       \
-		verilog/rs.v				\
-		verilog/rat.v				\
-		verilog/ps.v				\
-		verilog/pe.v				\
+		verilog/icache.v	     \
+		verilog/dcache.v	     \
+		verilog/if_stage.v     \
+		verilog/id_stage.v     \
+		verilog/ex_stage.v     \
+		verilog/alu.v			     \
+		verilog/mult.v		     \
+		verilog/mem_cont.v     \
+		verilog/cachemem.v     \
+		verilog/dcachemem.v    \
+		verilog/rob.v			  	 \
+		verilog/cb.v					 \
+		verilog/superrs.v   	 \
+		verilog/lsq.v       	 \
+		verilog/rs.v				   \
+		verilog/rat.v					 \
+		verilog/ps.v					 \
+		verilog/pe.v					 \
+		verilog/local_branch.v \
 		verilog/regfile.v
 SYNFILES = synth/oo_pipeline.vg
 
