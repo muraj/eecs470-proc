@@ -43,11 +43,11 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 
   assign predictor_plus_one[0] = (~& predictor[ROB_TAG[0]]) ? 1'b1 : 1'b0;
   assign predictor_minus_one[0] = (| predictor[ROB_TAG[0]]) ? -1'b1 : 1'b0;
-  assign next_predictor[0] = predictor[ROB_TAG[0]] + (ROB_taken[0] ? predictor_plus_one : predictor_minus_one);
+  assign next_predictor[0] = predictor[ROB_TAG[0]] + (ROB_taken[0] ? predictor_plus_one[0] : predictor_minus_one[0]);
 `ifdef  SUPERSCALAR   //We're assuming we'll never branch to ourself, otherwise we need some additional checks...
   assign predictor_plus_one[1] = (~& predictor[ROB_TAG[1]]) ? 1'b1 : 1'b0;
   assign predictor_minus_one[1] = (| predictor[ROB_TAG[1]]) ? -1'b1 : 1'b0;
-  assign next_predictor[1] = predictor[ROB_TAG[1]] + (ROB_taken[1] ? predictor_plus_one : predictor_minus_one);
+  assign next_predictor[1] = predictor[ROB_TAG[1]] + (ROB_taken[1] ? predictor_plus_one[1] : predictor_minus_one[1]);
  `endif
 
 	generate
