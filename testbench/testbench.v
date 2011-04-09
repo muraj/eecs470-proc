@@ -323,14 +323,14 @@ always @(negedge clock) begin
     $fdisplay(lsq_fileno,"==========================================================\n");
 		
 		`define DISPLAY_LSQ_ENTRY(i) \
-		$fdisplay(lsq_fileno,"| %1s %1s |  %2d |   %b  |   %b  |   %b  |   %b  |  %2d  | %08h | %08h |", \
+		$fdisplay(lsq_fileno,"| %1s %1s |  %2d |   %b  |   %b  |   %b  |   %b  |  %2d  | %16h | %16h |", \
 						 i===pipeline_0.lsq0.head ? "H" : " ", i===pipeline_0.lsq0.tail ? "T" : " ", i, \
 						 pipeline_0.lsq0.wr_mem[i], pipeline_0.lsq0.ready_launch[i], pipeline_0.lsq0.ready_commit[i], \
 						 pipeline_0.lsq0.launched[i], pipeline_0.lsq0.rob_idx[i], pipeline_0.lsq0.data_addr[i], pipeline_0.lsq0.data_regv[i]);
 		
-		$fdisplay(lsq_fileno,"======================================================================");
-  	$fdisplay(lsq_fileno,"| H/T | IDX | STOR | RDYL | RDYC | SENT | ROB# |   ADDR   |    VAL   |");
-  	$fdisplay(lsq_fileno,"|--------------------------------------------------------------------|");
+		$fdisplay(lsq_fileno,"======================================================================================");
+  	$fdisplay(lsq_fileno,"| H/T | IDX | STOR | RDYL | RDYC | SENT | ROB# |       ADDR       |        VAL       |");
+  	$fdisplay(lsq_fileno,"|------------------------------------------------------------------------------------|");
 
 		`DISPLAY_LSQ_ENTRY(0)
 		`DISPLAY_LSQ_ENTRY(1)
@@ -341,7 +341,7 @@ always @(negedge clock) begin
 		`DISPLAY_LSQ_ENTRY(6)
 		`DISPLAY_LSQ_ENTRY(7)
 
-		$fdisplay(lsq_fileno,"======================================================================\n");
+		$fdisplay(lsq_fileno,"======================================================================================\n");
 		$fdisplay(lsq_fileno,"====================================================");
 		$fdisplay(lsq_fileno,"| TAG | 1| 2| 3| 4| 5| 6| 7| 8| 9| 0| 1| 2| 3| 4| 5|");
 		$fdisplay(lsq_fileno,"| LSQ | %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d|", 

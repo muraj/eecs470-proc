@@ -104,6 +104,7 @@ module lsq (clk, reset,
 	reg [`ROB_IDX-1:0] next_rob_idx1, next_rob_idx2;
 	reg [63:0] next_npc1, next_npc2;
 	reg [31:0] next_ir1, next_ir2;
+	reg [`LSQ_SZ-1:0]	 next_launched;
 
 	// Memory launch decision
 	// Currently both ld/st are only launched at the lsq head
@@ -182,12 +183,18 @@ module lsq (clk, reset,
 		next_ir2 = ir[tail_p1];
 		
 		// other default cases
+		next_launched = launched;
 		lsq_idx_out = {tail_p1, tail};
 		next_head = head;
 		next_tail = tail;
 		tail_new = tail;
 		incount = in_req[0] + in_req[1];
 		outcount = 2'd0;
+
+		// launch control
+		if (launch && !stall) begin
+			next_launched[head] = 1'b1;
+		end
 
 		// deal with head and data out
 		if (commit[0]) begin
@@ -201,19 +208,21 @@ module lsq (clk, reset,
 
 		// deal with tail and data in (allocate)
 		if (incount == 2'd1) begin
-				next_tail = tail_p1;
-				lsq_idx_out = (in_req[0])? {tail_p1, tail}: {tail, tail_p1};
+			next_tail = tail_p1;
+			lsq_idx_out = (in_req[0])? {tail_p1, tail}: {tail, tail_p1};
 
-				next_data_addr1 = {64{1'b0}};
-				next_data_regv1 = {64{1'b0}};
-				next_ready_launch1 = 1'b0;
-				next_ready_commit1 = 1'b0;
-				next_wr_mem1 = (in_req[0])? wr_mem_in[0]: wr_mem_in[1];
+			next_data_addr1 = {64{1'b0}};
+			next_data_regv1 = {64{1'b0}};
+			next_ready_launch1 = 1'b0;
+			next_ready_commit1 = 1'b0;
+			next_wr_mem1 = (in_req[0])? wr_mem_in[0]: wr_mem_in[1];
 
-				next_pdest_idx1 = (in_req[0])? pdest_idx_in[`SEL(`PRF_IDX,1)]: pdest_idx_in[`SEL(`PRF_IDX,2)];
-				next_rob_idx1 = (in_req[0])? rob_idx_in[`SEL(`ROB_IDX,1)]: rob_idx_in[`SEL(`ROB_IDX,2)];
-				next_npc1 = (in_req[0])? npc_in[`SEL(64,1)]: npc_in[`SEL(64,2)];
-				next_ir1 = (in_req[0])? ir_in[`SEL(32,1)]: ir_in[`SEL(32,2)];
+			next_pdest_idx1 = (in_req[0])? pdest_idx_in[`SEL(`PRF_IDX,1)]: pdest_idx_in[`SEL(`PRF_IDX,2)];
+			next_rob_idx1 = (in_req[0])? rob_idx_in[`SEL(`ROB_IDX,1)]: rob_idx_in[`SEL(`ROB_IDX,2)];
+			next_npc1 = (in_req[0])? npc_in[`SEL(64,1)]: npc_in[`SEL(64,2)];
+			next_ir1 = (in_req[0])? ir_in[`SEL(32,1)]: ir_in[`SEL(32,2)];
+
+			next_launched[tail] = 1'b0;
 
 		end
 		if (incount == 2'd2) begin
@@ -241,6 +250,9 @@ module lsq (clk, reset,
 			next_rob_idx2 = rob_idx_in[`SEL(`ROB_IDX,2)];
 			next_npc2 = npc_in[`SEL(64,2)];
 			next_ir2 = ir_in[`SEL(32,2)];
+
+			next_launched[tail] = 1'b0;
+			next_launched[tail_p1] = 1'b0;
 		end
 
 	end // always @*
@@ -269,6 +281,9 @@ module lsq (clk, reset,
 			full_almost 	<= `SD next_full_almost;
 			empty					<= `SD next_empty;
 			empty_almost	<= `SD next_empty_almost;
+
+			// memory launch status
+			launched      <= `SD next_launched;
 			
 			// data allocation
 			data_addr[tail]       <= `SD next_data_addr1;
@@ -303,11 +318,7 @@ module lsq (clk, reset,
 				end
 			end
 
-			// memory launch status
-			if (launch && !stall) begin
-				launched[head] <= `SD 1'b1;
-			end
-
+			
 			// ticket => lsq mapping
 			if (dcache_miss) begin
 				// Cache miss
