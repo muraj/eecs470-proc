@@ -153,8 +153,8 @@ module EX_CO_Mux (	//Inputs
 			assign rob_idx[5] 	= ALU_rob_idx[`SEL(`ROB_IDX,2)];		assign rob_idx[4] 	= ALU_rob_idx[`SEL(`ROB_IDX,1)];
 			assign rob_idx[3] 	= MULT_rob_idx[`SEL(`ROB_IDX,2)];		assign rob_idx[2] 	= MULT_rob_idx[`SEL(`ROB_IDX,1)];
 			assign rob_idx[1] 	= MEM_rob_idx[`SEL(`ROB_IDX,2)];		assign rob_idx[0] 	= MEM_rob_idx[`SEL(`ROB_IDX,1)];
-		wire [7:0]	result_valid_MEM				= {5'b0, MEM_result_valid, 1'b0};
-		wire [7:0]	BR_result								= {1'b0, ALU_BR_result, 5'b0};
+		wire [7:0]	result_valid_MEM				= {6'b0, MEM_result_valid};
+		wire [7:0]	BR_result								= {2'b0, ALU_BR_result, 4'b0};
 
 		wire [5:0] 	granted = {ALU_gnt, MULT_gnt, MEM_gnt};
 		wire [1:0]	temp;
@@ -192,8 +192,8 @@ module EX_CO_Mux (	//Inputs
 			assign npc[1] 			= MULT_npc; 				assign npc[0] 			= MEM_npc;
 			assign rob_idx[3] 	= {`ROB_IDX{1'b0}};	assign rob_idx[2] 	= ALU_rob_idx; 
 			assign rob_idx[1] 	= MULT_rob_idx;			assign rob_idx[0] 	= MEM_rob_idx;
-		wire [3:0]	result_valid_MEM				= {2'b0, MEM_result_valid, 1'b0};
-		wire [3:0]	BR_result								= {ALU_BR_result, 3'b0};
+		wire [3:0]	result_valid_MEM				= {3'b0, MEM_result_valid};
+		wire [3:0]	BR_result								= {1'b0, ALU_BR_result, 2'b0};
 		wire [2:0] 	granted = {ALU_gnt, MULT_gnt, MEM_gnt};
 		wire 				temp;
 		wire [2:0]	granted_cdb;
