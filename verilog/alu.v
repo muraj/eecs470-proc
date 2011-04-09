@@ -32,18 +32,19 @@ module ALU (clk, reset,
   reg [63:0] 	opa, opb;
   reg 				isBranch;
 //	reg					uncondBranch;
-	reg [63:0]	result;
-	reg					BR_result;
+	wire [63:0]	result;
+	wire					BR_result;
 	reg [63:0]	BR_target_addr;
 
   ALU_leaf	ALU_leaf0	(.opa(opa), .opb(opb), .func(ALUop), .result(alu_result_out));
   BRcond 		BRcond0		(.opa(prega_in), .func(IR_in[28:26]), .cond(BR_result_out));
 
+
+	assign		result	= isBranch ? npc_in : alu_result_out;
+	assign	BR_result	= isBranch ? BR_result_out : 1'b0;
+
   always @* begin //Small mux for reading the correct reg values
 		done			= EX_en_in;
-//		result		= (isBranch & !uncondBranch & !BR_result_out) ? npc_in : alu_result_out;
-		result		= isBranch ? npc_in : alu_result_out;
-		BR_result	= isBranch ? BR_result_out : 1'b0;
     isBranch	= 1'b0;
 //		uncondBranch = 1'b0;
 		BR_target_addr = 0;

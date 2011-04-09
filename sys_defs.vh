@@ -291,7 +291,7 @@
 `ifdef SUPERSCALAR
     `define SCALAR (2)
 `else
-    `define SCALAR (1)XM5	VDD	n2		n1		VDD	dgpfet	w=0.36u	l=2.6u
+    `define SCALAR (1)
 
 `endif
 `define ARF_IDX (5)
@@ -327,6 +327,6 @@
 	`define DCACHE_TAG_BITS (13-`DCACHE_IDX_BITS)	// 13 indicates MEM_64BIT_LINES (=2^13)
 `endif
 // Branch Predicator
-`define BRANCH_NOT_TAKEN
+//`define BRANCH_NOT_TAKEN
 `define PRED_BITS (2)   //Size of the predictor counters
 `define PRED_IDX  (4)   //Size of the BTB and indexing
