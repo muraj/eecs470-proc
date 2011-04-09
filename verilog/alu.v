@@ -4,7 +4,7 @@ module ALU (clk, reset,
 						prega_in, pregb_in, ALUop, pdest_idx_in, IR_in, npc_in, rob_idx_in, EX_en_in, 
 						next_gnt, stall,	// from EX_ps
 						// Outputs
-						result_reg, BR_result_reg, pdest_idx_reg, IR_reg, npc_reg, rob_idx_reg,
+						result_reg, BR_result_reg, BR_target_addr_reg, pdest_idx_reg, IR_reg, npc_reg, rob_idx_reg,
 						done, done_reg, gnt_reg			// to EX_ps
 						);
 
@@ -20,6 +20,7 @@ module ALU (clk, reset,
 
 	output reg [63:0]					result_reg;
 	output reg								BR_result_reg;
+	output reg								BR_target_addr_reg;
 	output reg [`PRF_IDX-1:0]	pdest_idx_reg;
 	output reg [31:0] 				IR_reg;
 	output reg [63:0] 				npc_reg;
@@ -27,42 +28,48 @@ module ALU (clk, reset,
 	output reg								done, done_reg, gnt_reg;
 
   wire [63:0]	alu_result_out;
-  wire 				br_result_out;
+  wire 				BR_result_out;
   reg [63:0] 	opa, opb;
   reg 				isBranch;
-	reg					uncondBranch;
+//	reg					uncondBranch;
 	reg [63:0]	result;
 	reg					BR_result;
+	reg [63:0]	BR_target_addr;
 
   ALU_leaf	ALU_leaf0	(.opa(opa), .opb(opb), .func(ALUop), .result(alu_result_out));
-  BRcond 		BRcond0		(.opa(prega_in), .func(IR_in[28:26]), .cond(br_result_out));
+  BRcond 		BRcond0		(.opa(prega_in), .func(IR_in[28:26]), .cond(BR_result_out));
 
   always @* begin //Small mux for reading the correct reg values
 		done			= EX_en_in;
-		result		= (isBranch & !uncondBranch & !br_result_out) ? npc_in : alu_result_out;
-		BR_result	= isBranch ? br_result_out : 1'b0;
+//		result		= (isBranch & !uncondBranch & !BR_result_out) ? npc_in : alu_result_out;
+		result		= isBranch ? npc_in : alu_result_out;
+		BR_result	= isBranch ? BR_result_out : 1'b0;
     isBranch	= 1'b0;
-		uncondBranch = 1'b0;
+//		uncondBranch = 1'b0;
+		BR_target_addr = 0;
+
     case (IR_in[31:29])
-      3'b010: begin
+      3'b010: begin // 6'h10 (opa=REGA, opb=ALU_IMM or REGB, dest=REGC, ALUop=various)
   				     	opa = prega_in;
        					opb = IR_in[12] ? {56'b0, IR_in[20:13]} : pregb_in;
       				end
-      3'b011: begin
+      3'b011: begin	// 6'h18 Uncond Branches (opa=NOT3, opb=REGB, dest=REGA, ALUop=AND)
         				opa = ~64'h3;
         				opb = pregb_in;
         				isBranch = 1'b1;
-								uncondBranch = 1'b1;
+//								uncondBranch = 1'b1;
+								BR_target_addr = alu_result_out;	// BR target addr comes from ALU
       				end
-			3'b001, 3'b100, 3'b101:	begin	// for 'lda' instruction
+			3'b001, 3'b100, 3'b101:	begin	// 6'h08, 6'h20, 6'h28, for 'lda' instruction (opa=MEM_DISP, opb=REGB, dest=REGA, ALUop=ADD)
 																opa = {{48{IR_in[15]}}, IR_in[15:0]};
 																opb = pregb_in;
 															end
-      3'b111, 3'b110: begin
+      3'b111, 3'b110: begin // 6'h38, 6'h30 Branches (Uncond or Cond) (opa=NPC, opb=BR_DISP, dest=REGA, ALUop=ADD)
         								opa = npc_in;
         								opb = {{41{IR_in[20]}}, IR_in[20:0], 2'b00};
         								isBranch = 1'b1;
-												uncondBranch = (IR_in[31:26] == `BR_INST) | (IR_in[31:26] == `BSR_INST);
+//												uncondBranch = (IR_in[31:26] == `BR_INST) | (IR_in[31:26] == `BSR_INST);
+												BR_target_addr = alu_result_out;	// BR target addr comes from ALU
       								end
       default: 	begin  //Should never see this
         					opa = 64'hbaadbeefdeadbeef;
@@ -78,22 +85,24 @@ module ALU (clk, reset,
 			
 	always @(posedge clk) begin
 		if(reset) begin
-			result_reg			<= `SD 0;
-			BR_result_reg		<= `SD 0;
-			pdest_idx_reg		<= `SD `ZERO_PRF;
-			IR_reg					<= `SD `NOOP_INST;
-			npc_reg					<= `SD 0;
-			rob_idx_reg			<= `SD 0;
-			done_reg				<= `SD 0;
+			result_reg					<= `SD 0;
+			BR_result_reg				<= `SD 0;
+			BR_target_addr_reg	<= `SD 0;
+			pdest_idx_reg				<= `SD `ZERO_PRF;
+			IR_reg							<= `SD `NOOP_INST;
+			npc_reg							<= `SD 0;
+			rob_idx_reg					<= `SD 0;
+			done_reg						<= `SD 0;
 		end 
 		else if (!stall) begin
-			result_reg			<= `SD result;
-			BR_result_reg		<= `SD BR_result;
-			pdest_idx_reg		<= `SD pdest_idx_in;
-			IR_reg					<= `SD IR_in;
-			npc_reg					<= `SD npc_in;
-			rob_idx_reg			<= `SD rob_idx_in;
-			done_reg				<= `SD EX_en_in;
+			result_reg					<= `SD result;
+			BR_result_reg				<= `SD BR_result;
+			BR_target_addr_reg	<= `SD BR_target_addr;
+			pdest_idx_reg				<= `SD pdest_idx_in;
+			IR_reg							<= `SD IR_in;
+			npc_reg							<= `SD npc_in;
+			rob_idx_reg					<= `SD rob_idx_in;
+			done_reg						<= `SD EX_en_in;
 		end
 	end
 

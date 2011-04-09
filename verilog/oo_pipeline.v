@@ -174,6 +174,7 @@ module oo_pipeline (// Inputs
 	wire [`PRF_IDX*`SCALAR-1:0]	ex_cdb_tag_out;
 	wire [`SCALAR-1:0] 					ex_cdb_valid_out;
 	wire [64*`SCALAR-1:0] 			ex_cdb_value_out;
+	wire [64*`SCALAR-1:0] 			ex_cdb_branch_target_addr_out;
 	wire [`SCALAR-1:0] 					ex_mem_value_valid_out;
 	wire [`ROB_IDX*`SCALAR-1:0]	ex_rob_idx_out;
 	wire [`SCALAR-1:0] 					ex_branch_NT_out;
@@ -523,7 +524,7 @@ module oo_pipeline (// Inputs
             .bt_pd_in1(1'b0), .bt_pd_in2(1'b0), //FIXME
             .isbranch_in1(id_dp_isbranch[0]), .isbranch_in2(id_dp_isbranch[1]),
 						// Real branch results
-						.ba_ex_in1(ex_cdb_value_out[`SEL(64,1)]), .ba_ex_in2(ex_cdb_value_out[`SEL(64,2)]), .bt_ex_in1(ex_branch_NT_out[0]), .bt_ex_in2(ex_branch_NT_out[1]),
+						.ba_ex_in1(ex_cdb_branch_target_addr_out[`SEL(64,1)]), .ba_ex_in2(ex_cdb_branch_target_addr_out[`SEL(64,2)]), .bt_ex_in1(ex_branch_NT_out[0]), .bt_ex_in2(ex_branch_NT_out[1]),
 						// For retire
             .dout1_valid(rob_retire_valid_inst[0]), .dout2_valid(rob_retire_valid_inst[1]), 
 						.ir_out1(rob_retire_IR[`SEL(32,1)]), .ir_out2(rob_retire_IR[`SEL(32,2)]), 
@@ -652,6 +653,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 													.cdb_MEM_result_valid(ex_mem_value_valid_out), 	  // to CDB
 													.cdb_rob_idx(ex_rob_idx_out), .cdb_BR_result(ex_branch_NT_out), 
 													.cdb_npc(ex_co_NPC), .cdb_IR(ex_co_IR),					  // to CDB
+													.cdb_branch_target_addr(ex_cdb_branch_target_addr_out),				// to ROB
 													.ALU_free(ex_ALU_free), .MULT_free(ex_MULT_free), // to RS
 
 													// Outputs (to LSQ)
