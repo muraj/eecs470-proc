@@ -92,15 +92,17 @@ endmodule
 // EX-CO Interface
 module EX_CO_Mux (	//Inputs
 										ALU_result, ALU_BR_result, ALU_pdest_idx, ALU_IR, ALU_npc, ALU_rob_idx, ALU_gnt,	
+										ALU_BR_target_addr,
 										MULT_result, MULT_pdest_idx, MULT_IR, MULT_npc, MULT_rob_idx, MULT_gnt,
 										MEM_result, MEM_result_valid, MEM_pdest_idx, MEM_IR, MEM_npc, MEM_rob_idx, MEM_gnt,
 										//Outputs
-										cdb_tag, cdb_valid, cdb_value, cdb_MEM_result_valid, 
+										cdb_tag, cdb_valid, cdb_value, cdb_MEM_result_valid, cdb_BR_target_addr,
 										cdb_rob_idx, cdb_BR_result,
 										//for DEBUGGING
 										cdb_npc, cdb_IR 
 										);
 	input [64*`SCALAR-1:0]				ALU_result, MULT_result, MEM_result;
+	input [64*`SCALAR-1:0]				ALU_BR_target_addr;
 	input [`PRF_IDX*`SCALAR-1:0]	ALU_pdest_idx, MULT_pdest_idx, MEM_pdest_idx;
 	input [32*`SCALAR-1:0]				ALU_IR, MULT_IR, MEM_IR;
 	input [64*`SCALAR-1:0]				ALU_npc, MULT_npc, MEM_npc;
@@ -115,12 +117,14 @@ module EX_CO_Mux (	//Inputs
 	output [`SCALAR-1:0] 					cdb_MEM_result_valid;
 	output [`ROB_IDX*`SCALAR-1:0] cdb_rob_idx;
 	output [`SCALAR-1:0] 					cdb_BR_result;
+	output [64*`SCALAR-1:0] 			cdb_BR_target_addr;
 	// for DEBUGGING
 	output [64*`SCALAR-1:0]				cdb_npc;
 	output [32*`SCALAR-1:0]				cdb_IR;
 
 	`ifdef SUPERSCALAR
 		wire [63:0] 				result 		[7:0];
+		wire [63:0] 				BR_target	[7:0];
 		wire [`PRF_IDX-1:0]	pdest_idx	[7:0];
 		wire [31:0] 				IR 				[7:0];
 		wire [63:0] 				npc 			[7:0];
@@ -129,6 +133,10 @@ module EX_CO_Mux (	//Inputs
 			assign result[5]		= ALU_result[`SEL(64,2)];						assign result[4] 		= ALU_result[`SEL(64,1)];
 			assign result[3]		= MULT_result[`SEL(64,2)];					assign result[2] 		= MULT_result[`SEL(64,1)];
 			assign result[1]		= MEM_result[`SEL(64,2)];						assign result[0]		= MEM_result[`SEL(64,1)];
+			assign BR_target[7]	= 64'b0; 														assign BR_target[6]	= 64'b0;
+			assign BR_target[5]	= ALU_BR_target_addr[`SEL(64,2)];		assign BR_target[4]	= ALU_BR_target_addr[`SEL(64,1)];
+			assign BR_target[3]	= 64'b0;														assign BR_target[2]	= 64'b0;
+			assign BR_target[1]	= 64'b0;														assign BR_target[0]	= 64'b0;
 			assign pdest_idx[7]	= `ZERO_PRF;												assign pdest_idx[6]	= `ZERO_PRF;
 			assign pdest_idx[5]	= ALU_pdest_idx[`SEL(`PRF_IDX,2)];	assign pdest_idx[4]	= ALU_pdest_idx[`SEL(`PRF_IDX,1)];
 			assign pdest_idx[3]	= MULT_pdest_idx[`SEL(`PRF_IDX,2)];	assign pdest_idx[2]	= MULT_pdest_idx[`SEL(`PRF_IDX,1)];
@@ -162,6 +170,7 @@ module EX_CO_Mux (	//Inputs
 		assign cdb_rob_idx					=	{rob_idx[cdb2_idx], rob_idx[cdb1_idx]};
 		assign cdb_MEM_result_valid	= {result_valid_MEM[cdb2_idx], result_valid_MEM[cdb1_idx]};
 		assign cdb_BR_result				= {BR_result[cdb2_idx], BR_result[cdb1_idx]};
+		assign cdb_BR_target_addr		= {BR_target[cdb2_idx], BR_target[cdb1_idx]};
 		//for debugging
 		assign cdb_npc							= {npc[cdb2_idx], npc[cdb1_idx]};
 		assign cdb_IR								= {IR[cdb2_idx], IR[cdb1_idx]};
@@ -173,6 +182,8 @@ module EX_CO_Mux (	//Inputs
 		wire [`ROB_IDX-1:0]	rob_idx 	[3:0];
 			assign result[3] 		= 64'b0;						assign result[2] 		= ALU_result;
 			assign result[1] 		= MULT_result;			assign result[0] 		= MEM_result;
+			assign BR_target[3]	= 64'b0;						assign BR_target[2]	= ALU_BR_target_addr;
+			assign BR_target[1]	= 64'b0;						assign BR_target[0]	= 64'b0;
 			assign pdest_idx[3]	= `ZERO_PRFi;				assign pdest_idx[2]	= ALU_pdest_idx;
 			assign pdest_idx[1]	= MULT_pdest_idx;		assign pdest_idx[0]	= MEM_pdest_idx;
 			assign IR[3]				= `NOOP_INST;				assign IR[2] 				= ALU_IR; 
@@ -195,6 +206,7 @@ module EX_CO_Mux (	//Inputs
 		assign cdb_rob_idx					=	rob_idx[cdb_idx];
 		assign cdb_MEM_result_valid	= result_valid_MEM[cdb_idx];
 		assign cdb_BR_result				= BR_result[cdb_idx];
+		assign cdb_BR_target_addr		= BR_target[cdb_idx];
 		//for debugging
 		assign cdb_npc							= npc[cdb_idx];
 		assign cdb_IR								= IR[cdb_idx];
@@ -579,6 +591,7 @@ module ex_co_stage(clk, reset,
 
 // Inputs to the functional units
 	wire [64*`SCALAR-1:0]				ALU_prega_in, ALU_pregb_in, MULT_prega_in, MULT_pregb_in, MEM_prega_in, MEM_pregb_in;
+	wire [64*`SCALAR-1:0]				ALU_branch_target_addr;
 	wire [`PRF_IDX*`SCALAR-1:0]	ALU_pdest_idx_in, MULT_pdest_idx_in, MEM_pdest_idx_in;
 	wire [32*`SCALAR-1:0]				ALU_IR_in, MULT_IR_in, MEM_IR_in;
 	wire [64*`SCALAR-1:0]				ALU_npc_in, MULT_npc_in, MEM_npc_in;
@@ -641,7 +654,7 @@ module ex_co_stage(clk, reset,
 						.EX_en_in(ALU_EX_en_in[`SEL(1,1)]), 
 						.next_gnt(ALU_next_gnt[`SEL(1,1)]), .stall(ALU_stall[`SEL(1,1)]),
 						// Outputs
-						.result_reg(ALU_result_out[`SEL(64,1)]), .BR_result_reg(ALU_BR_result_out[`SEL(1,1)]), .BR_target_addr_reg(cdb_branch_target_addr[`SEL(64,1)]), 
+						.result_reg(ALU_result_out[`SEL(64,1)]), .BR_result_reg(ALU_BR_result_out[`SEL(1,1)]), .BR_target_addr_reg(ALU_branch_target_addr[`SEL(64,1)]), 
 						.pdest_idx_reg(ALU_pdest_idx_out[`SEL(`PRF_IDX,1)]), .IR_reg(ALU_IR_out[`SEL(32,1)]), 
 						.npc_reg(ALU_npc_out[`SEL(64,1)]), .rob_idx_reg(ALU_rob_idx_out[`SEL(`ROB_IDX,1)]),
 						.done(ALU_done[`SEL(1,1)]), .done_reg(ALU_done_reg[`SEL(1,1)]), .gnt_reg(ALU_gnt_reg[`SEL(1,1)])
@@ -694,7 +707,7 @@ module ex_co_stage(clk, reset,
 						.EX_en_in(ALU_EX_en_in[`SEL(1,2)]), 
 						.next_gnt(ALU_next_gnt[`SEL(1,2)]), .stall(ALU_stall[`SEL(1,2)]),
 						// Outputs
-						.result_reg(ALU_result_out[`SEL(64,2)]), .BR_result_reg(ALU_BR_result_out[`SEL(1,2)]), .BR_target_addr_reg(cdb_branch_target_addr[`SEL(64,2)]), 
+						.result_reg(ALU_result_out[`SEL(64,2)]), .BR_result_reg(ALU_BR_result_out[`SEL(1,2)]), .BR_target_addr_reg(ALU_branch_target_addr[`SEL(64,2)]), 
 						.pdest_idx_reg(ALU_pdest_idx_out[`SEL(`PRF_IDX,2)]), .IR_reg(ALU_IR_out[`SEL(32,2)]), 
 						.npc_reg(ALU_npc_out[`SEL(64,2)]), .rob_idx_reg(ALU_rob_idx_out[`SEL(`ROB_IDX,2)]),
 						.done(ALU_done[`SEL(1,2)]), .done_reg(ALU_done_reg[`SEL(1,2)]), .gnt_reg(ALU_gnt_reg[`SEL(1,2)])
@@ -756,6 +769,7 @@ module ex_co_stage(clk, reset,
 													.ALU_pdest_idx(ALU_pdest_idx_out), .ALU_IR(ALU_IR_out), 
 													.ALU_npc(ALU_npc_out), .ALU_rob_idx(ALU_rob_idx_out), 
 													.ALU_gnt(ALU_gnt_reg),	
+													.ALU_BR_target_addr(ALU_branch_target_addr),
 													.MULT_result(MULT_result_out), 
 													.MULT_pdest_idx(MULT_pdest_idx_out), .MULT_IR(MULT_IR_out), 
 													.MULT_npc(MULT_npc_out), .MULT_rob_idx(MULT_rob_idx_out), 
@@ -769,6 +783,7 @@ module ex_co_stage(clk, reset,
 													.cdb_valid(cdb_valid), 
 													.cdb_value(cdb_value), 
 													.cdb_MEM_result_valid(cdb_MEM_result_valid), 
+													.cdb_BR_target_addr(cdb_branch_target_addr),
 													.cdb_rob_idx(cdb_rob_idx), 
 													.cdb_BR_result(cdb_BR_result),
 													.cdb_npc(cdb_npc), 
