@@ -157,16 +157,16 @@ end
  end                          
 always @(posedge clock) begin 
  if(~reset) begin
-  $fdisplay(rob_fileno, "\n|=========================================== Cycle: %10d ==============================================|", clock_count);
-  $fdisplay(rob_fileno, "| H/T | IDX |     IR    |        NPC       | RDY | PDR | ADR | BRA/TKN |  Branch Addr PD  |  Branch Addr EX  |");
-  $fdisplay(rob_fileno, "|============================================================================================================|");
+  $fdisplay(rob_fileno, "\n|=========================================== Cycle: %10d ===================================================|", clock_count);
+  $fdisplay(rob_fileno, "| H/T | IDX |     IR    |        NPC       | RDY | PDR | ADR | BR / PD / EX |  Branch Addr PD  |  Branch Addr EX  |");
+  $fdisplay(rob_fileno, "|=================================================================================================================|");
   `define DISPLAY_ROB(i) \
-    $fdisplay(rob_fileno, "| %1s %1s | %3d | %9s | %h |  %b  | %3d | %3d |  %b / %b  | %16h | %16h |",  \
+    $fdisplay(rob_fileno, "| %1s %1s | %3d | %9s | %h |  %b  | %3d | %3d |  %b /  %b /  %b | %16h | %16h |",  \
               i === head ? "H" : " ",                         \
               i === tail ? "T" : " ", i,                      \
               get_instr_string(rob_ir[i], 1'b1),              \
               rob_npc[i], rob_rdy[i], rob_pdest[i], rob_adest[i],  \
-              cb_isbranch[i], cb_bt_pd[i], cb_ba_pd[i], pipeline_0.rob0.data_ba_ex[i]);
+              cb_isbranch[i], cb_bt_pd[i], pipeline_0.rob0.data_bt_ex[i], cb_ba_pd[i], pipeline_0.rob0.data_ba_ex[i]);
    `DISPLAY_ROB(0)
    `DISPLAY_ROB(1)
    `DISPLAY_ROB(2)
@@ -300,6 +300,68 @@ always @(negedge clock) begin
     $fclose(reg_fileno);
 end
 
+
+//*** LSQ DEBUG ***//
+integer lsq_fileno, lsq_iter;
+initial begin
+  lsq_fileno = $fopen("lsq.out");
+end
+always @(negedge clock) begin
+  if(~reset) begin
+    $fdisplay(lsq_fileno,"\n== Cycle: %5d ==========================================", clock_count);
+    $fdisplay(lsq_fileno,"==========================================================");
+		$fdisplay(lsq_fileno,"| F/A | E/A | LCH | CM | IN | UP | \$VAL | MEMRES | \$TAG |");
+    $fdisplay(lsq_fileno,"----------------------------------------------------------");
+		$fdisplay(lsq_fileno,"| %b/%b | %b/%b |  %b  | %b%b | %b%b | %b%b |   %b  |   %2d   |  %2d  |", 
+						 pipeline_0.lsq0.full, pipeline_0.lsq0.full_almost, pipeline_0.lsq0.empty, pipeline_0.lsq0.empty_almost, pipeline_0.lsq0.launch, 
+						 pipeline_0.lsq0.commit[1], pipeline_0.lsq0.commit[0], pipeline_0.lsq0.in_req[1], pipeline_0.lsq0.in_req[0],
+						 pipeline_0.lsq0.up_req[1], pipeline_0.lsq0.up_req[0], pipeline_0.lsq0.dcache2lsq_valid, pipeline_0.lsq0.mem2lsq_response, pipeline_0.lsq0.dcache2lsq_tag);
+    $fdisplay(lsq_fileno,"==========================================================\n");
+		
+		`define DISPLAY_LSQ_ENTRY(i) \
+		$fdisplay(lsq_fileno,"| %1s %1s |  %2d |   %b  |   %b  |   %b  |   %b  |  %2d  | %08h | %08h |", \
+						 i===pipeline_0.lsq0.head ? "H" : " ", i===pipeline_0.lsq0.tail ? "T" : " ", i, \
+						 pipeline_0.lsq0.wr_mem[i], pipeline_0.lsq0.ready_launch[i], pipeline_0.lsq0.ready_commit[i], \
+						 pipeline_0.lsq0.launched[i], pipeline_0.lsq0.rob_idx[i], pipeline_0.lsq0.data_addr[i], pipeline_0.lsq0.data_regv[i]);
+		
+		$fdisplay(lsq_fileno,"======================================================================");
+  	$fdisplay(lsq_fileno,"| H/T | IDX | STOR | RDYL | RDYC | SENT | ROB# |   ADDR   |    VAL   |");
+  	$fdisplay(lsq_fileno,"|--------------------------------------------------------------------|");
+
+		`DISPLAY_LSQ_ENTRY(0)
+		`DISPLAY_LSQ_ENTRY(1)
+		`DISPLAY_LSQ_ENTRY(2)
+		`DISPLAY_LSQ_ENTRY(3)
+		`DISPLAY_LSQ_ENTRY(4)
+		`DISPLAY_LSQ_ENTRY(5)
+		`DISPLAY_LSQ_ENTRY(6)
+		`DISPLAY_LSQ_ENTRY(7)
+
+		$fdisplay(lsq_fileno,"======================================================================\n");
+		$fdisplay(lsq_fileno,"====================================================");
+		$fdisplay(lsq_fileno,"| TAG | 1| 2| 3| 4| 5| 6| 7| 8| 9| 0| 1| 2| 3| 4| 5|");
+		$fdisplay(lsq_fileno,"| LSQ | %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d|", 
+						 pipeline_0.lsq0.lsq_map[1], 
+						 pipeline_0.lsq0.lsq_map[2], 
+						 pipeline_0.lsq0.lsq_map[3], 
+						 pipeline_0.lsq0.lsq_map[4], 
+						 pipeline_0.lsq0.lsq_map[5], 
+						 pipeline_0.lsq0.lsq_map[6], 
+						 pipeline_0.lsq0.lsq_map[7], 
+						 pipeline_0.lsq0.lsq_map[8], 
+						 pipeline_0.lsq0.lsq_map[9], 
+						 pipeline_0.lsq0.lsq_map[10],
+						 pipeline_0.lsq0.lsq_map[11],
+						 pipeline_0.lsq0.lsq_map[12],
+						 pipeline_0.lsq0.lsq_map[13],
+						 pipeline_0.lsq0.lsq_map[14],
+						 pipeline_0.lsq0.lsq_map[15]
+						 );
+		$fdisplay(lsq_fileno,"====================================================\n");
+  end
+  if(pipeline_error_status != `NO_ERROR)
+    $fclose(lsq_fileno);
+end
 
 
 
