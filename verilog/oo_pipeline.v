@@ -701,7 +701,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
   lsq lsq0 (.clk(clock), .reset(reset | rob_mispredict), 
 						.full(lsq_full), .full_almost(lsq_full_almost),
 						// Inputs at Dispatch
-						.rob_idx_in(rob_idx_out), .pdest_idx_in(rat_pdest_idx), .rd_mem_in(id_dp_rd_mem), .wr_mem_in(id_dp_wr_mem),
+						.rob_idx_in(rob_idx_out), .pdest_idx_in(rat_pdest_idx), .rd_mem_in(id_dp_rd_mem & id_dp_valid_inst & ~stall_id), .wr_mem_in(id_dp_wr_mem & id_dp_valid_inst & ~stall_id),
 						.npc_in(id_dp_NPC), .ir_in(id_dp_IR), 
 						// Inputs from EX
 						.up_req(ex_lsq_req), .lsq_idx_in(ex_lsq_idx_out), .addr_in(ex_addr_out), .regv_in(ex_regv_out),
