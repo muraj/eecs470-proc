@@ -20,7 +20,7 @@ module ALU (clk, reset,
 
 	output reg [63:0]					result_reg;
 	output reg								BR_result_reg;
-	output reg								BR_target_addr_reg;
+	output reg [63:0]					BR_target_addr_reg;
 	output reg [`PRF_IDX-1:0]	pdest_idx_reg;
 	output reg [31:0] 				IR_reg;
 	output reg [63:0] 				npc_reg;
