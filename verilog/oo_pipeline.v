@@ -538,7 +538,7 @@ module oo_pipeline (// Inputs
   rob rob0 (.clk(clock), .reset(reset),
 						.full(rob_full), .full_almost(rob_full_almost),
 						// Dispatch request
-						.din1_req(id_dp_valid_inst[0]), .din2_req(id_dp_valid_inst[1]),
+						.din1_req(id_dp_valid_inst[0] & !stall_id[0]), .din2_req(id_dp_valid_inst[1] & !stall_id[1]),
 						// Update request
 						.dup1_req(ex_cdb_valid_out[0]), .dup2_req(ex_cdb_valid_out[1]),
 						.rob_idx_in1(ex_rob_idx_out[`SEL(`ROB_IDX,1)]), .rob_idx_in2(ex_rob_idx_out[`SEL(`ROB_IDX,2)]),
