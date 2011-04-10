@@ -270,6 +270,11 @@ module lsq (clk, reset,
 			full_almost 	<= `SD 1'b0;
 			empty					<= `SD 1'b1;
 			empty_almost	<= `SD 1'b0;
+						
+			launched 	   	<= `SD {`LSQ_SZ{1'b0}};
+      ready_launch  <= `SD {`LSQ_SZ{1'b0}};
+      ready_commit  <= `SD {`LSQ_SZ{1'b0}};
+			wr_mem 	      <= `SD {`LSQ_SZ{1'b0}};
 
 		end else begin
 
@@ -337,7 +342,7 @@ module lsq (clk, reset,
 		end
 	end // always @(posedge clk)
 
-
+/*
   generate
   genvar i;
   for(i=0;i<`LSQ_SZ;i=i+1) begin : REG_RESET
@@ -345,10 +350,6 @@ module lsq (clk, reset,
 				if (reset) begin
             data_addr[i] 		<= `SD {64{1'b0}};
             data_regv[i] 		<= `SD {64{1'b0}};
-						launched[i] 		<= `SD 1'b0;
-            ready_launch[i] <= `SD 1'b0;
-            ready_commit[i] <= `SD 1'b0;
-						wr_mem[i] 	    <= `SD 1'b0;
 
             pdest_idx[i] 		<= `SD {`PRF_IDX{1'b0}};
             rob_idx[i] 			<= `SD {`ROB_IDX{1'b0}};
@@ -365,6 +366,6 @@ module lsq (clk, reset,
 		end
 	end
   endgenerate
-
+*/
 
 endmodule
