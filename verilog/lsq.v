@@ -337,6 +337,7 @@ module lsq (clk, reset,
 		end
 	end // always @(posedge clk)
 
+
   generate
   genvar i;
   for(i=0;i<`LSQ_SZ;i=i+1) begin : REG_RESET
@@ -364,5 +365,6 @@ module lsq (clk, reset,
 		end
 	end
   endgenerate
+
 
 endmodule

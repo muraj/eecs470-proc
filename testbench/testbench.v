@@ -159,6 +159,8 @@ end
 always @(posedge clock) begin 
  if(~reset) begin
   $fdisplay(rob_fileno, "\n|============================================= Cycle: %10d ================================================|", clock_count);
+  if(pipeline_0.rob_mispredict)
+    $fdisplay(rob_fileno, "****** FLUSH ******");
   $fdisplay(rob_fileno, "| H/T | IDX |     IR    |        NPC       | RDY | PDR | ADR | BRA/TKN/PTN |  Branch Addr PD  |  Branch Addr EX  |");
   $fdisplay(rob_fileno, "|================================================================================================================|");
   `define DISPLAY_ROB(i) \

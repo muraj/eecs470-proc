@@ -27,8 +27,12 @@ all:    simv
 
 TESTBENCH = 	sys_defs.vh	    \
 		testbench/testbench_lsq.v
-SIMFILES =	testbench/mem.v verilog/lsq.v verilog/cb.v 
+SIMFILES =	testbench/mem.v verilog/lsq.v 
 
+SYNFILES = synth/lsq.vg
+
+synth/lsq.vg: $(SIMFILES) synth/lsq.tcl
+	cd synth && dc_shell-t -f ./lsq.tcl | tee synth.out
 
 #####
 # Should be no need to modify after here

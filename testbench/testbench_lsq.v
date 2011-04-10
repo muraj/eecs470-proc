@@ -9,6 +9,8 @@ module testbench;
 	reg [`PRF_IDX*`SCALAR-1:0]	pdest_idx_in; // destination PRF index for loads
 	reg [`SCALAR-1:0]						rd_mem_in;    // loads
 	reg [`SCALAR-1:0]						wr_mem_in;		// stores
+	reg [32*`SCALAR-1:0]				ir_in; 				// IR
+	reg [64*`SCALAR-1:0]				npc_in; 	// NPC
 
 	reg [`SCALAR-1:0]					  up_req;				// address updates from EX stage
 	reg [`LSQ_IDX*`SCALAR-1:0]	lsq_idx_in;   // LSQ index to update
@@ -34,6 +36,8 @@ module testbench;
 	wire [64*`SCALAR-1:0]				mem_value_out; // data for load
 	wire [`SCALAR-1:0]					rd_mem_out;		 // loads
 	wire [`SCALAR-1:0]					wr_mem_out;		 // stores
+	wire [64*`SCALAR-1:0]				npc_out;
+	wire [32*`SCALAR-1:0]				ir_out;
 	
 	wire [1:0]	lsq2mem_command;  // `BUS_NONE, `BUS_LOAD, `BUS_STORE
 	wire [63:0] lsq2mem_addr;		  // address to mem
@@ -42,7 +46,7 @@ module testbench;
   lsq lsq0 (clk, reset, 
 						full, full_almost, 
 						// Inputs at Dispatch
-						rob_idx_in, pdest_idx_in, rd_mem_in, wr_mem_in,
+						rob_idx_in, pdest_idx_in, rd_mem_in, wr_mem_in, npc_in, ir_in,
 						// Inputs from EX
 						up_req, lsq_idx_in, addr_in, regv_in,
 						// Inputs from MEM
@@ -54,7 +58,8 @@ module testbench;
 						// Output at Dispatch
 						lsq_idx_out,
 						// Outputs to EX
-						out_valid, rob_idx_out, pdest_idx_out, mem_value_out, rd_mem_out, wr_mem_out,
+						out_valid, rob_idx_out, pdest_idx_out, mem_value_out, 
+						rd_mem_out, wr_mem_out, npc_out, ir_out,
 						// Outputs to MEM
 						lsq2mem_command, lsq2mem_addr, lsq2mem_data
 					 );
@@ -98,6 +103,8 @@ module testbench;
 	input [1:0] num_inst;
   input write1, write2;
   begin
+		ir_in = clk_count;
+		npc_in = clk_count;
 		
 		if (num_inst >= 1) begin
 			wr_mem_in[0] = write1;
@@ -172,20 +179,20 @@ module testbench;
   	  $display("==========================================================\n");
 			
 			`define DISPLAY_LSQ_ENTRY(i) \
-			$display("| %1s %1s |  %2d |   %b  |   %b  |   %b  |   %b  |  %2d  | %08d | %08d |", \
+			$display("| %1s %1s |  %2d |   %b  |   %b  |   %b  |   %b  |  %2d  | %16h | %16h |", \
 							 i===lsq0.head ? "H" : " ", i===lsq0.tail ? "T" : " ", i, \
 							 lsq0.wr_mem[i], lsq0.ready_launch[i], lsq0.ready_commit[i], \
-							 lsq0.launched[i], lsq0.cb_rob_idx.data[i], lsq0.data_addr[i], lsq0.data_regv[i]);
+							 lsq0.launched[i], lsq0.rob_idx[i], lsq0.data_addr[i], lsq0.data_regv[i]);
 			
-			$display("======================================================================");
-   		$display("| H/T | IDX | STOR | RDYL | RDYC | SENT | ROB# |   ADDR   |    VAL   |");
-   		$display("|--------------------------------------------------------------------|");
+			$display("======================================================================================");
+   		$display("| H/T | IDX | STOR | RDYL | RDYC | SENT | ROB# |       ADDR       |        VAL       |");
+   		$display("|------------------------------------------------------------------------------------|");
 
 			for (idx=0;idx<`LSQ_SZ;idx=idx+1) begin
 				`DISPLAY_LSQ_ENTRY(idx)
 			end
   	  
-			$display("======================================================================\n");
+			$display("======================================================================================\n");
 			$display("====================================================");
 			$display("| TAG | 1| 2| 3| 4| 5| 6| 7| 8| 9| 0| 1| 2| 3| 4| 5|");
 			$display("| LSQ | %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d|", 
