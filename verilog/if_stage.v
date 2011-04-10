@@ -73,7 +73,8 @@ module if_stage(// Inputs
                    (PC_reg[2])? PC_plus_4 : PC_plus_8;    // Branch to misaligned address
 
     // The take-branch signal must override stalling (otherwise it may be lost)
-  assign PC_enable = (Imem_valid & !stall) || rob_mispredict || |id_bp_taken;
+ // assign PC_enable = (Imem_valid & !stall) || rob_mispredict || |id_bp_taken;
+  assign PC_enable = (Imem_valid & !stall) || rob_mispredict || (|id_bp_taken & !stall);
 
     // Pass PC+4 and PC+8 down pipeline w/instruction
   assign if_NPC_out[`SEL(64,1)] = PC_plus_4;
