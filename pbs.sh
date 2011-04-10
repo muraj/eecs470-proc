@@ -11,7 +11,7 @@
 echo "PBS - Copying project files to local tmp..."
 mkdir /tmp/${PBS_JOBID}
 cd /tmp/${PBS_JOBID}
-rsync -avz ~/$WORK_DIR .
+rsync -avz ~/$WORK_DIR/ .
 if [ "$?" -ne '0' ]; then
   echo "PBS - Error while trying to copy project files to tmp"
   cd
@@ -20,27 +20,31 @@ if [ "$?" -ne '0' ]; then
 fi
 
 # Run synthesis
-MAIN_DIR=`find . type -d -name $ROOT_PROJ_DIR`
-if [ "$MAIN_DIR" == "" ]; then
-  echo "PBS - Could not find $ROOT_PROJ_DIR directory, aborting"
-  cd
-  /bin/rm -rf /tmp/${PBS_JOBID}
-  exit 1
-fi
-cd $MAIN_DIR
+#MAIN_DIR=`find . type -d -name $ROOT_PROJ_DIR`
+#if [ "$MAIN_DIR" == "" ]; then
+#  echo "PBS - Could not find $ROOT_PROJ_DIR directory, aborting"
+#  cd
+#  /bin/rm -rf /tmp/${PBS_JOBID}
+#  exit 1
+#fi
+#cd $MAIN_DIR
 echo "PBS - Running synthesis..."
-make syn
+#make syn
 
 # To just synthesize pipeline (and not run simulation), comment "make syn"
 #  above and uncomment the following line.
-#/usr/caen/bin/dc_shell-t -f ./$PROJ_TCL
+echo *************** SYNTHESIZING ********************
+cd synth
+/usr/caen/bin/dc_shell-t -f ./$PROJ_TCL
 
 # Clean up simulation output
-make clean
+#make clean
 
 # Copy new synthesis files back to home space
 cd /tmp/${PBS_JOBID}
-rsync -avz . ~/$WORK_DIR/..
+echo *************** TESTING ********************
+./run_tests.sh -q syn		#Run tests on synthesized version
+rsync -avz ./ ~/$WORK_DIR
 if [ "$?" -ne '0' ]; then
   echo "PBS - Error while trying to copy synthesized files back to home"
   cd

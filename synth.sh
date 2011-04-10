@@ -1,4 +1,4 @@
-#!/bin/bash -l
+#!/bin/bash
 # Joshua Smith (smjoshua@umich.edu)
 # EECS 470 - Fall 2010
 
@@ -24,17 +24,17 @@
 # PROJ_TCL: The synthesis .tcl script for your entire pipeline
 USER=`whoami`
 SVN_REPO="svn checkout http://mountain-dew-proc.googlecode.com/svn/trunk/ mountain-dew-proc-read-only"
-AFS_DIR="/afs/umich.edu/user/${USER:0:1}/${USER:1:2}/${USER}"
-WORK_DIR="project"
+AFS_DIR="/afs/umich.edu/user/${USER:0:1}/${USER:1:1}/${USER}"
+WORK_DIR="mountain-dew-proc"
 EMAIL="${USER}@umich.edu"
-ROOT_PROJ_DIR="llvsimp4_f10"
+ROOT_PROJ_DIR=""
 PROJ_TCL="pipeline.tcl"
 
 # Will have to guesstimate on runtime and memory requirements
 # WALLTIME: A limit on the amount of time your job will get to run
 # MEM: Amount of physical memory that your job will be allocated
-PPN=1   # Processors-Per-Node
-WALLTIME="00:10:00"   #HH:MM:SS
+PPN=6   # Processors-Per-Node
+WALLTIME="00:30:00"   #HH:MM:SS
 MEM="500mb"
 
 # Note: Probably shouldn't touch these unless told to by the GSI
@@ -47,22 +47,25 @@ PBS_FILE=`pwd`"/pbs.sh"
 cd
 if [ "$1" == "-s" ]; then
   echo "Checking out project from SVN repository..."
-  svn co $SVN_REPO ~/$WORK_DIR
+  svn co $SVN_REPO $HOME/$WORK_DIR
   if [ "$?" -ne '0' ]; then
     echo "Error: Could not check out copy of SVN repository"
     exit 1
   fi
 elif [ "$1" == "-a" ]; then
   echo "Copying project from AFS directory..."
-  rsync -avz $AFS_DIR ~/$WORK_DIR
+  rsync -avz $AFS_DIR/$WORK_DIR/ $HOME/$WORK_DIR
   if [ "$?" -ne '0' ]; then
     echo "Error: Could not copy files from AFS directory"
     exit 1
   fi
+else
+	echo "Error: invalid or no option given"
+	exit 1
 fi
 
 # Make sure the synth folder can be found
-SYNTH_DIR=`find ~/$WORK_DIR -type d -name synth`
+SYNTH_DIR=`find $HOME/$WORK_DIR -type d -name synth`
 if [ "$SYNTH_DIR" == "" ]; then
   echo "Error: Could not find synth directory"
   exit 1
@@ -80,7 +83,7 @@ module load vcs
 
 # Submit the batch job
 echo "Submitting batch job..."
-JOB_ID=`qsub -N 470synth -l nodes=1:${PPN},walltime=$WALLTIME,pmem=$MEM -q $QUEUE -M $EMAIL -m abe -V $PBS_FILE`
+JOB_ID=`qsub -N 470synth -l nodes=1:ppn=${PPN},walltime=$WALLTIME,pmem=$MEM -q $QUEUE -M $EMAIL -m abe -V $PBS_FILE`
 if [ "$?" -ne '0' ]; then
   echo "Error: Could not submit job via qsub"
   exit 1
