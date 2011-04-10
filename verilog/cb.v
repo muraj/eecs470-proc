@@ -110,16 +110,4 @@ module cb (clk, reset,
 		end
 	end
 
-  generate
-  genvar i;
-  for(i=0;i<CB_LENGTH;i=i+1) begin : REG_RESET
-      always @(posedge clk) begin
-				if (reset) begin
-            data[i] <= `SD {CB_WIDTH{1'b0}};
-				end
-      end
-  end
-  endgenerate
-	
-
 endmodule

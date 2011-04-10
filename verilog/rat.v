@@ -44,6 +44,7 @@ module rat (clk, reset, flush,
   wire    [`SCALAR-1:0] issue_file, retire_file;
 
   always @* begin
+    prega_valid_out[0] = valid_list[prega_idx_out[`SEL(`PRF_IDX,1)]];
     if(issue[0]) begin
       if(cdb_en[0] && cdb_tag[`SEL(`PRF_IDX, 1)] == prega_idx_out[`SEL(`PRF_IDX, 1)])
         prega_valid_out[0] = 1'b1;
@@ -51,9 +52,8 @@ module rat (clk, reset, flush,
       else if(cdb_en[1] && cdb_tag[`SEL(`PRF_IDX, 2)] == prega_idx_out[`SEL(`PRF_IDX, 1)])
         prega_valid_out[0] = 1'b1;
       `endif
-      else
-        prega_valid_out[0] = valid_list[prega_idx_out[`SEL(`PRF_IDX,1)]];
     end
+    pregb_valid_out[0] = valid_list[pregb_idx_out[`SEL(`PRF_IDX,1)]];
     if(issue[0]) begin
       if(cdb_en[0] && cdb_tag[`SEL(`PRF_IDX, 1)] == pregb_idx_out[`SEL(`PRF_IDX, 1)])
         pregb_valid_out[0] = 1'b1;
@@ -61,35 +61,23 @@ module rat (clk, reset, flush,
       else if(cdb_en[1] && cdb_tag[`SEL(`PRF_IDX, 2)] == pregb_idx_out[`SEL(`PRF_IDX, 1)])
         pregb_valid_out[0] = 1'b1;
       `endif
-      else
-        pregb_valid_out[0] = valid_list[pregb_idx_out[`SEL(`PRF_IDX,1)]];
     end
   `ifdef SUPERSCALAR
+    prega_valid_out[1] = valid_list[prega_idx_out[`SEL(`PRF_IDX,2)]];
     if(issue[1]) begin
       if(cdb_en[0] && cdb_tag[`SEL(`PRF_IDX, 1)] == prega_idx_out[`SEL(`PRF_IDX, 2)])
         prega_valid_out[1] = 1'b1;
       else if(cdb_en[1] && cdb_tag[`SEL(`PRF_IDX, 2)] == prega_idx_out[`SEL(`PRF_IDX, 2)])
         prega_valid_out[1] = 1'b1;
-      else
-        prega_valid_out[1] = valid_list[prega_idx_out[`SEL(`PRF_IDX,2)]];
     end
+    pregb_valid_out[1] = valid_list[pregb_idx_out[`SEL(`PRF_IDX,2)]];
     if(issue[1]) begin
       if(cdb_en[0] && cdb_tag[`SEL(`PRF_IDX, 1)] == pregb_idx_out[`SEL(`PRF_IDX, 2)])
         pregb_valid_out[1] = 1'b1;
       else if(cdb_en[1] && cdb_tag[`SEL(`PRF_IDX, 2)] == pregb_idx_out[`SEL(`PRF_IDX, 2)])
         pregb_valid_out[1] = 1'b1;
-      else
-        pregb_valid_out[1] = valid_list[pregb_idx_out[`SEL(`PRF_IDX,2)]];
     end
   `endif
-  end
-  always @(posedge clk) begin
-    if(cdb_en[0])
-      valid_list[cdb_tag[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
-    `ifdef SUPERSCALAR
-    if(cdb_en[1])
-      valid_list[cdb_tag[`SEL(`PRF_IDX,2)]] <= `SD 1'b1;
-    `endif
   end
 `ifdef SUPERSCALAR
   always @* begin       //Write forwarding for superscalar (do not forward on general writes, just to second inst)
@@ -170,6 +158,14 @@ module rat (clk, reset, flush,
 			fl[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b0;
 			valid_list[retire_pdest_idx_in[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
 		end //flush
+    else begin
+      if(cdb_en[0])
+        valid_list[cdb_tag[`SEL(`PRF_IDX,1)]] <= `SD 1'b1;
+      `ifdef SUPERSCALAR
+      if(cdb_en[1])
+        valid_list[cdb_tag[`SEL(`PRF_IDX,2)]] <= `SD 1'b1;
+      `endif
+    end
 //    else begin
 
 			if (issue_file[0])

@@ -103,22 +103,15 @@ module regfile(rda_idx, rda_out,                // read port A
             registers[i] <= `SD RESET_TO;
         else if (copy)
             registers[i] <= `SD reg_vals_in[`SEL(DATA_WIDTH, i+1)];
-
+        //Write port
+        else begin
+          if(wr_en[0] && wr_idx[`SEL(IDX_WIDTH,1)] == i)
+            registers[i] <= `SD wr_data[`SEL(DATA_WIDTH, 1)];
+          if(wr_en[1] && wr_idx[`SEL(IDX_WIDTH,2)] == i)
+            registers[i] <= `SD wr_data[`SEL(DATA_WIDTH, 2)];
+        end
       end
   end
   endgenerate
-
-
-  //
-  // Write port
-  //
-  always @(posedge wr_clk) begin
-    if(~reset && ~copy) begin
-        if (wr_en[0])
-          registers[wr_idx[`SEL(IDX_WIDTH, 1)]] <= `SD wr_data[`SEL(DATA_WIDTH, 1)];
-        if (wr_en[1])
-          registers[wr_idx[`SEL(IDX_WIDTH, 2)]] <= `SD wr_data[`SEL(DATA_WIDTH, 2)];    //For overwrites, the last in super scalar structure should be prefered
-    end
-  end
 
 endmodule // regfile
