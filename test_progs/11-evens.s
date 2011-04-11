@@ -23,7 +23,7 @@ loop1:	blbs    $r2,loop2
 	stq     $r2,0($r3)
 	addq    $r3,0x8,$r3
 loop2:	addq    $r2,0x1,$r2
-	cmple   $r2,0xf,$r1
+	cmple   $r2,0xc,$r1
 	bne     $r1,loop1
 	call_pal        0x555
 

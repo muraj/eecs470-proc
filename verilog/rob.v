@@ -77,7 +77,9 @@ module rob (clk, reset,
 
   //Branch miss
 
-  wire branch_miss1 = (isbranch_out1) && ((data_bt_ex[head] != bt_pd_out1) || (data_bt_ex[head] ? (data_ba_ex[head] != ba_pd_out1) :1'b0));
+  wire branch_miss1 = (isbranch_out1) && 
+											((data_bt_ex[head] != bt_pd_out1) || 
+																													(data_bt_ex[head] ? (data_ba_ex[head] != ba_pd_out1) :1'b0));
   wire branch_miss2 = (isbranch_out2) && ((data_bt_ex[head_p1] != bt_pd_out2) || (data_bt_ex[head_p1] ? (data_ba_ex[head_p1] != ba_pd_out2) : 1'b0));
   assign branch_miss = (retire1 & branch_miss1);  // | branch_miss2;
 

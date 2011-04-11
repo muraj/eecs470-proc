@@ -127,10 +127,10 @@ module lsq (clk, reset,
 
 	// Committing decision
 	assign commit[0] = !empty && 
-										 (wr_mem[head])? launch: // for stores, launch == commit
-										 								 ready_commit[head]; // for loads, launch happens before commit
+										 ((wr_mem[head])? launch: // for stores, launch == commit
+										 								 ready_commit[head]); // for loads, launch happens before commit
 	assign commit[1] = !empty_almost && commit[0] && 
-										 (!wr_mem[head_p1])&&ready_commit[head_p1]; // only happens for loads that got forwarded
+										 ((!wr_mem[head_p1])&&ready_commit[head_p1]); // only happens for loads that got forwarded
 
 	// ===================================================
 	// Duplicate cb functionality for things to be updated
