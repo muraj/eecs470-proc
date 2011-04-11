@@ -29,6 +29,12 @@ TESTBENCH = 	sys_defs.vh	    \
 		testbench/testbench_br.v
 SIMFILES =	verilog/local_branch.v
 
+SYNFILES = synth/branch_predictor.vg
+
+synth/branch_predictor.vg: $(SIMFILES) verilog/local_branch.v
+	cd synth && dc_shell-t -f ./br.tcl | tee local_branch_synth.out
+
+
 
 #####
 # Should be no need to modify after here
@@ -45,7 +51,7 @@ vis_simv:	$(SIMFILES) $(VISTESTBENCH)
 	./vis_simv
 
 syn_simv:	$(SYNFILES) $(TESTBENCH)
-	$(VCS) $(TESTBENCH) $(SYNFILES) $(LIB) -o syn_simv 
+	$(VCS) $(TESTBENCH) $(SYNFILES) $(LIB) +define+SYNTH=1 -o syn_simv 
 
 syn:	syn_simv
 	./syn_simv | tee syn_program.out
