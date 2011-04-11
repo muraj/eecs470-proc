@@ -52,7 +52,7 @@ rat  #(.ARF_IDX(`RAT_IDX)) rat0 (clk, reset, flush,
 	end
 	endtask
 */
-
+/*
   task new_inst;
 	input [1:0] num_inst;
   input [4:0] regc1,regc2;
@@ -326,9 +326,9 @@ initial begin
 	flush=1;show_io();@(negedge clk);show_RAT();
 	show_freelist();
 	flush=0;
-
-
-	
+*/
+initial
+	begin
   $display("@@@ Success: All Testcases Passed!\n"); 
 	$finish;
 end

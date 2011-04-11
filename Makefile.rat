@@ -29,6 +29,10 @@ TESTBENCH = 	sys_defs.vh	    \
 		testbench/testbench_rat.v
 SIMFILES =	verilog/rat.v  verilog/regfile.v verilog/ps.v verilog/pe.v
 
+SYNFILES = synth/rat.vg
+
+synth/rat.vg: $(SIMFILES) verilog/rat.v
+	cd synth && dc_shell-t -f ./rat.tcl | tee rat_synth.out
 
 #####
 # Should be no need to modify after here
