@@ -31,7 +31,7 @@ module ALU (clk, reset,
   wire 				BR_result_out;
   reg [63:0] 	opa, opb;
   reg 				isBranch;
-//	reg					uncondBranch;
+	reg					uncondBranch;
 	wire [63:0]	result;
 	wire					BR_result;
 	reg [63:0]	BR_target_addr;
@@ -41,12 +41,12 @@ module ALU (clk, reset,
 
 
 	assign		result	= isBranch ? npc_in : alu_result_out;
-	assign	BR_result	= isBranch ? BR_result_out : 1'b0;
+	assign	BR_result	= isBranch ? ((uncondBranch) ? 1'b1 : BR_result_out) : 1'b0;
 
   always @* begin //Small mux for reading the correct reg values
 		done			= EX_en_in;
     isBranch	= 1'b0;
-//		uncondBranch = 1'b0;
+		uncondBranch = 1'b0;
 		BR_target_addr = 0;
 
     case (IR_in[31:29])
@@ -58,7 +58,7 @@ module ALU (clk, reset,
         				opa = ~64'h3;
         				opb = pregb_in;
         				isBranch = 1'b1;
-//								uncondBranch = 1'b1;
+								uncondBranch = 1'b1;
 								BR_target_addr = alu_result_out;	// BR target addr comes from ALU
       				end
 			3'b001, 3'b100, 3'b101:	begin	// 6'h08, 6'h20, 6'h28, for 'lda' instruction (opa=MEM_DISP, opb=REGB, dest=REGA, ALUop=ADD)
@@ -69,7 +69,7 @@ module ALU (clk, reset,
         								opa = npc_in;
         								opb = {{41{IR_in[20]}}, IR_in[20:0], 2'b00};
         								isBranch = 1'b1;
-//												uncondBranch = (IR_in[31:26] == `BR_INST) | (IR_in[31:26] == `BSR_INST);
+												uncondBranch = (IR_in[31:26] == `BR_INST) | (IR_in[31:26] == `BSR_INST);
 												BR_target_addr = alu_result_out;	// BR target addr comes from ALU
       								end
       default: 	begin  //Should never see this

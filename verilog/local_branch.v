@@ -16,6 +16,9 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 	reg    [63:0] 				 BTB_addr	[PRED_SZ-1:0];
   reg    [63:0]          BTB_npc  [PRED_SZ-1:0];
 
+  reg	[PRED_SZ-1:0]	BTB_addr_NOT_zero;
+
+
 	wire [PRED_IDX-1:0] IF_TAG[`SCALAR-1:0];
 	assign IF_TAG[0] = IF_NPC[PRED_IDX+1:2];
 `ifdef SUPERSCALAR
@@ -32,11 +35,11 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 
 	wire [PRED_BITS-1:0] pred_result1 = clr[IF_TAG[0]] ? {PRED_BITS{1'b0}} : predictor[IF_TAG[0]];
 	assign ptaken[0] = pred_result1[PRED_BITS-1] && (BTB_npc[IF_TAG[0]] == IF_NPC[`SEL(64,1)]);			//Trick to get taken/not-taken.
-	assign paddress[`SEL(64,1)] = BTB_addr[IF_TAG[0]];
+	assign paddress[`SEL(64,1)] = (BTB_addr_NOT_zero) ? BTB_addr[IF_TAG[0]] : 0;
 `ifdef SUPERSCALAR
 	wire [PRED_BITS-1:0] pred_result2 = clr[IF_TAG[1]] ? {PRED_BITS{1'b0}} : predictor[IF_TAG[1]];
 	assign ptaken[1] = pred_result2[PRED_BITS-1] && (BTB_npc[IF_TAG[1]] == IF_NPC[`SEL(64,2)]);			//Trick to get taken/not-taken.
-	assign paddress[`SEL(64,2)] = BTB_addr[IF_TAG[1]];
+	assign paddress[`SEL(64,2)] = (BTB_addr_NOT_zero) ? BTB_addr[IF_TAG[1]] : 0;
 `endif
 
 //*** Update logic ***//
@@ -56,12 +59,14 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 	always @(posedge clk) begin
     if(reset) begin
       clr <= `SD {PRED_SZ{1'b1}};
+		BTB_addr_NOT_zero <= `SD 0;
     end
 		if(ROB_br_en[0]) begin
       clr[ROB_TAG[0]] <= `SD 1'b0;
 			predictor[ROB_TAG[0]] <= `SD next_predictor[0];
       if((next_predictor[0] >> (PRED_BITS-1)) & ~(pred_rob[0] >> (PRED_BITS-1))) begin  //Now considered taken, cache the result
   			BTB_addr[ROB_TAG[0]] <= `SD ROB_taken_address[`SEL(64,1)];
+			BTB_addr_NOT_zero[ROB_TAG[0]] <= `SD 1'b1;
         BTB_npc [ROB_TAG[0]] <= `SD ROB_NPC[`SEL(64,1)];
       end
 	  end
@@ -71,6 +76,7 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 			predictor[ROB_TAG[1]] <= `SD next_predictor[1];
       if((next_predictor[1] >> (PRED_BITS-1))& ~(pred_rob[1] >> (PRED_BITS-1))) begin  //Now considered taken, cache the result
   			BTB_addr[ROB_TAG[1]] <= `SD ROB_taken_address[`SEL(64,2)];
+			BTB_addr_NOT_zero[ROB_TAG[1]] <= `SD 1'b1;
         BTB_npc [ROB_TAG[1]] <= `SD ROB_NPC[`SEL(64,2)];
       end
     end
