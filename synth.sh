@@ -33,9 +33,9 @@ PROJ_TCL="pipeline.tcl"
 # Will have to guesstimate on runtime and memory requirements
 # WALLTIME: A limit on the amount of time your job will get to run
 # MEM: Amount of physical memory that your job will be allocated
-PPN=6   # Processors-Per-Node
-WALLTIME="00:30:00"   #HH:MM:SS
-MEM="500mb"
+PPN=1   # Processors-Per-Node
+WALLTIME="05:00:00"   #HH:MM:SS
+MEM="4gb"
 
 # Note: Probably shouldn't touch these unless told to by the GSI
 # QUEUE: Name of queue to submit batch job to

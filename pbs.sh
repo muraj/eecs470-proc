@@ -34,8 +34,7 @@ echo "PBS - Running synthesis..."
 # To just synthesize pipeline (and not run simulation), comment "make syn"
 #  above and uncomment the following line.
 echo *************** SYNTHESIZING ********************
-cd synth
-/usr/caen/bin/dc_shell-t -f ./$PROJ_TCL
+(cd synth; /usr/caen/bin/dc_shell-t -f ./$PROJ_TCL)
 
 # Clean up simulation output
 #make clean

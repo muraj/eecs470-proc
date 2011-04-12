@@ -41,6 +41,9 @@ if ! [ -f $comp_dir/Makefile ]; then
   exit 1;
 fi
 echo "Comparing results against directory in-order proc in $comp_dir";
+echo "Compiling procs";
+make ${1:+${1}_}simv > /dev/null || exit 1;
+(cd $comp_dir; make simv > /dev/null) || exit 1;
 printf "%-40s %7s %9s %9s %4s\n" "File" "BR ACCR" "Our CPI" "Their CPI" "Test";
 for f in ${prog:-test_progs/*.s}
 do

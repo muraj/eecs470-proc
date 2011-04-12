@@ -108,7 +108,7 @@ module rat (clk, reset, flush,
 	assign pdest_idx_out[`SEL(`PRF_IDX,1)] = (dest_idx_in[`SEL(ARF_IDX,1)] == `ZERO_REG)? `ZERO_PRF: free_prf[`SEL(`PRF_IDX,1)];
 	assign pdest_idx_out[`SEL(`PRF_IDX,2)] = (dest_idx_in[`SEL(ARF_IDX,2)] == `ZERO_REG)? `ZERO_PRF: free_prf[`SEL(`PRF_IDX,2)];
 
-	regfile #(.IDX_WIDTH(ARF_IDX), .DATA_WIDTH(`PRF_IDX), .ZERO_REG_VAL(`ZERO_PRF), .RESET_TO(`ZERO_PRF))
+/*	regfile #(.IDX_WIDTH(ARF_IDX), .DATA_WIDTH(`PRF_IDX), .ZERO_REG_VAL(`ZERO_PRF), .RESET_TO(`ZERO_PRF))
         file_rat (.wr_clk(clk), .reset(reset), .copy(flush),
 				 					.rda_idx(rega_idx_in), .rda_out(prega_idx_out_file), // reg A
                   .rdb_idx(regb_idx_in), .rdb_out(pregb_idx_out_file), // reg B
@@ -125,6 +125,16 @@ module rat (clk, reset, flush,
         	        .reg_vals_in(rrat_data),
         	        .reg_vals_out(rrat_data)
 								  ); // write port
+*/
+
+  rattable #(.IDX_WIDTH(ARF_IDX), .DATA_WIDTH(`PRF_IDX), .ZERO_REG_VAL(`ZERO_PRF), .RESET_TO(`ZERO_PRF))
+      rat_rrat (.clock(clk), .reset(reset), .copy(flush),
+                .issue_a(rega_idx_in), .issue_a_out(prega_idx_out_file),        //reg A on issue
+                .issue_b(regb_idx_in), .issue_b_out(pregb_idx_out_file),        //reg B on issue
+                .commit_d(retire_dest_idx_in), .commit_d_out(retire_prev_prf),  //reg B on commit
+                .issue_wr(dest_idx_in), .issue_wr_data(free_prf), .issue_en(issue_file),      //reg Dest on issue
+                .commit_wr(retire_dest_idx_in), .commit_wr_data(retire_pdest_idx_in), .commit_en(retire_file)   //reg Dest on retire
+               );
 
 	
 	// Reverse free list to select for superscalar

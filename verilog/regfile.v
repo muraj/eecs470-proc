@@ -33,6 +33,7 @@ module regfile(rda_idx, rda_out,                // read port A
   
   reg    [`SCALAR*DATA_WIDTH-1:0] rda_out, rdb_out;
   reg    [DATA_WIDTH-1:0] registers[REG_SZ-1:0];   // 32, 64-bit Registers
+  reg    [REG_SZ-1:0]     valid;                   //Have I been set before?
   output wire   [REG_SZ*DATA_WIDTH-1:0] reg_vals_out;   // 32, 64-bit Registers
 
   wire   [`SCALAR*DATA_WIDTH-1:0] rda_reg = {registers[rda_idx[`SEL(IDX_WIDTH, 2)]], registers[rda_idx[`SEL(IDX_WIDTH, 1)]]};

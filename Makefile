@@ -47,6 +47,7 @@ SIMFILES =	verilog/oo_pipeline.v	\
 		verilog/superrs.v   	 \
 		verilog/lsq.v       	 \
 		verilog/rs.v				   \
+    verilog/rattable.v     \
 		verilog/rat.v					 \
 		verilog/ps.v					 \
 		verilog/pe.v					 \
@@ -70,7 +71,7 @@ int:	$(SIMFILES) $(TESTBENCH)
 	$(VCS) $(INTFLAGS) $(TESTBENCH) $(SIMFILES) -o int_simv -RI
 
 syn_simv:	$(SYNFILES) $(TESTBENCH)
-	$(VCS) $(TESTBENCH) $(SYNFILES) $(LIB) -o syn_simv 
+	$(VCS) $(TESTBENCH) $(SYNFILES) $(LIB) +define+SYNTH=1 -o syn_simv 
 
 syn:	syn_simv
 	./syn_simv | tee syn_program.out

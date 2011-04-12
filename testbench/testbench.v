@@ -232,8 +232,8 @@ end
 generate
 genvar rat_iter;
   for(rat_iter=0;rat_iter<`ROB_SZ;rat_iter=rat_iter+1) begin : RAT_DEBUG
-    assign rat_value[rat_iter] = pipeline_0.rat0.file_rat.registers[rat_iter];
-    assign rrat_value[rat_iter] = pipeline_0.rat0.file_rrat.registers[rat_iter];
+    assign rat_value[rat_iter] = pipeline_0.rat0.rat_rrat.ENTRIES[rat_iter].entry.issue_reg;
+    assign rrat_value[rat_iter] = pipeline_0.rat0.rat_rrat.ENTRIES[rat_iter].entry.commit_reg;
   end
 endgenerate
 always @(posedge clock) begin 
@@ -444,6 +444,7 @@ always @(posedge clock) begin
   `endif
   end
 end
+`endif  //SYNTH
 
 
 
@@ -458,7 +459,7 @@ always @(negedge clock) begin
    `SD `SD    //Delay for mem.v to catch up
    $fwrite(pipe_fileno, "%5d:", clock_count);
    `define DISPLAY_STAGE(npc, ir, valid) \
-    $fwrite(pipe_fileno, "%5d:%10s|", npc, get_instr_string(ir, valid));
+    $fwrite(pipe_fileno, "%5d:%10s|", valid ? npc : 0, get_instr_string(ir, valid));
    `DISPLAY_STAGE(if_NPC_out[`SEL(64,1)],if_IR_out[`SEL(32,1)], if_valid_inst_out[0])
    `DISPLAY_STAGE(if_id_NPC[`SEL(64,1)], if_id_IR[`SEL(32,1)], if_id_valid_inst[0])
    `DISPLAY_STAGE(id_dp_NPC[`SEL(64,1)], id_dp_IR[`SEL(32,1)], id_dp_valid_inst[0])
@@ -504,7 +505,6 @@ always @(negedge clock) begin
    #(`VERILOG_CLOCK_PERIOD/2)
    $fclose(pipe_fileno);
 end
-`endif  //SYNTH
 
 
   // Strings to hold instruction opcode
