@@ -574,8 +574,7 @@ module oo_pipeline (// Inputs
       .rdb_idx(dp_pregb_idx), .rdb_out(dp_pregb_value),
       .reg_vals_out(prf_regs),
       .wr_idx(ex_cdb_tag_out), .wr_data(ex_cdb_value_out),
-      .wr_en(ex_cdb_valid_out), .wr_clk(clock), .reset(reset),
-      .copy(1'b0), .reg_vals_in({`PRF_SZ*64{1'b0}})
+      .wr_en(ex_cdb_valid_out), .clock(clock)
       );
 
   SUPER_RS rs0 (.clk(clock), .reset(reset | rob_mispredict),
