@@ -506,8 +506,8 @@ module oo_pipeline (// Inputs
         id_dp_halt          [`SEL(1,1)]  <= `SD id_dp_halt           [`SEL(1,2)];
         id_dp_illegal       [`SEL(1,1)]  <= `SD id_dp_illegal        [`SEL(1,2)];
         id_dp_valid_inst    [`SEL(1,1)]  <= `SD id_dp_valid_inst     [`SEL(1,2)];
-        id_dp_bt            [`SEL(1,1)]  <= `SD if_id_bt             [`SEL(1,2)];
-        id_dp_ba            [`SEL(64,1)] <= `SD if_id_ba             [`SEL(64,2)];
+        id_dp_bt            [`SEL(1,1)]  <= `SD id_dp_bt             [`SEL(1,2)];
+        id_dp_ba            [`SEL(64,1)] <= `SD id_dp_ba             [`SEL(64,2)];
 			// mark ir2 as invalid
         id_dp_valid_inst    [`SEL(1,2)]  <= `SD 1'b0;  
         `endif //SUPERSCALAR
@@ -738,4 +738,5 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 
 
 endmodule  // module oo_pipeline
+
 
