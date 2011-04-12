@@ -1,38 +1,38 @@
- 	lda     $r0, 1024       # r0 is array base pointer
-        lda     $r1, 256($r0)   # r1 is pointer to middle of array
+ 	lda  $r0, 1024       # r0 is array base pointer
+  lda  $r1, 256($r0)   # r1 is pointer to middle of array
 	br	bubble
 merge:	lda	$r20, 2048($r0)	# r20 is pointer to dest array base
-	subq	$r1, 8, $r10	# r10 is pointer to end of first half
-	lda	$r11, 256($r10)	# r11 is pointer to end of second half
-	lda	$r21, 2048($r11) # r21 is pointer to end of dest array
+	subq $r1, 8, $r10	# r10 is pointer to end of first half
+	lda	 $r11, 256($r10)	# r11 is pointer to end of second half
+	lda	 $r21, 2048($r11) # r21 is pointer to end of dest array
 mloop:	ldq	$r2,0($r0)
-	ldq	$r3,0($r1)
-	ldq	$r12,0($r10)
-	ldq	$r13,0($r11)
-	subq	$r3, $r2, $r4
-	subq	$r13, $r12, $r14
-	sra	$r4, 63, $r4
-	sra	$r14, 63, $r14
-	and	$r4, $r3, $r3
-	and	$r14, $r12, $r12
-	bic	$r2, $r4, $r2
-	bic	$r13, $r14, $r13
-	bis	$r2, $r3, $r2
-	bis	$r12, $r13, $r12
-	stq	$r2, 0($r20)
-	stq	$r12, 0($r21)
-	addq	$r20, 8, $r20
-	lda	$r21, -8($r21)
-	cmplt	$r21, $r20, $r22
-	sll     $r4, 3, $r4
-	sll	$r14, 3, $r14
-        subq    $r1, $r4, $r1
-	addq	$r10, $r14, $r10
-        lda     $r4, 8($r4)
-	lda	$r14, 8($r14)
-        addq    $r0, $r4, $r0
-	subq	$r11, $r14, $r11
-	beq	$r22, mloop
+	ldq	 $r3,0($r1)
+	ldq	 $r12,0($r10)
+	ldq	 $r13,0($r11)
+	subq $r3, $r2, $r4
+	subq $r13, $r12, $r14
+	sra	 $r4, 63, $r4
+	sra	 $r14, 63, $r14
+	and	 $r4, $r3, $r3
+	and	 $r14, $r12, $r12
+	bic	 $r2, $r4, $r2
+	bic	 $r13, $r14, $r13
+	bis	 $r2, $r3, $r2
+	bis	 $r12, $r13, $r12
+	stq	 $r2, 0($r20)
+	stq	 $r12, 0($r21)
+	addq $r20, 8, $r20
+	lda	 $r21, -8($r21)
+	cmplt $r21, $r20, $r22
+	sll  $r4, 3, $r4
+	sll	 $r14, 3, $r14
+  subq $r1, $r4, $r1
+	addq $r10, $r14, $r10
+  lda  $r4, 8($r4)
+	lda	 $r14, 8($r14)
+  addq $r0, $r4, $r0
+	subq $r11, $r14, $r11
+	beq	 $r22, mloop
 	call_pal 0x555
 
 

@@ -79,7 +79,7 @@ module icache(// inputs
 	end
 
 	assign set_requested_PC_valid = (!stall_icache) ? ~cachemem_valid : 1'b0;
-	assign reset_requested_PC_valid = requested_PC_valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}));
+	assign reset_requested_PC_valid = requested_PC_valid[Imem2proc_tag] && (Imem2proc_tag != 0);
 
   assign Icache_data_out = (requested_PC_valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}))) ? Imem2proc_data : cachemem_data;
   assign Icache_valid_out = (requested_PC_valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}))) || cachemem_valid; 

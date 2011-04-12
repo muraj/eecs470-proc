@@ -16,7 +16,7 @@
 
 // Should be pulled from the program dynamically perhaps, anything less than 40000 causes 06-mult-lda.s to fail
 //`define DEBUG_QUIT 300  //Quit after DEBUG_QUIT cycles
-`define DEBUG_QUIT 50000  //Quit after DEBUG_QUIT cycles
+`define DEBUG_QUIT 40000  //Quit after DEBUG_QUIT cycles
 
 //`define DEBUG_CLOCK_CYCLE // comment this out if not for debugging
 
