@@ -689,6 +689,36 @@ end
       $display("@@\n@@  %t : System STILL at reset, can't show anything\n@@",
                $realtime);
     else
+
+	`ifdef DEBUG_CLOCK_CYCLE	 
+    begin
+      if(pipeline_completed_insts>0) begin
+        /*$fdisplay(wb_fileno, "# SCALAR 1, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
+                  co_instr_str[0], pipeline_commit_IR[`SEL(32,1)], clock_count,
+                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]);*/
+        if(pipeline_commit_wr_en[0])
+          $fdisplay(wb_fileno, "cycle=%d, PC=%x, REG[%d]=%x", clock_count,
+                    pipeline_commit_NPC[`SEL(64, 1)]-4,
+                    pipeline_commit_wr_idx[`SEL(5,1)],
+                    pipeline_commit_wr_data[`SEL(64,1)]);
+        else
+          $fdisplay(wb_fileno, "cycle=%d, PC=%x, ---", clock_count, pipeline_commit_NPC[`SEL(64,1)]-4);
+      end
+      `ifdef SUPERSCALAR
+      if(pipeline_completed_insts>1) begin
+        /*$fdisplay(wb_fileno, "# SCALAR 2, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
+                  co_instr_str[1], pipeline_commit_IR[`SEL(32,2)], clock_count,
+                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]);*/
+        if(pipeline_commit_wr_en[1])
+          $fdisplay(wb_fileno, "cycle=%d, PC=%x, REG[%d]=%x", clock_count,
+                    pipeline_commit_NPC[`SEL(64, 2)]-4,
+                    pipeline_commit_wr_idx[`SEL(5,2)],
+                    pipeline_commit_wr_data[`SEL(64,2)]);
+        else
+          $fdisplay(wb_fileno, "cycle=%d, PC=%x, ---", clock_count, pipeline_commit_NPC[`SEL(64,2)]-4);
+      end
+      `endif //SUPERSCALAR
+	`else
     begin
       if(pipeline_completed_insts>0) begin
         /*$fdisplay(wb_fileno, "# SCALAR 1, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
@@ -708,7 +738,7 @@ end
                   co_instr_str[1], pipeline_commit_IR[`SEL(32,2)], clock_count,
                   pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]);*/
         if(pipeline_commit_wr_en[1])
-          $fdisplay(wb_fileno, "PC=%x, REG[%d]=%x",
+          $fdisplay(wb_fileno, "PC=%x, REG[%d]=%x", 
                     pipeline_commit_NPC[`SEL(64, 2)]-4,
                     pipeline_commit_wr_idx[`SEL(5,2)],
                     pipeline_commit_wr_data[`SEL(64,2)]);
@@ -716,6 +746,9 @@ end
           $fdisplay(wb_fileno, "PC=%x, ---", pipeline_commit_NPC[`SEL(64,2)]-4);
       end
       `endif //SUPERSCALAR
+	`endif // DEBUG_CLOCK_CYCLE
+
+
 
       // deal with any halting conditions
       if(pipeline_error_status!=`NO_ERROR)

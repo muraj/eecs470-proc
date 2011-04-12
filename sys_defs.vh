@@ -18,6 +18,8 @@
 //`define DEBUG_QUIT 300  //Quit after DEBUG_QUIT cycles
 `define DEBUG_QUIT 40000  //Quit after DEBUG_QUIT cycles
 
+//`define DEBUG_CLOCK_CYCLE // comment this out if not for debugging
+
 `define NUM_MEM_TAGS           15
 
 `define MEM_SIZE_IN_BYTES      (64*1024)

@@ -77,9 +77,7 @@ module rob (clk, reset,
 
   //Branch miss
 
-  wire branch_miss1 = (isbranch_out1) && 
-											((data_bt_ex[head] != bt_pd_out1) || 
-																													(data_bt_ex[head] ? (data_ba_ex[head] != ba_pd_out1) :1'b0));
+  wire branch_miss1 = (isbranch_out1) && ((data_bt_ex[head] != bt_pd_out1) || (data_bt_ex[head] ? (data_ba_ex[head] != ba_pd_out1) :1'b0));
   wire branch_miss2 = (isbranch_out2) && ((data_bt_ex[head_p1] != bt_pd_out2) || (data_bt_ex[head_p1] ? (data_ba_ex[head_p1] != ba_pd_out2) : 1'b0));
   assign branch_miss = (retire1 & branch_miss1);  // | branch_miss2;
 
@@ -108,7 +106,7 @@ module rob (clk, reset,
 	assign head_p2 = head + 2'd2;
 	
 	assign cur_size = (next_tail>=next_head)? (next_tail - next_head) : (next_tail + `ROB_SZ - next_head);
-	assign next_iocount = (move_tail)? cur_size : iocount + incount - outcount;
+	assign next_iocount = (move_tail)? cur_size : (iocount + incount - outcount);
 	assign next_full = next_iocount == `ROB_SZ;
 	assign next_full_almost = next_iocount == (`ROB_SZ-1);
 	assign next_empty = next_iocount == 0;

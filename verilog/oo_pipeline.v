@@ -606,26 +606,26 @@ module oo_pipeline (// Inputs
   //Write forwarding for IS/EX stage
   wire [63:0] prega_value[`SCALAR-1:0];
   wire [63:0] pregb_value[`SCALAR-1:0];
-  assign prega_value[0] = (ex_cdb_valid_out[0] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 1)] == dp_prega_idx[`SEL(`PRF_IDX,1)])) ? ex_cdb_value_out[`SEL(64,1)] : 
+  assign prega_value[0] = (dp_prega_idx[`SEL(`PRF_IDX,1)] == `ZERO_PRF) ? 0 : ((ex_cdb_valid_out[0] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 1)] == dp_prega_idx[`SEL(`PRF_IDX,1)])) ? ex_cdb_value_out[`SEL(64,1)] : 
                           `ifdef SUPERSCALAR
                           (ex_cdb_valid_out[1] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 2)] == dp_prega_idx[`SEL(`PRF_IDX,1)])) ? ex_cdb_value_out[`SEL(64,2)] :
                           `endif
-                          dp_prega_value[`SEL(64,1)];
-  assign prega_value[1] = (ex_cdb_valid_out[0] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 1)] == dp_prega_idx[`SEL(`PRF_IDX,2)])) ? ex_cdb_value_out[`SEL(64,1)] : 
+                          dp_prega_value[`SEL(64,1)]);
+  assign prega_value[1] = (dp_prega_idx[`SEL(`PRF_IDX,2)] == `ZERO_PRF) ? 0 : ((ex_cdb_valid_out[0] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 1)] == dp_prega_idx[`SEL(`PRF_IDX,2)])) ? ex_cdb_value_out[`SEL(64,1)] : 
                           `ifdef SUPERSCALAR
                           (ex_cdb_valid_out[1] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 2)] == dp_prega_idx[`SEL(`PRF_IDX,2)])) ? ex_cdb_value_out[`SEL(64,2)] :
                           `endif
-                          dp_prega_value[`SEL(64,2)];
-  assign pregb_value[0] = (ex_cdb_valid_out[0] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 1)] == dp_pregb_idx[`SEL(`PRF_IDX,1)])) ? ex_cdb_value_out[`SEL(64,1)] : 
+                          dp_prega_value[`SEL(64,2)]);
+  assign pregb_value[0] = (dp_pregb_idx[`SEL(`PRF_IDX,1)] == `ZERO_PRF) ? 0 : ((ex_cdb_valid_out[0] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 1)] == dp_pregb_idx[`SEL(`PRF_IDX,1)])) ? ex_cdb_value_out[`SEL(64,1)] : 
                           `ifdef SUPERSCALAR
                           (ex_cdb_valid_out[1] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 2)] == dp_pregb_idx[`SEL(`PRF_IDX,1)])) ? ex_cdb_value_out[`SEL(64,2)] :
                           `endif
-                          dp_pregb_value[`SEL(64,1)];
-  assign pregb_value[1] = (ex_cdb_valid_out[0] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 1)] == dp_pregb_idx[`SEL(`PRF_IDX,2)])) ? ex_cdb_value_out[`SEL(64,1)] : 
+                          dp_pregb_value[`SEL(64,1)]);
+  assign pregb_value[1] = (dp_pregb_idx[`SEL(`PRF_IDX,2)] == `ZERO_PRF) ? 0 : ((ex_cdb_valid_out[0] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 1)] == dp_pregb_idx[`SEL(`PRF_IDX,2)])) ? ex_cdb_value_out[`SEL(64,1)] : 
                           `ifdef SUPERSCALAR
                           (ex_cdb_valid_out[1] && (ex_cdb_tag_out[`SEL(`PRF_IDX, 2)] == dp_pregb_idx[`SEL(`PRF_IDX,2)])) ? ex_cdb_value_out[`SEL(64,2)] :
                           `endif
-                          dp_pregb_value[`SEL(64,2)];
+                          dp_pregb_value[`SEL(64,2)]);
 
   always @(posedge clock)
   begin

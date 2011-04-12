@@ -17,6 +17,14 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 	reg    [63:0] 				 BTB_addr	[PRED_SZ-1:0];
   reg    [63:0]          BTB_npc  [PRED_SZ-1:0];
 
+
+// NOTE: BTB_addr_NOT_zero signals was added by Yejoong for fib_rec.s,
+//			to reset the output from BTB_addr.
+//  reg	[PRED_SZ-1:0]	BTB_addr_NOT_zero;
+
+
+
+
 	wire [PRED_IDX-1:0] IF_TAG[`SCALAR-1:0];
 	assign IF_TAG[0] = IF_NPC[PRED_IDX+1:2];
 `ifdef SUPERSCALAR
@@ -57,6 +65,7 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 	always @(posedge clk) begin
     if(reset) begin
       clr <= `SD {PRED_SZ{1'b1}};
+//		BTB_addr_NOT_zero <= `SD 0;
     end
 		else begin
 			if(ROB_br_en[0]) begin
@@ -64,6 +73,8 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 				predictor[ROB_TAG[0]] <= `SD next_predictor[0];
 	    //  if((next_predictor[0] >> (PRED_BITS-1))) begin  //Now considered taken, cache the result //& ~(pred_rob[0] >> (PRED_BITS-1))
   				BTB_addr[ROB_TAG[0]] <= `SD ROB_taken_address[`SEL(64,1)];
+//				BTB_addr_NOT_zero[ROB_TAG[0]] <= `SD 1'b1;
+				
 	        BTB_npc [ROB_TAG[0]] <= `SD ROB_NPC[`SEL(64,1)];
 	     // end
 		  end
@@ -73,6 +84,7 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 				predictor[ROB_TAG[1]] <= `SD next_predictor[1];
 	 //     if((next_predictor[1] >> (PRED_BITS-1))) begin  //Now considered taken, cache the result
 	  			BTB_addr[ROB_TAG[1]] <= `SD ROB_taken_address[`SEL(64,2)];
+//				BTB_addr_NOT_zero[ROB_TAG[1]] <= `SD 1'b1;
 	        BTB_npc [ROB_TAG[1]] <= `SD ROB_NPC[`SEL(64,2)];
 	  //    end
 	    end
