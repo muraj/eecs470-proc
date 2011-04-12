@@ -69,8 +69,23 @@ module icache(// inputs
                               (~prefetch_miss & ~cachemem_valid ? 0 : prefetch_counter + 1)
                              : 0;
 
-  assign Icache_data_out = cachemem_data;
-  assign Icache_valid_out = cachemem_valid; 
+
+	reg [15:0] requested_PC_valid;
+	wire set_requested_PC_valid, reset_requested_PC_valid;
+	always @(posedge clock) begin
+		if(reset) requested_PC_valid <= `SD 0;
+		else if (set_requested_PC_valid) requested_PC_valid[Imem2proc_response] <= `SD 1'b1;
+		else if (reset_requested_PC_valid) requested_PC_valid[Imem2proc_tag] <= `SD 1'b0;
+	end
+
+	assign set_requested_PC_valid = (!stall_icache) ? ~cachemem_valid : 1'b0;
+	assign reset_requested_PC_valid = requested_PC_valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}));
+
+  assign Icache_data_out = (requested_PC_valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}))) ? Imem2proc_data : cachemem_data;
+  assign Icache_valid_out = (requested_PC_valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}))) || cachemem_valid; 
+
+//  assign Icache_data_out = cachemem_data;
+//  assign Icache_valid_out = cachemem_valid; 
 
   assign proc2Imem_addr = next_addr;                  //Always ask for the next address to request
   assign proc2Imem_command = reset ? `BUS_NONE : `BUS_LOAD;               //Always load unless we're reset
