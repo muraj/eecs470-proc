@@ -725,7 +725,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
     	  	            	.rd1_tag(dcachemem_rd_tag), .rd1_idx(dcachemem_rd_idx), .rd1_data(dcachemem_rd_data), .rd1_valid(dcachemem_rd_valid)
 												);
 
-	dcache dcache0 (.clock(clock), .reset(reset),
+	dcache dcache0 (.clock(clock), .reset(reset | rob_mispredict),
        		      	// inputs
           		    .Dmem2Dcache_response(Dmem2proc_response), .Dmem2Dcache_tag(mem2proc_tag), .Dmem2Dcache_data(mem2proc_data),	// From Dmem
        		    	  .proc2Dcache_addr(lsq2dcache_addr), .proc2Dcache_command(lsq2dcache_command), .proc2Dcache_data(lsq2dcache_data),	// From Proc(LSQ)
