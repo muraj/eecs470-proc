@@ -98,9 +98,9 @@ module testbench;
 	  end
 	endtask
 
-
 	task show_contents;
 	  begin
+`ifndef SYNTH
 		$display("==============================================================");
     $display("ROB Contents");
 		$display("==============================================================");
@@ -131,6 +131,9 @@ module testbench;
     $display("Entry 15 |  %b\t%b\t%0d\t%0d\t%0d\t%b\t%0d\t%0d",rob0.data_rdy[15], rob0.data_bt_ex[15], rob0.data_ba_ex[15], rob0.cb_npc.data[15], rob0.cb_pdest.data[15], rob0.cb_bt_pd.data[15], rob0.cb_ba_pd.data[15], rob0.cb_isbranch.data[15]);
 
 		$display("==============================================================\n");
+`else
+    $display("Output disabled");
+`endif
 	  end
 	endtask
 
@@ -398,9 +401,15 @@ module testbench;
 		new_inst(2,13,14,0,0,0,0,0,0);
 		@(negedge clk);show_contents();show_io();
 		new_inst(2,15,16,0,0,0,0,0,0);
-		@(negedge clk);show_contents();show_io();up_inst(2, 0, 1, 0, 0, 0, 6);    $display("Branch Prediction! %d, %d, %d %d\n", rob0.retire2, rob0.isbranch_out2, rob0.bt_pd_out2, rob0.debug);
+		@(negedge clk);show_contents();show_io();up_inst(2, 0, 1, 0, 0, 0, 6);
+    `ifndef SYNTH
+    $display("Branch Prediction! %d, %d, %d\n", rob0.retire2, rob0.isbranch_out2, rob0.bt_pd_out2);
+    `endif
 		new_inst(0,5,3,0,0,0,0,0,0);	
-		@(negedge clk);show_contents();show_io();$display("Branch Prediction! %d, %d, %d %d\n", rob0.retire2, rob0.isbranch_out2, rob0.bt_pd_out2, rob0.debug);// I put debug signal inside of the rob.v, this is actually data_bt_ex[head_p1].
+		@(negedge clk);show_contents();show_io();
+    `ifndef SYNTH
+    $display("Branch Prediction! %d, %d, %d\n", rob0.retire2, rob0.isbranch_out2, rob0.bt_pd_out2);// I put debug signal inside of the rob.v, this is actually data_bt_ex[head_p1].
+    `endif
 		up_inst(0, 1, 2, 0, 0, 0, 0);
 		//new_inst(2,6,7,0,0,0,0,0,0);
 		@(negedge clk);show_contents();show_io();

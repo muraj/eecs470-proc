@@ -26,9 +26,12 @@ all:    simv
 
 
 TESTBENCH = 	sys_defs.vh	    \
-		testbench/testbench_rob.v verilog/cb.v
-SIMFILES =	verilog/rob.v
+		testbench/testbench_rob.v
+SIMFILES =	verilog/rob.v verilog/cb.v
+SYNFILES =  synth/rob.vg
 
+synth/rob.vg:	$(SIMFILES) synth/rob.tcl
+	cd synth && dc_shell-t -f ./rob.tcl | tee pipeline_synth.out 
 
 #####
 # Should be no need to modify after here
@@ -45,7 +48,7 @@ vis_simv:	$(SIMFILES) $(VISTESTBENCH)
 	./vis_simv
 
 syn_simv:	$(SYNFILES) $(TESTBENCH)
-	$(VCS) $(TESTBENCH) $(SYNFILES) $(LIB) -o syn_simv 
+	$(VCS) $(TESTBENCH) $(SYNFILES) $(LIB) +define+SYNTH=1 -o syn_simv 
 
 syn:	syn_simv
 	./syn_simv | tee syn_program.out

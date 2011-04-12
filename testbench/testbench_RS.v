@@ -56,12 +56,13 @@ module testbench;
                 `FLAT(ALUop), rd_mem, wr_mem, `FLAT(rs_IR),  `FLAT(npc), cond_branch, uncond_branch,        //Issue Stage
                 multfu_free, exfu_free, memfu_free, cdb_valid, cdb_tag, `FLAT(entry_flush),   //Pipeline communication
                 `FLAT(rob_idx),                                                               //ROB
+                0,                                                                            //LSQ
 
                 //OUTPUT
                 rs_stall,  rs_rdy,                                                     //Hazard detect
                 `FLAT(pdest_idx_out), `FLAT(prega_idx_out), `FLAT(pregb_idx_out), `FLAT(ALUop_out), rd_mem_out,    //FU
                 wr_mem_out, `FLAT(rs_IR_out), `FLAT(npc_out), `FLAT(rob_idx_out), en_out,                   //FU
-                `FLAT(rs_idx_out)                                                             //ROB
+                `FLAT(rs_idx_out),                                                             //ROB
           );
 
   // Generate System Clock

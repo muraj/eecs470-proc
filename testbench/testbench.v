@@ -345,8 +345,8 @@ always @(negedge clock) begin
 
 		$fdisplay(lsq_fileno,"======================================================================================\n");
 		$fdisplay(lsq_fileno,"====================================================");
-		$fdisplay(lsq_fileno,"| TAG | 1| 2| 3| 4| 5| 6| 7| 8| 9| 0| 1| 2| 3| 4| 5|");
-		$fdisplay(lsq_fileno,"| LSQ | %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d|", 
+		$fdisplay(lsq_fileno,"| TAG |  1|  2|  3|  4|  5|  6|  7|  8|  9| 10| 11| 12| 13| 14| 15|");
+		$fdisplay(lsq_fileno,"| LSQ | %2d| %2d| %2d| %2d| %2d| %2d| %2d| %2d| %2d| %2d| %2d| %2d| %2d| %2d| %2d|", 
 						 pipeline_0.lsq0.lsq_map[1], 
 						 pipeline_0.lsq0.lsq_map[2], 
 						 pipeline_0.lsq0.lsq_map[3], 
