@@ -65,24 +65,13 @@ module icache(// inputs
   reg  [63:0] prefetch_PC, prefetch_counter;
   reg  prefetch_miss;   //Did we miss last time?
   wire [63:0] next_addr = prefetch_PC + (prefetch_counter << 3);  //x8
-  wire [63:0] next_counter = (proc2Icache_addr >= prefetch_PC && proc2Icache_addr <= next_addr+8) ? 
-                              (~prefetch_miss & ~cachemem_valid ? 0 : prefetch_counter + 1)
-                             : 0;
+  wire [63:0] next_counter = (proc2Icache_addr >= prefetch_PC && proc2Icache_addr <= next_addr+8) ? //Check IF is requesting inside our prefetched state
+                              (~prefetch_miss & ~cachemem_valid ? 0 : prefetch_counter + 1)         //Did we miss last time?  Are we still missing? (Capacity miss) Yes - squash
+                             : 0;                                                                   //Request is outside
 
 
-	reg [15:0] requested_PC_valid;
-	wire set_requested_PC_valid, reset_requested_PC_valid;
-	always @(posedge clock) begin
-		if(reset) requested_PC_valid <= `SD 0;
-		else if (set_requested_PC_valid) requested_PC_valid[Imem2proc_response] <= `SD 1'b1;
-		else if (reset_requested_PC_valid) requested_PC_valid[Imem2proc_tag] <= `SD 1'b0;
-	end
-
-	assign set_requested_PC_valid = (!stall_icache) ? ~cachemem_valid : 1'b0;
-	assign reset_requested_PC_valid = requested_PC_valid[Imem2proc_tag] && (Imem2proc_tag != 0);
-
-  assign Icache_data_out = (requested_PC_valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}))) ? Imem2proc_data : cachemem_data;
-  assign Icache_valid_out = (requested_PC_valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}))) || cachemem_valid; 
+  assign Icache_data_out = (valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}))) ? Imem2proc_data : cachemem_data;
+  assign Icache_valid_out = (valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}))) || cachemem_valid; 
 
 //  assign Icache_data_out = cachemem_data;
 //  assign Icache_valid_out = cachemem_valid; 
