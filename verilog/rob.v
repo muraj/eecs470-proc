@@ -7,6 +7,7 @@ module rob (clk, reset,
 						dup1_req, dup2_req,
 						// incoming values
 						ir_in1, ir_in2, npc_in1, npc_in2, pdest_in1, pdest_in2, adest_in1, adest_in2, ba_pd_in1, ba_pd_in2, bt_pd_in1, bt_pd_in2, isbranch_in1, isbranch_in2,
+						illegal_in,
 						// values that gets updated
 						ba_ex_in1, ba_ex_in2, bt_ex_in1, bt_ex_in2, 
 						// rob indices for updates
@@ -15,6 +16,7 @@ module rob (clk, reset,
 						rob_idx_out1, rob_idx_out2,
 						// output values at retirement
 						ir_out1, ir_out2, npc_out1, npc_out2, pdest_out1, pdest_out2, adest_out1, adest_out2,
+						illegal_out,
 						// branch miss signal
 						branch_miss, correct_target,
 						// for updating branch predictor
@@ -34,6 +36,7 @@ module rob (clk, reset,
 	input isbranch_in1, isbranch_in2;
 	input [63:0] ba_ex_in1, ba_ex_in2;
 	input [`ROB_IDX-1:0] rob_idx_in1, rob_idx_in2;
+	input [`SCALAR-1:0] illegal_in;
 	
 	output dout1_valid, dout2_valid;
 	output [`ROB_IDX-1:0] rob_idx_out1, rob_idx_out2;
@@ -47,14 +50,17 @@ module rob (clk, reset,
 	output reg full, full_almost;
 	output [`SCALAR-1:0] isbranch_out;
 	output [`SCALAR-1:0] bt_out;
+	output [`SCALAR-1:0] illegal_out;
 
 	reg [63:0] 				data_ba_ex [`ROB_SZ-1:0];
 	reg [`ROB_SZ-1:0] data_bt_ex;
 	reg [`ROB_SZ-1:0] data_rdy;
+	reg [`ROB_SZ-1:0] illegal;
 
 	reg [63:0] next_data_ba_ex1, next_data_ba_ex2;
 	reg next_data_bt_ex1, next_data_bt_ex2;
 	reg next_data_rdy1, next_data_rdy2;
+	reg next_illegal1, next_illegal2;
 
 	output reg [`ROB_IDX-1:0] head;
 	reg [`ROB_IDX-1:0] tail, next_head, next_tail;
@@ -96,6 +102,9 @@ module rob (clk, reset,
 	assign retire1 = !empty && data_rdy[head];
 	assign retire2 = !empty_almost && retire1 && data_rdy[head_p1] && !branch_miss2;
 	
+	assign illegal_out = {illegal[head_p1], illegal[head]};
+
+
 	// ===================================================
 	// Duplicate cb functionality for things to be updated
 	// ===================================================
@@ -112,9 +121,10 @@ module rob (clk, reset,
 	assign next_empty = next_iocount == 0;
 	assign next_empty_almost = next_iocount == 1;
 
+//	wire illegal_or;
+//	assign illegal_or = |illegal_out;
 	assign dout1_valid = retire1;
-	assign dout2_valid = (dout1_valid & (ir_out1 == 32'h555)) ? 0 : 
-												((retire1 && branch_miss1) ? 0 : retire2);
+	assign dout2_valid =	((dout1_valid & (ir_out1 == 32'h555)) ? 1'b0 : ((retire1 && branch_miss1) ? 0 : retire2));
 
 	always @* begin
 		// default cases for data
@@ -124,6 +134,8 @@ module rob (clk, reset,
 		next_data_bt_ex2 = data_bt_ex[tail_p1];
 		next_data_rdy1 = data_rdy[tail];
 		next_data_rdy2 = data_rdy[tail_p1];
+		next_illegal1 = illegal[tail];
+		next_illegal2 = illegal[tail_p1];
 		
 		// other default cases
 		next_head = head;
@@ -172,7 +184,8 @@ module rob (clk, reset,
 
 				next_data_ba_ex1 = {64{1'b0}};
 				next_data_bt_ex1 = 1'b0;
-				next_data_rdy1 = 1'b0;
+				next_data_rdy1 = (illegal_in[0])? 1'b1: 1'b0;
+				next_illegal1 = illegal_in[0];
 
 				if (din2_req && !full_almost) begin
 					next_tail = tail_p2;
@@ -180,7 +193,8 @@ module rob (clk, reset,
 					
 					next_data_ba_ex2 = {64{1'b0}};
 					next_data_bt_ex2 = 1'b0;
-					next_data_rdy2 = 1'b0;
+					next_data_rdy2 = (illegal_in[1])? 1'b1: 1'b0;
+					next_illegal2 = illegal_in[1];
 
 				end
 			end
@@ -202,6 +216,7 @@ module rob (clk, reset,
 			empty_almost	<= `SD 1'b0;
       data_rdy      <= `SD {`ROB_SZ{1'b0}};
       data_bt_ex    <= `SD {`ROB_SZ{1'b0}};
+      illegal       <= `SD {`ROB_SZ{1'b0}};
 
 		end else begin
 			// data allocation
@@ -211,6 +226,8 @@ module rob (clk, reset,
 			data_bt_ex[tail_p1]		<= `SD next_data_bt_ex2;
 			data_rdy[tail]				<= `SD next_data_rdy1;
 			data_rdy[tail_p1]			<= `SD next_data_rdy2;
+			illegal[tail]				<= `SD next_illegal1;
+			illegal[tail_p1]			<= `SD next_illegal2;
 
 			// data updates
 			if (dup1_req) begin

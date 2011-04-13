@@ -69,7 +69,7 @@ module oo_pipeline (// Inputs
   output [63:0] proc2mem_addr;     // Address sent to memory
   output [63:0] proc2mem_data;     // Data sent to memory
 
-  output [3:0]  pipeline_completed_insts;
+  output reg [3:0]  pipeline_completed_insts;
   output [3:0]  pipeline_error_status;
   output [5*`SCALAR-1:0]  pipeline_commit_wr_idx;
   output [64*`SCALAR-1:0] pipeline_commit_wr_data;
@@ -237,6 +237,7 @@ module oo_pipeline (// Inputs
   wire [`SCALAR-1:0] 					 rob_retire_isbranch;
 	wire [`ROB_IDX-1:0] 				 rob_head;
   wire [63:0] 								 rob_target_pc;
+  wire [`SCALAR-1:0]				 rob_illegal_out;
 	
 	// LSQ Wires
 	wire [`SCALAR-1:0]					lsq_out_valid;
@@ -269,12 +270,55 @@ module oo_pipeline (// Inputs
 
 
   // From the original version
-  assign pipeline_completed_insts = rob_retire_valid_inst[0] + rob_retire_valid_inst[1];
+  // assign pipeline_completed_insts = rob_retire_valid_inst[0] + rob_retire_valid_inst[1];
+
+
+	// Handling the exceptions (illegal instructions)
+	// Illegal instructions are not counted in pipeline_completed_insts.
+	/*
+	always @* begin
+		pipeline_completed_insts = 0;
+		case (rob_illegal_out)
+			2'b00:	pipeline_completed_insts = rob_retire_valid_inst[0] + rob_retire_valid_inst[1];	
+			2'bx1:	pipeline_completed_insts = 0 ; //rob_retire_valid_inst[0];
+			2'b10:	pipeline_completed_insts = rob_retire_valid_inst[0]; //+ rob_retire_valid_inst[1];
+			default: pipeline_completed_insts = 0;
+		endcase
+	end
+	*/
+			
+	always @* begin
+		pipeline_completed_insts = 0;
+		case (rob_illegal_out)
+			2'b00:	pipeline_completed_insts = rob_retire_valid_inst[0] + rob_retire_valid_inst[1];	
+			2'bx1:	pipeline_completed_insts = 0 ; //rob_retire_valid_inst[0];
+			2'b10:	pipeline_completed_insts = rob_retire_valid_inst[0]; //+ rob_retire_valid_inst[1];
+			default: pipeline_completed_insts = 0;
+		endcase
+	end
+
   // FIXME
-  assign pipeline_error_status = 
+  //  assign pipeline_error_status = 
   //  (id_dp_illegal & id_dp_valid_inst != 0) ? `HALTED_ON_ILLEGAL :  //Illegal instructions are just ignored by the pipeline.
-    (rob_retire_valid_inst[0] && pipeline_commit_IR[`SEL(32,1)] == 32'h555 ? `HALTED_ON_HALT :
-    (rob_retire_valid_inst[1] && pipeline_commit_IR[`SEL(32,2)] == 32'h555 ? `HALTED_ON_HALT : `NO_ERROR));
+  //  ((rob_retire_valid_inst[0] && pipeline_commit_IR[`SEL(32,1)] == 32'h555) ? `HALTED_ON_HALT :
+  //  ((rob_retire_valid_inst[1] && pipeline_commit_IR[`SEL(32,2)] == 32'h555) ? `HALTED_ON_HALT : `NO_ERROR));
+/*
+  always @* begin
+		if (pipeline_commit_IR[`SEL(32,1)] == 32'h555) pipeline_error_status = `HALTED_ON_HALT;
+		else if (rob_illegal_out[0]) pipeline_error_status = `HALTED_ON_ILLEGAL;
+	   else if (pipeline_commit_IR[`SEL(32,2)] == 32'h555) pipeline_error_status = `HALTED_ON_HALT;
+		else if (rob_illegal_out[1]) pipeline_error_status = `HALTED_ON_ILLEGAL;
+		else pipeline_error_status = `NO_ERROR;
+  end
+*/
+
+	wire [1:0] valid_halt;
+	assign valid_halt = {(rob_retire_valid_inst[1] & (pipeline_commit_IR[`SEL(32,2)] == 32'h555)), (rob_retire_valid_inst[0] & (pipeline_commit_IR[`SEL(32,1)] == 32'h555))};
+	assign pipeline_error_status =
+											(valid_halt[0]) ? `HALTED_ON_HALT :
+											(rob_retire_valid_inst[0] & rob_illegal_out[0]) ? `HALTED_ON_ILLEGAL :
+											(valid_halt[1]) ? `HALTED_ON_HALT :
+											(rob_retire_valid_inst[1] & rob_illegal_out[1]) ? `HALTED_ON_ILLEGAL : `NO_ERROR;
 
   assign pipeline_commit_wr_idx = rob_retire_dest_idx;
   assign pipeline_commit_IR = rob_retire_IR;
@@ -512,6 +556,8 @@ module oo_pipeline (// Inputs
         id_dp_ba            [`SEL(64,1)] <= `SD id_dp_ba             [`SEL(64,2)];
 			// mark ir2 as invalid
         id_dp_valid_inst    [`SEL(1,2)]  <= `SD 1'b0;  
+		   // mark ir2 as legal (this is because we use illegal | valid to command issue)
+		  id_dp_illegal		 [`SEL(1,2)]  <= `SD 1'b0;
         `endif //SUPERSCALAR
 			end
     end // else: !if(reset)
@@ -540,7 +586,7 @@ module oo_pipeline (// Inputs
   rob rob0 (.clk(clock), .reset(reset),
 						.full(rob_full), .full_almost(rob_full_almost),
 						// Dispatch request
-						.din1_req(id_dp_valid_inst[0] & !stall_id[0]), .din2_req(id_dp_valid_inst[1] & !stall_id[1]),
+						.din1_req((id_dp_valid_inst[0] | id_dp_illegal[0]) & !stall_id[0]), .din2_req((id_dp_valid_inst[1] | id_dp_illegal[1]) & !stall_id[1]),
 						// Update request
 						.dup1_req(ex_cdb_valid_out[0]), .dup2_req(ex_cdb_valid_out[1]),
 						.rob_idx_in1(ex_rob_idx_out[`SEL(`ROB_IDX,1)]), .rob_idx_in2(ex_rob_idx_out[`SEL(`ROB_IDX,2)]),
@@ -549,6 +595,7 @@ module oo_pipeline (// Inputs
             .npc_in1(id_dp_NPC[`SEL(64,1)]), .npc_in2(id_dp_NPC[`SEL(64,2)]),
             .pdest_in1(rat_pdest_idx[`SEL(`PRF_IDX,1)]), .pdest_in2(rat_pdest_idx[`SEL(`PRF_IDX,2)]), 
             .adest_in1(id_dp_dest_reg_idx[`SEL(5,1)]), .adest_in2(id_dp_dest_reg_idx[`SEL(5,2)]),
+				.illegal_in(id_dp_illegal),
 						// Outputs @ dispatch
 						.rob_idx_out1(rob_idx_out[`SEL(`ROB_IDX,1)]), .rob_idx_out2(rob_idx_out[`SEL(`ROB_IDX,2)]),
 						// Branch @ dispatch
@@ -563,6 +610,7 @@ module oo_pipeline (// Inputs
             .npc_out1(rob_retire_NPC[`SEL(64,1)]), .npc_out2(rob_retire_NPC[`SEL(64,2)]),
             .pdest_out1(rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]), .pdest_out2(rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]),
 						.adest_out1(rob_retire_dest_idx[`SEL(`ARF_IDX,1)]), .adest_out2(rob_retire_dest_idx[`SEL(`ARF_IDX,2)]),
+						.illegal_out(rob_illegal_out),
 						// Branch Miss
 						.branch_miss(rob_mispredict), .correct_target(rob_target_pc),
 						// for updating branch predictor

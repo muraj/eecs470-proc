@@ -329,7 +329,7 @@
 
 // D-cache Defines
 `define DCACHE_2WAY	// comment this out if direct-mapped
-`define DCACHE_IDX_BITS	(4)      
+`define DCACHE_IDX_BITS	(7)      
 `define DCACHE_SETS		(1<<`DCACHE_IDX_BITS)
 `ifdef DCACHE_2WAY
 	`define DCACHE_TAG_BITS (`MEM_ADDR_BITS+1-`DCACHE_IDX_BITS)	
@@ -339,7 +339,7 @@
 
 
 // Branch Predicator
-`define BRANCH_NOT_TAKEN
+//`define BRANCH_NOT_TAKEN
 `define PRED_BITS (2)   //Size of the predictor counters
 `define PRED_IDX  (4)   //Size of the BTB and indexing
 
