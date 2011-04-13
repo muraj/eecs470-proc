@@ -62,21 +62,16 @@ module icache(// inputs
   reg [15:0] valid;
   reg [63:0] requested_PC [15:0];
 
-  reg  [63:0] prefetch_PC, prefetch_counter;
-  reg  prefetch_miss;   //Did we miss last time?
-  wire [63:0] next_addr = prefetch_PC + (prefetch_counter << 3);  //x8
-  wire [63:0] next_counter = (proc2Icache_addr >= prefetch_PC && proc2Icache_addr <= next_addr+8) ? //Check IF is requesting inside our prefetched state
-                              (~prefetch_miss & ~cachemem_valid ? 0 : prefetch_counter + 1)         //Did we miss last time?  Are we still missing? (Capacity miss) Yes - squash
-                             : 0;                                                                   //Request is outside
+  reg  [63:0] prefetch_PC;
+  wor current_requested;
+  wire [63:0] tag_PC = requested_PC[Imem2proc_tag];
+  wire mem_forward = (valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && tag_PC == {proc2Icache_addr[63:3], 3'b0})));
+  wire [63:0] next_PC = (!current_requested && !cachemem_valid && !mem_forward) ? proc2Icache_addr : prefetch_PC + 8;
 
+  assign Icache_data_out = mem_forward ? Imem2proc_data : cachemem_data;
+  assign Icache_valid_out = mem_forward | cachemem_valid; 
 
-  assign Icache_data_out = (valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}))) ? Imem2proc_data : cachemem_data;
-  assign Icache_valid_out = (valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && requested_PC[Imem2proc_tag] == {proc2Icache_addr[63:3], 3'b0}))) || cachemem_valid; 
-
-//  assign Icache_data_out = cachemem_data;
-//  assign Icache_valid_out = cachemem_valid; 
-
-  assign proc2Imem_addr = next_addr;                  //Always ask for the next address to request
+  assign proc2Imem_addr = prefetch_PC;                  //Always ask for the next address to request
   assign proc2Imem_command = reset ? `BUS_NONE : `BUS_LOAD;               //Always load unless we're reset
 
   wire data_write_enable = valid[Imem2proc_tag];      //Write to icache if this is one of the tags we're looking for
@@ -84,28 +79,28 @@ module icache(// inputs
   wire [63:0] last_PC = requested_PC[Imem2proc_tag];  //PC of the write to icache
   assign {last_tag, last_index} = last_PC[31:3];      //Tag and index of the write to icache
 
+  generate
+  genvar i;
+  for(i=0;i<15;i=i+1) begin : ICACHE_COMPARE  //Very ineffiecent, but works
+    assign current_requested = valid[i] ? proc2Icache_addr == requested_PC[i] : 1'b0;
+  end
+  endgenerate
+
   always @(posedge clock)
   begin
     if(reset)
     begin
       prefetch_PC       <= `SD 0;
-      prefetch_counter  <= `SD 0;
-      prefetch_miss     <= `SD 0;
       valid             <= `SD 15'b0;
     end
     else
     begin
       valid[Imem2proc_tag]               <= `SD 1'b0;
-      if(!stall_icache)
-        prefetch_miss <= `SD ~cachemem_valid;
-      if(next_counter == 0)   //Restarted! Start again!
-        prefetch_PC                      <= `SD {proc2Icache_addr[63:3], 3'b0};
       if(Imem2proc_response != 0 && !stall_icache) begin
-        prefetch_counter                 <= `SD next_counter;
+        prefetch_PC                      <= `SD next_PC;
         valid[Imem2proc_response]        <= `SD 1'b1;
-        requested_PC[Imem2proc_response] <= `SD next_addr;
+        requested_PC[Imem2proc_response] <= `SD prefetch_PC;
       end
     end
   end
 endmodule
-
