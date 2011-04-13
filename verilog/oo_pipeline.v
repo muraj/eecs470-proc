@@ -709,7 +709,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
 						// Inputs from MEM
 						.mem2lsq_response(Dmem2proc_response),
 						// Inputs from DCACHE
-						.dcache2lsq_valid(dcache2lsq_valid), .dcache2lsq_tag(dcache2lsq_tag), .dcache2lsq_data(dcache2lsq_data),
+						.dcache2lsq_valid(dcache2lsq_valid), .dcache2lsq_tag(dcache2lsq_tag), .dcache2lsq_data(dcache2lsq_data), .dcache2lsq_st_received(dcache2lsq_st_received),
 						// Inputs from ROB
 						.rob_head(rob_head),
 						// Output at Dispatch

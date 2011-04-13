@@ -7,7 +7,6 @@
 //                                                                     //
 /////////////////////////////////////////////////////////////////////////
 
-
 //////////////////////////////////////////////
 //
 // Mmeory/testbench attribute definitions
@@ -15,10 +14,10 @@
 //////////////////////////////////////////////
 
 // Should be pulled from the program dynamically perhaps, anything less than 40000 causes 06-mult-lda.s to fail
-`define DEBUG_QUIT 400  //Quit after DEBUG_QUIT cycles
-//`define DEBUG_QUIT 120000  //Quit after DEBUG_QUIT cycles
+//`define DEBUG_QUIT 400  //Quit after DEBUG_QUIT cycles
+`define DEBUG_QUIT 180000  //Quit after DEBUG_QUIT cycles
 
-`define DEBUG_CLOCK_CYCLE // comment this out if not for debugging
+//`define DEBUG_CLOCK_CYCLE // comment this out if not for debugging
 
 `define NUM_MEM_TAGS           15
 
@@ -29,8 +28,8 @@
 `define VIRTUAL_CLOCK_PERIOD   30.0 // Clock period from dc_shell
 `define VERILOG_CLOCK_PERIOD   10.0 // Clock period from test bench
 
-//`define MEM_LATENCY_IN_CYCLES ($rtoi(100.0/`VIRTUAL_CLOCK_PERIOD+0.99999))
-`define MEM_LATENCY_IN_CYCLES 20
+`define MEM_LATENCY_IN_CYCLES ($rtoi(100.0/`VIRTUAL_CLOCK_PERIOD+0.99999))
+//`define MEM_LATENCY_IN_CYCLES 20
 // the 0.99999 is to force ceiling(100/period).  The default behavior for
 // float to integer conversion is round down or truncate
 
@@ -343,3 +342,14 @@
 //`define BRANCH_NOT_TAKEN
 `define PRED_BITS (2)   //Size of the predictor counters
 `define PRED_IDX  (4)   //Size of the BTB and indexing
+
+
+// log2 function
+/*
+function integer log2;
+	input[31:0] value;
+	begin
+		for(log2=0; value>0; log2=log2+1) value= value>>1;
+	end
+endfunction
+*/

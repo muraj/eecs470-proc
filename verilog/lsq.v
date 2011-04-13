@@ -7,7 +7,7 @@ module lsq (clk, reset,
 						// Inputs from MEM
 						mem2lsq_response, 
 						// Inputs from DCACHE
-						dcache2lsq_valid, dcache2lsq_tag, dcache2lsq_data,
+						dcache2lsq_valid, dcache2lsq_tag, dcache2lsq_data, dcache2lsq_st_received,
 						// Inputs from ROB
 						rob_head,
 						// Output at Dispatch
@@ -39,6 +39,7 @@ module lsq (clk, reset,
 	input dcache2lsq_valid;					// validates data
 	input [3:0]  dcache2lsq_tag;		// tag of incoming data
 	input [63:0] dcache2lsq_data; 	// incoming data from cache
+	input dcache2lsq_st_received;		// acknowledge that the store is received
 
 	input [`ROB_IDX-1:0] rob_head;
 
@@ -106,6 +107,17 @@ module lsq (clk, reset,
 	reg [31:0] next_ir1, next_ir2;
 	reg [`LSQ_SZ-1:0]	 next_launched;
 
+	// Added by Yejoong
+	// store should be stalled because there's no available tag in the memory
+	wire store_stalled;
+	assign store_stalled = dcache2lsq_st_received && (dcache2lsq_tag == 4'b0);
+
+	wire stall_store;	// stall due to store insts
+	wire stall_load;	// stall due to load insts
+
+
+
+
 	// Memory launch decision
 	// Currently both ld/st are only launched at the lsq head
 	wire dcache_miss, dcache_hit, stall;
@@ -123,11 +135,14 @@ module lsq (clk, reset,
 
 	assign dcache_miss = launch && !wr_mem[head] && !dcache2lsq_valid;
 	assign dcache_hit = launch && !wr_mem[head] && dcache2lsq_valid && (dcache2lsq_tag=={4{1'b0}});
-	assign stall = launch && ((dcache_miss && (mem2lsq_response==0)) || (dcache2lsq_valid && dcache2lsq_tag!={4{1'b0}})); // need to stall: either no tickets available at mem or cache is busy returning stuff
+
+	assign stall_store = launch && store_stalled;
+	assign stall_load = launch && ((dcache_miss && (mem2lsq_response==0)) || (dcache2lsq_valid && dcache2lsq_tag!={4{1'b0}})); // need to stall: either no tickets available at mem or cache is busy returning stuff
+	assign stall = stall_store | stall_load;
 
 	// Committing decision
 	assign commit[0] = !empty && 
-										 ((wr_mem[head])? launch: // for stores, launch == commit
+										 ((wr_mem[head])? (launch & !stall_store): // for stores, launch == commit
 										 								 ready_commit[head]); // for loads, launch happens before commit
 	assign commit[1] = !empty_almost && commit[0] && 
 										 ((!wr_mem[head_p1])&&ready_commit[head_p1]); // only happens for loads that got forwarded
