@@ -19,6 +19,7 @@ suppress_message {"VER-130"}
 #/***********************************************************/
 read_file -f verilog [list "../sys_defs.vh" "../verilog/regfile.v" ]
 set design_name regfile
+elaborate $design_name
 set clock_name clk
 set reset_name reset
 set CLK_PERIOD 10
