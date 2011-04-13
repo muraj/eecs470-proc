@@ -161,11 +161,22 @@ module testbench;
 
 	task show_io;
 	  begin
-
+						$display("lsq_idx_out: %d", lsq_idx_out);
+						$display("out_valid: %d", out_valid);
+						$display("rob_idx_out: %d",rob_idx_out);
+						$display("pdest_idx_out: %d", pdest_idx_out);
+						$display("mem_value_out: %d", mem_value_out);
+						$display("rd_mem_out: %d", rd_mem_out);
+						$display("wr_mem_out: %d", wr_mem_out);
+						$display("npc_out: %d", npc_out);
+						$display("ir_out: %d", ir_out);
+						$display("lsq2mem_command: %d", lsq2mem_command);
+						$display("lsq2mem_addr: %d", lsq2mem_addr);
+						$display("lsq2mem_data: %d", lsq2mem_data);
 	  end
 	endtask
 
-
+/*
 	task show_contents;
 	  begin
 			$display("@%4d NS, CLK%3d", $time, clk_count);
@@ -215,7 +226,7 @@ module testbench;
 			$display("====================================================\n");
 	  end
 	endtask
-
+*/
 
 	task reset_all;
 	  begin
@@ -254,9 +265,9 @@ module testbench;
     // Initialize input signals
     reset_all();
     @(negedge clk);
-		show_contents();
+		//show_contents();
     @(negedge clk);
-		show_contents();
+		//show_contents();
 		
 		// #############################
 		// USAGE:
@@ -268,11 +279,11 @@ module testbench;
     $display("@@@ Test case #1: Insert");
     $display("=============================================================\n");
     
-		insert(1,1,0);@(negedge clk);show_contents();
-		insert(2,1,1);@(negedge clk);show_contents();
-		insert(2,0,1);@(negedge clk);show_contents();
-		insert(2,0,1);@(negedge clk);show_contents();
-		insert(2,0,1);@(negedge clk);show_contents();
+		insert(1,1,0);@(negedge clk);//show_contents();
+		insert(2,1,1);@(negedge clk);//show_contents();
+		insert(2,0,1);@(negedge clk);//show_contents();
+		insert(2,0,1);@(negedge clk);//show_contents();
+		insert(2,0,1);@(negedge clk);//show_contents();
 		insert(0,0,1);@(negedge clk)
 
 		// Test case #2: Update items
@@ -280,15 +291,15 @@ module testbench;
     $display("@@@ Test case #2: Update address");
     $display("=============================================================\n");
 		mem2lsq_response = 5;
-		up(2,1,5);@(negedge clk);show_contents();
-		up(2,2,3);@(negedge clk);show_contents();
-		up(1,7,3);@(negedge clk);show_contents();
-		up(1,0,3);@(negedge clk);show_contents();
-		up(0,1,3);@(negedge clk);show_contents();
-		up(0,1,3);@(negedge clk);show_contents();
+		up(2,1,5);@(negedge clk);//show_contents();
+		up(2,2,3);@(negedge clk);//show_contents();
+		up(1,7,3);@(negedge clk);//show_contents();
+		up(1,0,3);@(negedge clk);//show_contents();
+		up(0,1,3);@(negedge clk);//show_contents();
+		up(0,1,3);@(negedge clk);//show_contents();
 		rob_head = 4; 
-		up(0,1,3);@(negedge clk);show_contents();
-		up(0,1,3);@(negedge clk);show_contents();
+		up(0,1,3);@(negedge clk);//show_contents();
+		up(0,1,3);@(negedge clk);//show_contents();
 
 
 		// Test case #3: Insert & pull items at the same time 
@@ -300,6 +311,22 @@ module testbench;
 		// direction mispredict
 
 
+    $display("=============================================================");
+    $display("@@@ Test case #4: Automated Test");
+    $display("=============================================================\n");
+  	reset_all();
+    @(negedge clk);
+		//show_contents();
+    @(negedge clk);
+		//show_contents();
+		insert(2,1,1);@(negedge clk);//show_io();
+		if((lsq_idx_out != 26) || (npc_out !=22) || (ir_out != 22)) begin
+			$finish();
+			$display("Failed");
+		end
+		insert(0,0,1);@(negedge clk);
+		up(2,1,22);@(negedge clk);
+		@(negedge clk);//show_io();
 
     $display("All Testcase Passed!\n"); 
     $finish; 
