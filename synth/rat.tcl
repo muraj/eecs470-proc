@@ -17,7 +17,7 @@ suppress_message {"VER-130"}
 #/* The following five lines must be updated for every      */
 #/* new design                                              */
 #/***********************************************************/
-read_file -f verilog [list "../sys_defs.vh" "../verilog/rat.v" "../verilog/regfile.v" "../verilog/ps.v"  "../verilog/pe.v"]
+read_file -f verilog [list "../sys_defs.vh" "../verilog/rat.v" "../verilog/rattable.v" "../verilog/ps.v"  "../verilog/pe.v"]
 set design_name rat
 elaborate $design_name
 set clock_name clk

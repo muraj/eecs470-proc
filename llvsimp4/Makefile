@@ -12,8 +12,10 @@
 # The information contained here (in the rules for those vg files) will be 
 # similar to the information in those scripts but that seems hard to avoid.
 # 
-
-VCS = vcs +v2k +vc -Mupdate -line -full64
+MEM_LATENCY=4   # Add -DMEM_LATENCY=XX to change this on cmd
+MEM_SIZE=65536
+EXTRA_DEFINES=+define+MEM_LATENCY_IN_CYCLES=$(MEM_LATENCY) +define+MEM_SIZE_IN_BYTES=$(MEM_SIZE)
+VCS = vcs +v2k +vc -Mupdate -line -full64 $(EXTRA_DEFINES)
 LIB = /usr/caen/generic/mentor_lib-D.1/public/eecs470/verilog/lec25dscc25.v
 INTFLAGS = -I +memcbk
 
@@ -76,13 +78,12 @@ syn_int:	$(SYNFILES) $(TESTBENCH)
 	$(VCS) $(INTFLAGS) $(TESTBENCH) $(SYNFILES) $(LIB) -o syn_int_simv -RI
 
 clean:
-	rm -rf simv simv.daidir csrc vcs.key program.out
-	rm -rf vis_simv vis_simv.daidir
-	rm -rf syn_simv syn_simv.daidir syn_program.out
-	rm -rf int_simv int_simv.daidir syn_int_simv syn_int_simv.daidir
-	rm -rf synsimv synsimv.daidir csrc vcdplus.vpd vcs.key synprog.out pipeline.out writeback.out vc_hdrs.h
+	@rm -rf simv simv.daidir csrc vcs.key program.out
+	@rm -rf vis_simv vis_simv.daidir
+	@rm -rf syn_simv syn_simv.daidir syn_program.out
+	@rm -rf int_simv int_simv.daidir syn_int_simv syn_int_simv.daidir
+	@rm -rf synsimv synsimv.daidir csrc vcdplus.vpd vcs.key synprog.out pipeline.out writeback.out vc_hdrs.h
 
 nuke:	clean
-	rm -f synth/*.vg synth/*.rep synth/*.db synth/*.chk synth/command.log
-	rm -f synth/*.out synth/*.ddc command.log
-
+	@rm -f synth/*.vg synth/*.rep synth/*.db synth/*.chk synth/command.log
+	@rm -f synth/*.out synth/*.ddc command.log

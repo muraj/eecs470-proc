@@ -10,7 +10,6 @@ module RS(clk, reset,
                 rs_free,  ALU_rdy, mem_rdy, mult_rdy, //Hazard detect
                 pdest_idx_out, prega_idx_out, pregb_idx_out, ALUop_out, rd_mem_out,   //FU
                 wr_mem_out, rs_IR_out, npc_out, rob_idx_out,                          //FU
-          			rs_idx_out,															  //ROB
                 lsq_idx_out                               //LSQ
           );
 
@@ -39,7 +38,7 @@ module RS(clk, reset,
   output wire [63:0] npc_out;
   output wire [`ROB_IDX-1:0] rob_idx_out;
   output wire [`LSQ_IDX-1:0] lsq_idx_out;
-  output wire [`RS_IDX-1:0] rs_idx_out; // Output of ex encoder
+  wire [`RS_IDX-1:0] rs_idx_out; // Output of ex encoder
 
   wire [`RS_SZ-1:0] entry_free;
   wire [`RS_SZ-1:0] entry_ALU_rdy, entry_mem_rdy, entry_mult_rdy;

@@ -13,8 +13,8 @@ module testbench;
 	reg  	[`SCALAR*`PRF_IDX-1:0] retire_pdest_idx_in;
   reg		[`SCALAR-1:0] issue, retire;
 
-	wire	[`SCALAR*`PRF_IDX-1:0] prega_idx_out, pregb_idx_out, pdest_idx_out;
-	wire  [`SCALAR-1:0] prega_valid_out, pregb_valid_out;
+	wire	[`SCALAR*`PRF_IDX-1:0] prega_idx_out, pregb_idx_out, pdest_idx_out, cdb_tag;
+	wire  [`SCALAR-1:0] prega_valid_out, pregb_valid_out, cdb_en;
 
 rat  #(.ARF_IDX(`RAT_IDX)) rat0 (clk, reset, flush,
 						// ARF inputs

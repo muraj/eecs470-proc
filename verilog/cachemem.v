@@ -23,16 +23,16 @@ input [DATA_SIZE-1:0] wr1_data;
 output [DATA_SIZE-1:0] rd1_data;
 output rd1_valid;
 
-reg [DATA_SIZE:0] data [`ICACHE_LINES-1:0];
-reg [`ICACHE_TAG_BITS:0] tags [`ICACHE_LINES-1:0]; 
-reg [`ICACHE_LINES:0] valids;
+reg [DATA_SIZE-1:0] data [`ICACHE_LINES-1:0];
+reg [`ICACHE_TAG_BITS-1:0] tags [`ICACHE_LINES-1:0]; 
+reg [`ICACHE_LINES-1:0] valids;
 
 assign rd1_data = data[rd1_idx];
 assign rd1_valid = valids[rd1_idx]&&(tags[rd1_idx] == rd1_tag);
 
 always @(posedge clock)
 begin
-  if(reset) valids <= `SD {`ICACHE_LINES{1'b0}};
+  if(reset) valids <= `SD {`ICACHE_LINES-1{1'b0}};
   else if(wr1_en) 
     valids[wr1_idx] <= `SD 1'b1;
 end

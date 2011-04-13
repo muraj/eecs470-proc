@@ -51,17 +51,17 @@ module icache(// inputs
 
   wire  [`ICACHE_IDX_BITS-1:0] current_index;
   wire  [`ICACHE_TAG_BITS-1:0] current_tag;
-  assign {current_tag, current_index} = proc2Icache_addr[31:3];
+  assign {current_tag, current_index} = proc2Icache_addr[63:3];
 
 
-  reg [15:0] valid;
-  reg [63:0] requested_PC [15:0];
+  reg [`NUM_MEM_TAGS-1:0] valid;
+  reg [63:0] requested_PC [`NUM_MEM_TAGS-1:0];
 
   reg  [63:0] prefetch_PC;
   wor current_requested;
   wire [63:0] tag_PC = requested_PC[Imem2proc_tag];
   wire mem_forward = (valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && tag_PC == {proc2Icache_addr[63:3], 3'b0})));
-  wire [63:0] next_PC = (!current_requested && !cachemem_valid && !mem_forward) ? proc2Icache_addr : prefetch_PC + 8;
+  wire [63:0] next_PC = (!current_requested && !cachemem_valid && !mem_forward) ? {proc2Icache_addr[63:3], 3'b0} : prefetch_PC + 8;
 
   assign Icache_data_out = mem_forward ? Imem2proc_data : cachemem_data;
   assign Icache_valid_out = mem_forward | cachemem_valid; 
@@ -72,12 +72,12 @@ module icache(// inputs
   wire data_write_enable = valid[Imem2proc_tag];      //Write to icache if this is one of the tags we're looking for
 
   wire [63:0] last_PC = requested_PC[Imem2proc_tag];  //PC of the write to icache
-  assign {last_tag, last_index} = last_PC[31:3];      //Tag and index of the write to icache
+  assign {last_tag, last_index} = last_PC[63:3];      //Tag and index of the write to icache
 
   generate
   genvar i;
-  for(i=0;i<15;i=i+1) begin : ICACHE_COMPARE  //Very ineffiecent, but works
-    assign current_requested = valid[i] ? proc2Icache_addr == requested_PC[i] : 1'b0;
+  for(i=0;i<`NUM_MEM_TAGS;i=i+1) begin : ICACHE_COMPARE  //Very ineffiecent, but works
+    assign current_requested = valid[i] ? {proc2Icache_addr[63:3], 3'b0} == requested_PC[i] : 1'b0;
   end
   endgenerate
 
@@ -86,7 +86,7 @@ module icache(// inputs
     if(reset)
     begin
       prefetch_PC       <= `SD 0;
-      valid             <= `SD 15'b0;
+      valid             <= `SD {`NUM_MEM_TAGS{1'b0}};
     end
     else
     begin

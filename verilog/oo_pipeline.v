@@ -594,7 +594,6 @@ module oo_pipeline (// Inputs
 								.ALUop_out(dp_ALUop), .rd_mem_out(dp_rd_mem), //FU
                 .wr_mem_out(dp_wr_mem), .rs_IR_out(dp_is_IR), .npc_out(dp_is_NPC), 
 								.rob_idx_out(dp_rob_idx), .en_out(dp_is_valid_inst), //FU
-                .rs_idx_out(), //ROB
                 .lsq_idx_out(dp_lsq_idx)
          			 );
 

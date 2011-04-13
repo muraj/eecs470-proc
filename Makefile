@@ -13,7 +13,20 @@
 # similar to the information in those scripts but that seems hard to avoid.
 # 
 
-VCS = vcs +v2k +vc -Mupdate -line -full64
+# Makefile processor customizations
+MEM_LATENCY=4		# Add -DMEM_LATENCY=XX to change this on cmd
+MEM_SIZE=65536
+EXTRA_DEFINES=+define+MEM_LATENCY_IN_CYCLES=$(MEM_LATENCY) +define+MEM_SIZE_IN_BYTES=$(MEM_SIZE)
+ifndef BRANCH_PREDICTION
+	EXTRA_DEFINES+= +define+BRANCH_NOT_TAKEN
+endif
+ifdef ASSOC_DCACHE
+	EXTRA_DEFINES+= +define+DCACHE_2WAY
+endif
+ifdef DEBUG_QUIT
+	EXTRA_DEFINES+= +define+DEBUG_QUIT=$(DEBUG_QUIT)
+endif
+VCS = vcs +v2k +vc -Mupdate -line -full64 +vcs+loopreport $(EXTRA_DEFINES)
 LIB = /usr/caen/generic/mentor_lib-D.1/public/eecs470/verilog/lec25dscc25.v
 INTFLAGS = -I +memcbk
 
@@ -21,6 +34,7 @@ INTFLAGS = -I +memcbk
 VISFLAGS = -lncurses
 
 all:    simv
+	echo $(EXTRA_DEFINES)
 	./simv | tee program.out
 
 ##### 
@@ -80,14 +94,16 @@ syn_int:	$(SYNFILES) $(TESTBENCH)
 	$(VCS) $(INTFLAGS) $(TESTBENCH) $(SYNFILES) $(LIB) -o syn_int_simv -RI
 
 clean:
-	rm -rf simv simv.daidir csrc vcs.key program.out
-	rm -rf vis_simv vis_simv.daidir
-	rm -rf syn_simv syn_simv.daidir syn_program.out
-	rm -rf int_simv int_simv.daidir syn_int_simv syn_int_simv.daidir
-	rm -rf synsimv synsimv.daidir csrc vcdplus.vpd vcs.key synprog.out pipeline.out writeback.out vc_hdrs.h
+	@rm -rf simv simv.daidir csrc vcs.key program.out
+	@rm -rf vis_simv vis_simv.daidir
+	@rm -rf syn_simv syn_simv.daidir syn_program.out
+	@rm -rf int_simv int_simv.daidir syn_int_simv syn_int_simv.daidir
+	@rm -rf synsimv synsimv.daidir csrc vcdplus.vpd vcs.key synprog.out pipeline.out writeback.out vc_hdrs.h
+	@(cd llvsimp4; make clean)
 
 nuke:	clean
-	rm -rf *.out results.txt
-	rm -f synth/*.vg synth/*.rep synth/*.db synth/*.chk synth/command.log
-	rm -f synth/*.out synth/*.ddc command.log
-	rm -f synth/*.syn synth/*.mr synth/*.pvl synth/*.svf .vcsmx_rebuild
+	@rm -rf *.out results.txt
+	@rm -f synth/*.vg synth/*.rep synth/*.db synth/*.chk synth/command.log
+	@rm -f synth/*.out synth/*.ddc command.log
+	@rm -f synth/*.syn synth/*.mr synth/*.pvl synth/*.svf .vcsmx_rebuild
+	@(cd llvsimp4; make nuke)

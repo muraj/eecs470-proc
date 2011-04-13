@@ -17,8 +17,6 @@ suppress_message {"VER-130"}
 #/* The following five lines must be updated for every      */
 #/* new design                                              */
 #/***********************************************************/
-read_file -f ddc [list "./cachemem128x64.ddc"]
-set_dont_touch cachemem128x64
 set syn_files [glob "../verilog/*.v"]
 read_file -f verilog [concat "../sys_defs.vh" $syn_files]
 set design_name oo_pipeline
@@ -42,7 +40,7 @@ set auto_wire_load_selection "false"
 set compile_seqmap_synchronous_extraction "true"
 
 # uncomment this and change number appropriately if on multi-core machine
-set_host_options -max_cores 16
+set_host_options -max_cores 8
 
 #/***********************************************************/
 #/*  Clk Periods/uncertainty/transition                     */

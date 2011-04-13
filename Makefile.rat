@@ -27,7 +27,7 @@ all:    simv
 
 TESTBENCH = 	sys_defs.vh	    \
 		testbench/testbench_rat.v
-SIMFILES =	verilog/rat.v  verilog/regfile.v verilog/ps.v verilog/pe.v
+SIMFILES =	verilog/rat.v  verilog/rattable.v verilog/ps.v verilog/pe.v
 
 SYNFILES = synth/rat.vg
 

@@ -10,7 +10,6 @@ module SUPER_RS(clk, reset,
                 rs_stall,  rs_rdy,                                                     //Hazard detect
                 pdest_idx_out, prega_idx_out, pregb_idx_out, ALUop_out, rd_mem_out,    //FU
                 wr_mem_out, rs_IR_out, npc_out, rob_idx_out, en_out,                   //FU
-                rs_idx_out,                                                            //ROB
                 lsq_idx_out                                                            //LSQ
           );
 
@@ -41,7 +40,6 @@ module SUPER_RS(clk, reset,
   output wire [64*`SCALAR-1:0] npc_out;
   output wire [`SCALAR*`ROB_IDX-1:0] rob_idx_out;
   output wire [`SCALAR*`LSQ_IDX-1:0] lsq_idx_out;
-  output wire [`SCALAR*`RS_IDX-1:0] rs_idx_out;
   output wire [`SCALAR-1:0] en_out;
 
   wire [`SCALAR-1:0] ALU_rdy, mem_rdy, mult_rdy;
@@ -80,9 +78,9 @@ module SUPER_RS(clk, reset,
 
                     //OUTPUTS
                     rs_free[0], ALU_rdy[0], mem_rdy[0], mult_rdy[0],
-                    pdest_idx_out[`PRF_IDX-1:0], prega_idx_out[`PRF_IDX-1:0], pregb_idx_out[`PRF_IDX-1:0], ALUop_out[4:0], rd_mem_out[0],
-                    wr_mem_out[0], rs_IR_out[31:0], npc_out[63:0], rob_idx_out[`ROB_IDX-1:0],
-                    rs_idx_out[`RS_IDX-1:0], lsq_idx_out[`SEL(`LSQ_IDX,1)]);
+                    pdest_idx_out[`SEL(`PRF_IDX,1)], prega_idx_out[`PRF_IDX-1:0], pregb_idx_out[`PRF_IDX-1:0], ALUop_out[4:0], rd_mem_out[0],
+                    wr_mem_out[0], rs_IR_out[31:0], npc_out[63:0], rob_idx_out[`SEL(`ROB_IDX,1)],
+                    lsq_idx_out[`SEL(`LSQ_IDX,1)]);
 
 `ifdef SUPERSCALAR
   RS rs1(clk, reset,
@@ -95,6 +93,6 @@ module SUPER_RS(clk, reset,
                     rs_free[1], ALU_rdy[1], mem_rdy[1], mult_rdy[1],
                     pdest_idx_out[`SEL(`PRF_IDX,2)], prega_idx_out[`SEL(`PRF_IDX,2)], pregb_idx_out[`SEL(`PRF_IDX,2)], ALUop_out[`SEL(5,2)], rd_mem_out[1],
                     wr_mem_out[1], rs_IR_out[`SEL(32,2)], npc_out[`SEL(64,2)], rob_idx_out[`SEL(`ROB_IDX,2)],
-                    rs_idx_out[`SEL(`RS_IDX,2)], lsq_idx_out[`SEL(`LSQ_IDX,2)]);
+                    lsq_idx_out[`SEL(`LSQ_IDX,2)]);
 `endif
 endmodule

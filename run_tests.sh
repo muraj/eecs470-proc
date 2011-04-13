@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 usage() {
 cat << EOF
-USAGE: ${PROGNAME} [OPTIONS] [syn]
+USAGE: ${PROGNAME} [OPTIONS] [ARGS]
 
 This script runs one or all the tests against both this processor's output and another processor's output
 
@@ -10,7 +10,7 @@ OPTIONS:
   -t, --test FILE        Specific test program to run (can be specified multiple times for more tests)
   -d, --compare-dir DIR  Directory with standard processor simulation to test against
   -q, --quiet            Run in non-interactive mode
-  syn                    Run tests in synthesis mode
+  ARGS                   Arguments to make processor
 EOF
 }
 TMP=`getopt --name=$0 -a --longoptions="help,quiet,compare-dir:,test:" -o="h,q,d:,t:" -- $@`
@@ -41,23 +41,25 @@ if ! [ -f $comp_dir/Makefile ]; then
   exit 1;
 fi
 echo "Comparing results against directory in-order proc in $comp_dir";
-echo "Compiling procs";
-make ${1:+${1}_}simv > /dev/null || exit 1;
-(cd $comp_dir; make simv > /dev/null) || exit 1;
+if [[ "$@" == *syn* ]]; then
+  prefix=syn_
+fi
+echo "Cleaning procs";
+make nuke > /dev/null
 printf "%-40s %7s %9s %9s %4s\n" "File" "BR ACCR" "Our CPI" "Their CPI" "Test";
 for f in ${prog:-test_progs/*.s}
 do
 	(./vs-asm $f > ./program.mem 2> /dev/null) || exit;
 	cp -f ./program.mem $comp_dir/program.mem;
-	(make $1 > /dev/null) || exit;
+  (make $@ > /dev/null) || exit;
 	(cd $comp_dir; make > /dev/null) || exit;
 	diff -u -I '^#' $comp_dir/writeback.out writeback.out > results.txt; # Ignore extra comments
   if [ -f $comp_dir/memory.out -a -f memory.out ]; then   # Compare the memories if possible, append the result
   	diff -u -I '^#' $comp_dir/memory.out memory.out >> results.txt; # Ignore extra comments
   fi
 	printf "%-40s " "$(basename $f)";
-  printf "%7s " `grep "^@.\+Branch Accuracy$" ${1:+${1}_}program.out | cut -d " " -f 8`
-	printf "%9.6f " `grep "^@.\+CPI$" ${1:+${1}_}program.out | cut -d " " -f 9`;
+  printf "%7s " `grep "^@.\+Branch Accuracy$" ${prefix}program.out | cut -d " " -f 8`
+	printf "%9.6f " `grep "^@.\+CPI$" ${prefix}program.out | cut -d " " -f 9`;
 	printf "%9.6f" `grep "^@.\+CPI$" ${comp_dir}/program.out | cut -d " " -f 9`;
 	if [ -s results.txt ]; then
     grep "@@@ System halted on HALT instruction" program.out &> /dev/null

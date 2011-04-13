@@ -54,7 +54,7 @@ if [ "$1" == "-s" ]; then
   fi
 elif [ "$1" == "-a" ]; then
   echo "Copying project from AFS directory..."
-  rsync -avz $AFS_DIR/$WORK_DIR/ $HOME/$WORK_DIR
+  rsync -avz --exclude "*.out" $AFS_DIR/$WORK_DIR/ $HOME/$WORK_DIR
   if [ "$?" -ne '0' ]; then
     echo "Error: Could not copy files from AFS directory"
     exit 1

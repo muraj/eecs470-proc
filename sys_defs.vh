@@ -339,7 +339,7 @@
 
 
 // Branch Predicator
-//`define BRANCH_NOT_TAKEN
+`define BRANCH_NOT_TAKEN
 `define PRED_BITS (2)   //Size of the predictor counters
 `define PRED_IDX  (4)   //Size of the BTB and indexing
 
