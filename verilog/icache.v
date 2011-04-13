@@ -1,8 +1,3 @@
-// Number of cachelines. must update both on a change
-`define ICACHE_IDX_BITS       7      // log2(ICACHE_LINES)
-`define ICACHE_TAG_BITS      22      //These should go in sys_defs.vh
-`define ICACHE_LINES (1<<`ICACHE_IDX_BITS)
-
 module icache(// inputs
               clock,
               reset,

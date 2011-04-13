@@ -15,10 +15,10 @@
 //////////////////////////////////////////////
 
 // Should be pulled from the program dynamically perhaps, anything less than 40000 causes 06-mult-lda.s to fail
-//`define DEBUG_QUIT 300  //Quit after DEBUG_QUIT cycles
-`define DEBUG_QUIT 120000  //Quit after DEBUG_QUIT cycles
+`define DEBUG_QUIT 400  //Quit after DEBUG_QUIT cycles
+//`define DEBUG_QUIT 120000  //Quit after DEBUG_QUIT cycles
 
-//`define DEBUG_CLOCK_CYCLE // comment this out if not for debugging
+`define DEBUG_CLOCK_CYCLE // comment this out if not for debugging
 
 `define NUM_MEM_TAGS           15
 
@@ -29,8 +29,8 @@
 `define VIRTUAL_CLOCK_PERIOD   30.0 // Clock period from dc_shell
 `define VERILOG_CLOCK_PERIOD   10.0 // Clock period from test bench
 
-`define MEM_LATENCY_IN_CYCLES ($rtoi(100.0/`VIRTUAL_CLOCK_PERIOD+0.99999))
-//`define MEM_LATENCY_IN_CYCLES 1
+//`define MEM_LATENCY_IN_CYCLES ($rtoi(100.0/`VIRTUAL_CLOCK_PERIOD+0.99999))
+`define MEM_LATENCY_IN_CYCLES 20
 // the 0.99999 is to force ceiling(100/period).  The default behavior for
 // float to integer conversion is round down or truncate
 
@@ -320,15 +320,25 @@
 `define EX_MULT	2'b10
 `define EX_ALU	2'b11
 
+// Memory Address Space
+`define MEM_ADDR_BITS	(13)
+
+// I-cache Defines
+`define ICACHE_IDX_BITS	(7)
+`define ICACHE_TAG_BITS	(`MEM_ADDR_BITS-`ICACHE_IDX_BITS)
+`define ICACHE_LINES	(1<<`ICACHE_IDX_BITS)
+
 // D-cache Defines
 `define DCACHE_2WAY	// comment this out if direct-mapped
 `define DCACHE_IDX_BITS	(4)      
 `define DCACHE_SETS		(1<<`DCACHE_IDX_BITS)
 `ifdef DCACHE_2WAY
-	`define DCACHE_TAG_BITS (14-`DCACHE_IDX_BITS)	
+	`define DCACHE_TAG_BITS (`MEM_ADDR_BITS+1-`DCACHE_IDX_BITS)	
 `else
-	`define DCACHE_TAG_BITS (13-`DCACHE_IDX_BITS)	// 13 indicates MEM_64BIT_LINES (=2^13)
+	`define DCACHE_TAG_BITS (`MEM_ADDR_BITS-`DCACHE_IDX_BITS)
 `endif
+
+
 // Branch Predicator
 //`define BRANCH_NOT_TAKEN
 `define PRED_BITS (2)   //Size of the predictor counters

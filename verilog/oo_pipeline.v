@@ -209,10 +209,10 @@ module oo_pipeline (// Inputs
   // Icache wires
   wire [63:0] cachemem_data;
   wire        cachemem_valid;
-  wire  [6:0] Icache_rd_idx;
-  wire [21:0] Icache_rd_tag;
-  wire  [6:0] Icache_wr_idx;
-  wire [21:0] Icache_wr_tag;
+  wire  [`ICACHE_IDX_BITS-1:0] Icache_rd_idx;
+  wire [`ICACHE_TAG_BITS-1:0] Icache_rd_tag;
+  wire  [`ICACHE_IDX_BITS-1:0] Icache_wr_idx;
+  wire [`ICACHE_TAG_BITS-1:0] Icache_wr_tag;
   wire        Icache_wr_en;
   wire [63:0] Icache_data_out, proc2Icache_addr;
   wire        Icache_valid_out;
@@ -265,6 +265,7 @@ module oo_pipeline (// Inputs
 	wire [3:0]	Dmem2proc_tag;
 	wire [63:0]	Dmem2proc_data;
 	wire				dcache2lsq_valid;
+	wire dcache2lsq_st_received;
 
 
   // From the original version
@@ -322,6 +323,8 @@ module oo_pipeline (// Inputs
                   .cachemem_data(cachemem_data),
                   .cachemem_valid(cachemem_valid),
 
+                  .stall_icache(proc2Dmem_command != `BUS_NONE),
+
                    // outputs
                   .proc2Imem_command(proc2Imem_command),
                   .proc2Imem_addr(proc2Imem_addr),
@@ -332,8 +335,7 @@ module oo_pipeline (// Inputs
                   .current_tag(Icache_rd_tag),
                   .last_index(Icache_wr_idx),
                   .last_tag(Icache_wr_tag),
-                  .data_write_enable(Icache_wr_en),
-                  .stall_icache(proc2Dmem_command != `BUS_NONE)
+                  .data_write_enable(Icache_wr_en)
                  );
 
 
@@ -733,6 +735,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
            			  // outputs
      			        .Dcache2Dmem_command(proc2Dmem_command), .Dcache2Dmem_addr(proc2Dmem_addr), .Dcache2Dmem_data(proc2mem_data),	// To Dmem
           		    .Dcache2proc_data(dcache2lsq_data), .Dcache2proc_valid(dcache2lsq_valid), .Dcache2proc_tag(dcache2lsq_tag), 		// To Proc(LSQ)
+						 .Dcache2proc_st_received(dcache2lsq_st_received),
              			.rd_idx(dcachemem_rd_idx), .rd_tag(dcachemem_rd_tag), .wr_idx(dcachemem_wr_idx), .wr_tag(dcachemem_wr_tag), .wr_data(dcachemem_wr_data), .wr_en(dcachemem_wr_en), .en(dcachemem_en)	// To Dcachemem
         			    );
 
