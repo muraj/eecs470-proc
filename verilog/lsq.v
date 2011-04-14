@@ -27,17 +27,17 @@ module lsq (clk, reset,
 	input [`SCALAR-1:0]						rd_mem_in;    // loads
 	input [`SCALAR-1:0]						wr_mem_in;		// stores
 	input [32*`SCALAR-1:0]				ir_in; 				// IR
-	input [64*`SCALAR-1:0]				npc_in; 	// NPC
+	input [64*`SCALAR-1:0]				npc_in;     	// NPC
 
 	input [`SCALAR-1:0]					  up_req;				// address updates from EX stage
 	input [`LSQ_IDX*`SCALAR-1:0]	lsq_idx_in;   // LSQ index to update
 	input [64*`SCALAR-1:0]				addr_in;	    // result of EX stage
 	input [64*`SCALAR-1:0]				regv_in; 			// data for stores
 
-	input [3:0]	 mem2lsq_response; // 0 = can't accept, other = tag of transaction
+	input [`NUM_MEM_TAG_BITS-1:0]	 mem2lsq_response; // 0 = can't accept, other = tag of transaction
 
 	input dcache2lsq_valid;					// validates data
-	input [3:0]  dcache2lsq_tag;		// tag of incoming data
+	input [`NUM_MEM_TAG_BITS-1:0]  dcache2lsq_tag;		// tag of incoming data
 	input [63:0] dcache2lsq_data; 	// incoming data from cache
 	input dcache2lsq_st_received;		// acknowledge that the store is received
 
@@ -276,6 +276,9 @@ module lsq (clk, reset,
 	// ===================================================
 	// Sequential Block
 	// ===================================================
+
+	integer idx;
+
 	always @(posedge clk) begin
 		if (reset) begin
 			head 					<= `SD {`LSQ_IDX{1'b0}};
@@ -290,6 +293,19 @@ module lsq (clk, reset,
       ready_launch  <= `SD {`LSQ_SZ{1'b0}};
       ready_commit  <= `SD {`LSQ_SZ{1'b0}};
 			wr_mem 	      <= `SD {`LSQ_SZ{1'b0}};
+
+			for (idx=0;idx<`LSQ_SZ;idx=idx+1) begin
+				data_addr[idx] <= `SD 0;
+				data_regv[idx] <= `SD 0;
+				pdest_idx[idx] <= `SD 0;
+				rob_idx  [idx] <= `SD 0;
+				npc      [idx] <= `SD 0;
+				ir       [idx] <= `SD 0;
+			end
+			
+			for (idx=1;idx<`NUM_MEM_TAGS;idx=idx+1) begin
+				lsq_map[idx] <= `SD 0;
+			end
 
 		end else begin
 

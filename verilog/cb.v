@@ -88,6 +88,8 @@ module cb (clk, reset,
 		end
 	end
 
+	integer idx;
+
 	always @(posedge clk) begin
 		if (reset) begin
 			head 					<= `SD {CB_IDX{1'b0}};
@@ -97,6 +99,11 @@ module cb (clk, reset,
 			full_almost 	<= `SD 1'b0;
 			empty					<= `SD 1'b0;
 			empty_almost	<= `SD 1'b0;
+			
+			for (idx=1;idx<CB_LENGTH;idx=idx+1) begin
+				data[idx] <= `SD 0;
+			end
+
 		end else begin
 			data[tail]		<= `SD next_data1;
 			data[tail_p1] <= `SD next_data2;

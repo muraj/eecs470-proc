@@ -22,7 +22,7 @@ read_file -f verilog [concat "../sys_defs.vh" $syn_files]
 set design_name oo_pipeline
 set clock_name clock
 set reset_name reset
-set CLK_PERIOD 30
+set CLK_PERIOD 20
 
 
 #/***********************************************************/
@@ -40,7 +40,7 @@ set auto_wire_load_selection "false"
 set compile_seqmap_synchronous_extraction "true"
 
 # uncomment this and change number appropriately if on multi-core machine
-set_host_options -max_cores 8
+set_host_options -max_cores 16
 
 #/***********************************************************/
 #/*  Clk Periods/uncertainty/transition                     */
@@ -119,7 +119,7 @@ if {  $dc_shell_status != [list] } {
   set MAX_FANOUT $MAX_FANOUT
   set MAX_TRANSITION $MAX_TRANSITION
   uniquify
-  ungroup -all -flatten
+# ungroup -all -flatten
   redirect $chk_file { check_design }
   compile -map_effort medium
   write -hier -format verilog -output $netlist_file $design_name

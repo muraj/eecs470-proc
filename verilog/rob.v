@@ -205,6 +205,8 @@ module rob (clk, reset,
 	// ===================================================
 	// Sequential Block
 	// ===================================================
+	integer idx;
+
 	always @(posedge clk) begin
 		if (reset) begin
 			head 					<= `SD {`ROB_IDX{1'b0}};
@@ -217,6 +219,10 @@ module rob (clk, reset,
       data_rdy      <= `SD {`ROB_SZ{1'b0}};
       data_bt_ex    <= `SD {`ROB_SZ{1'b0}};
       illegal       <= `SD {`ROB_SZ{1'b0}};
+			
+			for (idx=1;idx<`ROB_SZ;idx=idx+1) begin
+				data_ba_ex[idx] <= `SD 0;
+			end
 
 		end else begin
 			// data allocation
