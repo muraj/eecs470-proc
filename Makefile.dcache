@@ -27,13 +27,13 @@ all:    simv
 
 
 TESTBENCH = 	sys_defs.vh	    \
-		testbench/testbench_dcache.v testbench/mem.v 
-SIMFILES =	verilog/dcache.v verilog/dcachemem.v
+		testbench/testbench_dcache.v testbench/mem.v verilog/dcachemem.v
+SIMFILES =	verilog/dcache.v 
 SYNFILES = synth/dcache.vg
 
 
-synth/ex_stage.vg:        $(SIMFILES) synth/dcache.tcl
-	cd synth && dc_shell-t -f ./ex_stage.tcl | tee dcache_synth.out 
+synth/dcache.vg:        $(SIMFILES) synth/dcache.tcl
+	cd synth && dc_shell-t -f ./dcache.tcl | tee dcache_synth.out 
  
 #####
 # Should be no need to modify after here
@@ -50,7 +50,7 @@ vis_simv:	$(SIMFILES) $(VISTESTBENCH)
 	./vis_simv
 
 syn_simv:	$(SYNFILES) $(TESTBENCH)
-	$(VCS) $(TESTBENCH) $(SYNFILES) $(LIB) -o syn_simv 
+	$(VCS) $(TESTBENCH) $(SYNFILES) $(LIB) -o syn_simv  +define+SYNTH=1 -o syn_simv 
 
 syn:	syn_simv
 	./syn_simv | tee syn_program.out

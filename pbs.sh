@@ -41,8 +41,8 @@ echo *************** SYNTHESIZING ********************
 
 # Copy new synthesis files back to home space
 cd /tmp/${PBS_JOBID}
-echo *************** TESTING ********************
-./run_tests.sh -q syn		#Run tests on synthesized version
+#echo *************** TESTING ********************
+#./run_tests.sh -q syn		#Run tests on synthesized version
 rsync -avz ./ ~/$WORK_DIR
 if [ "$?" -ne '0' ]; then
   echo "PBS - Error while trying to copy synthesized files back to home"

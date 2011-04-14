@@ -90,7 +90,7 @@ module testbench;
 			cache_addr_in = 0; cache_command_in = 0; cache_data_in = 0;
   	end
   endtask
-
+/*
 	task show_cache_out;
 		begin
 			case ({dcache0.Dcache2proc_valid, (dcache0.Dcache2proc_tag!=4'b0)})
@@ -279,7 +279,10 @@ initial begin
 	$display("@@@ Testbench Finished at Cycle %4d ==================\n", full_cycle);
 
 	$fclose(cache_fileno);
+*/
+initial
+begin
   $finish; 
 
-		end
+end
 endmodule

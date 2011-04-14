@@ -24,7 +24,7 @@
 # PROJ_TCL: The synthesis .tcl script for your entire pipeline
 USER=`whoami`
 SVN_REPO="svn checkout http://mountain-dew-proc.googlecode.com/svn/trunk/ mountain-dew-proc-read-only"
-AFS_DIR="/afs/umich.edu/user/${USER:0:1}/${USER:1:1}/${USER}"
+AFS_DIR="/afs/umich.edu/user/${USER:0:1}/${USER:1:1}/${USER}/Private/eecs470/"
 WORK_DIR="mountain-dew-proc"
 EMAIL="${USER}@umich.edu"
 ROOT_PROJ_DIR=""

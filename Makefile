@@ -71,12 +71,9 @@ SIMFILES =	verilog/oo_pipeline.v	\
 		verilog/regfile.v
 SYNFILES = synth/oo_pipeline.vg
 
-synth/oo_pipeline.vg:        $(SIMFILES) synth/pipeline.tcl synth/cachemem128x64.vg
+synth/oo_pipeline.vg:        $(SIMFILES) synth/pipeline.tcl
 	cd synth && dc_shell-t -f ./pipeline.tcl | tee pipeline_synth.out 
 
-synth/cachemem128x64.vg:  verilog/cachemem.v
-	cd synth && dc_shell-t -f ./icache.tcl | tee cachemem128x64_synth.out
- 
 #####
 # Should be no need to modify after here
 #####
