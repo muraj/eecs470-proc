@@ -1,20 +1,20 @@
 module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_taken_address, paddress, ptaken); //Branch Table
  //synopsys template
   parameter PRED_BITS =   `PRED_BITS;
-	parameter PRED_IDX   =  `PRED_IDX;
-	parameter	PRED_SZ    =  1 << PRED_IDX;
+  parameter PRED_IDX  =   `PRED_IDX;
+  parameter PRED_SZ   =   1 << PRED_IDX;
 
-	input 	wire	clk, reset; 
-	input		wire	[`SCALAR-1:0]    ROB_taken, ROB_br_en;
-	input		wire	[`SCALAR*64-1:0] IF_NPC;
-	input   wire  [`SCALAR*64-1:0] ROB_NPC, ROB_taken_address;
-	output	wire	[`SCALAR*64-1:0] paddress;
-	output	wire	[`SCALAR-1:0]    ptaken;
+	input   wire	clk, reset; 
+	input	wire	[`SCALAR-1:0]    ROB_taken, ROB_br_en;
+	input	wire	[`SCALAR*64-1:0] IF_NPC;
+	input   wire   [`SCALAR*64-1:0] ROB_NPC, ROB_taken_address;
+	output  wire	[`SCALAR*64-1:0] paddress;
+	output  wire	[`SCALAR-1:0]    ptaken;
 	//output	[PRED_SZ-1:0] clr;	
 
   reg    [PRED_SZ-1:0]   clr; //If set, the corresponding predictor has never been set, output zero
-	reg    [PRED_BITS-1:0] predictor[PRED_SZ-1:0];
-	reg    [63:0] 				 BTB_addr	[PRED_SZ-1:0];
+  reg    [PRED_BITS-1:0] predictor[PRED_SZ-1:0];
+  reg    [63:0]   		 BTB_addr	[PRED_SZ-1:0];
   reg    [63:0]          BTB_npc  [PRED_SZ-1:0];
 
 	wire [PRED_IDX-1:0] IF_TAG[`SCALAR-1:0];
@@ -22,20 +22,20 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 `ifdef SUPERSCALAR
 	assign IF_TAG[1] = IF_NPC[PRED_IDX+64+1:64+2];
 `endif
-	wire [PRED_IDX-1:0] ROB_TAG[`SCALAR-1:0];
+  wire [PRED_IDX-1:0] ROB_TAG[`SCALAR-1:0];
   wire [PRED_BITS-1:0] pred_rob[`SCALAR-1:0];
-	assign ROB_TAG[0] = ROB_NPC[PRED_IDX+1:2];
-  assign pred_rob[0] = clr[ROB_TAG[0]] ? {PRED_BITS{1'b0}} : predictor[ROB_TAG[0]];
+  assign ROB_TAG[0] = ROB_NPC[PRED_IDX+1:2];
+  assign pred_rob[0] = clr[ROB_TAG[0]] ? {1'b0, {PRED_BITS-1{1'b1}}} : predictor[ROB_TAG[0]];
 `ifdef SUPERSCALAR
-	assign ROB_TAG[1] = ROB_NPC[PRED_IDX+64+1:64+2];
-  assign pred_rob[1] = clr[ROB_TAG[1]] ? {PRED_BITS{1'b0}} : predictor[ROB_TAG[1]];
+  assign ROB_TAG[1] = ROB_NPC[PRED_IDX+64+1:64+2];
+  assign pred_rob[1] = clr[ROB_TAG[1]] ? {1'b0, {PRED_BITS-1{1'b1}}} : predictor[ROB_TAG[1]];
 `endif
 
-	wire [PRED_BITS-1:0] pred_result1 = clr[IF_TAG[0]] ? {PRED_BITS{1'b0}} : predictor[IF_TAG[0]];
+	wire [PRED_BITS-1:0] pred_result1 = clr[IF_TAG[0]] ? {1'b0, {PRED_BITS-1{1'b1}}} : predictor[IF_TAG[0]];
 	assign ptaken[0] = pred_result1[PRED_BITS-1] && (BTB_npc[IF_TAG[0]] == IF_NPC[`SEL(64,1)]);			//Trick to get taken/not-taken.
 	assign paddress[`SEL(64,1)] = BTB_addr[IF_TAG[0]];
 `ifdef SUPERSCALAR
-	wire [PRED_BITS-1:0] pred_result2 = clr[IF_TAG[1]] ? {PRED_BITS{1'b0}} : predictor[IF_TAG[1]];
+	wire [PRED_BITS-1:0] pred_result2 = clr[IF_TAG[1]] ? {1'b0, {PRED_BITS-1{1'b1}}} : predictor[IF_TAG[1]];
 	assign ptaken[1] = pred_result2[PRED_BITS-1] && (BTB_npc[IF_TAG[1]] == IF_NPC[`SEL(64,2)]);			//Trick to get taken/not-taken.
 	assign paddress[`SEL(64,2)] = BTB_addr[IF_TAG[1]];
 `endif
@@ -60,7 +60,7 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
     if(reset) begin
       clr <= `SD {PRED_SZ{1'b1}};
 			for(idx=0; idx<PRED_SZ; idx=idx+1) begin
-				predictor[idx]	<= `SD 0;
+				predictor[idx]	<= `SD {1'b0, {PRED_BITS-1{1'b1}}};  //Reset to weakly not-taken
 				BTB_addr[idx]		<= `SD 0;
 				BTB_npc[idx]		<= `SD 0;
 			end
