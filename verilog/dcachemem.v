@@ -53,11 +53,18 @@ output rd1_valid;
 	  else if(wr1_en)
 	    valids[wr1_idx] <= `SD 1;
 	end
+
+	integer idx;
 	
 	always @(posedge clock)
 	begin
-	  if(wr1_en)
-	  begin
+		if(reset) begin
+			for(idx=0; idx<`DCACHE_SETS; idx=idx+1) begin
+				data[idx]	<= `SD 0;
+				tags[idx]	<= `SD 0;
+			end
+		end
+	  else if(wr1_en) begin
 	    data[wr1_idx] <= `SD wr1_data;
 	    tags[wr1_idx] <= `SD wr1_tag;
 	  end

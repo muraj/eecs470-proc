@@ -20,6 +20,7 @@
 //`define DEBUG_CLOCK_CYCLE // comment this out if not for debugging
 
 `define NUM_MEM_TAGS           15
+`define NUM_MEM_TAG_BITS				4
 
 `define MEM_SIZE_IN_BYTES      (64*1024)
 `define MEM_64BIT_LINES        (`MEM_SIZE_IN_BYTES/8)

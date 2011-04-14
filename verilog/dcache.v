@@ -15,7 +15,7 @@ module dcache(clock, reset,
              );
 
   input         clock, reset;
-  input   [3:0] Dmem2Dcache_response, Dmem2Dcache_tag;
+  input   [`NUM_MEM_TAG_BITS-1:0] Dmem2Dcache_response, Dmem2Dcache_tag;
 	input  [63:0]	Dmem2Dcache_data;
 	input   [1:0]	proc2Dcache_command;
   input  [63:0] proc2Dcache_addr, proc2Dcache_data;
@@ -26,15 +26,15 @@ module dcache(clock, reset,
   output reg [63:0] 								Dcache2Dmem_addr, Dcache2Dmem_data;
   output reg [63:0] 								Dcache2proc_data;     
   output reg        								Dcache2proc_valid;    
-	output reg  [3:0]									Dcache2proc_tag;
+	output reg  [`NUM_MEM_TAG_BITS-1:0]		Dcache2proc_tag;
 	output reg												Dcache2proc_st_received;
   output reg [`DCACHE_IDX_BITS-1:0] rd_idx, wr_idx;
   output reg [`DCACHE_TAG_BITS-1:0] rd_tag, wr_tag;
 	output reg [63:0]									wr_data;
   output reg        								wr_en, en;
 
-	reg	[63:0]	addr_reg	[15:0];
-	reg	[15:0]	addr_reg_valid;
+	reg	[63:0]	addr_reg	[`NUM_MEM_TAGS:0];
+	reg	[`NUM_MEM_TAGS:0]	addr_reg_valid;
 	reg	[63:0]	next_addr_reg, wr_addr;
 	reg					rd_miss, set_addr_valid, reset_addr_valid;
 
@@ -63,7 +63,7 @@ module dcache(clock, reset,
 
 
 		// Dmem2Dcache_tag != 0 and this is for READ_MISS (some loaded value have been come out from DMEM) -> Store the loaded value into cachemem, and also pass it to Proc(LSQ). LSQ should be stalled. 
-		if (Dmem2Dcache_tag != 4'b0 && addr_reg_valid[Dmem2Dcache_tag]==1'b1) begin
+		if (Dmem2Dcache_tag != 0 && addr_reg_valid[Dmem2Dcache_tag]==1'b1) begin
 			en			= 1'b1;
 			wr_addr	= addr_reg[Dmem2Dcache_tag];
 			wr_tag	= wr_addr[`DCACHE_IDX_BITS+`DCACHE_TAG_BITS+2:`DCACHE_IDX_BITS+3];
