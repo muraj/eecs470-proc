@@ -66,6 +66,33 @@ module testbench;
 
 //DEBUG SIGNALS
 `ifndef SYNTH
+//*** PREFETCH DEBUG ***//
+  integer prefetch_fileno;
+initial begin
+  prefetch_fileno = $fopen("prefetch.out");
+end
+always @(posedge clock) begin
+  $fdisplay(prefetch_fileno, "CYCLE: %d", clock_count);
+  $fdisplay(prefetch_fileno, "%d: %h", 00, pipeline_0.icache_0.requested_PC[00]);
+  $fdisplay(prefetch_fileno, "%d: %h", 01, pipeline_0.icache_0.requested_PC[01]);
+  $fdisplay(prefetch_fileno, "%d: %h", 02, pipeline_0.icache_0.requested_PC[02]);
+  $fdisplay(prefetch_fileno, "%d: %h", 03, pipeline_0.icache_0.requested_PC[03]);
+  $fdisplay(prefetch_fileno, "%d: %h", 04, pipeline_0.icache_0.requested_PC[04]);
+  $fdisplay(prefetch_fileno, "%d: %h", 05, pipeline_0.icache_0.requested_PC[05]);
+  $fdisplay(prefetch_fileno, "%d: %h", 06, pipeline_0.icache_0.requested_PC[06]);
+  $fdisplay(prefetch_fileno, "%d: %h", 07, pipeline_0.icache_0.requested_PC[07]);
+  $fdisplay(prefetch_fileno, "%d: %h", 08, pipeline_0.icache_0.requested_PC[08]);
+  $fdisplay(prefetch_fileno, "%d: %h", 09, pipeline_0.icache_0.requested_PC[09]);
+  $fdisplay(prefetch_fileno, "%d: %h", 10, pipeline_0.icache_0.requested_PC[10]);
+  $fdisplay(prefetch_fileno, "%d: %h", 11, pipeline_0.icache_0.requested_PC[11]);
+  $fdisplay(prefetch_fileno, "%d: %h", 12, pipeline_0.icache_0.requested_PC[12]);
+  $fdisplay(prefetch_fileno, "%d: %h", 13, pipeline_0.icache_0.requested_PC[13]);
+  $fdisplay(prefetch_fileno, "%d: %h", 14, pipeline_0.icache_0.requested_PC[14]);
+  if(pipeline_error_status != `NO_ERROR)
+    $fclose(prefetch_fileno);
+end
+
+
 //*** RS DEBUG ***//
   integer rs_fileno;
   wire [31:0] rs1_IR[`RS_SZ-1:0];

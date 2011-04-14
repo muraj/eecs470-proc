@@ -12,9 +12,11 @@
 # The information contained here (in the rules for those vg files) will be 
 # similar to the information in those scripts but that seems hard to avoid.
 # 
-MEM_LATENCY=4   # Add -DMEM_LATENCY=XX to change this on cmd
 MEM_SIZE=65536
-EXTRA_DEFINES=+define+MEM_LATENCY_IN_CYCLES=$(MEM_LATENCY) +define+MEM_SIZE_IN_BYTES=$(MEM_SIZE)
+EXTRA_DEFINES=+define+MEM_SIZE_IN_BYTES=$(MEM_SIZE)
+ifdef MEM_LATENCY
+  EXTRA_DEFINES+= +define+MEM_LATENCY_IN_CYCLES=$(MEM_LATENCY)
+endif
 VCS = vcs +v2k +vc -Mupdate -line -full64 $(EXTRA_DEFINES)
 LIB = /usr/caen/generic/mentor_lib-D.1/public/eecs470/verilog/lec25dscc25.v
 INTFLAGS = -I +memcbk

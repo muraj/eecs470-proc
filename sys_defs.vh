@@ -28,7 +28,9 @@
 `define VIRTUAL_CLOCK_PERIOD   30.0 // Clock period from dc_shell
 `define VERILOG_CLOCK_PERIOD   10.0 // Clock period from test bench
 
+`ifndef MEM_LATENCY_IN_CYCLES
 `define MEM_LATENCY_IN_CYCLES ($rtoi(100.0/`VIRTUAL_CLOCK_PERIOD+0.99999))
+`endif
 //`define MEM_LATENCY_IN_CYCLES 20
 // the 0.99999 is to force ceiling(100/period).  The default behavior for
 // float to integer conversion is round down or truncate

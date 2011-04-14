@@ -44,15 +44,13 @@ echo "Comparing results against directory in-order proc in $comp_dir";
 if [[ "$@" == *syn* ]]; then
   prefix=syn_
 fi
-echo "Cleaning procs";
-make nuke > /dev/null
 printf "%-40s %7s %9s %9s %4s\n" "File" "BR ACCR" "Our CPI" "Their CPI" "Test";
 for f in ${prog:-test_progs/*.s}
 do
 	(./vs-asm $f > ./program.mem 2> /dev/null) || exit;
 	cp -f ./program.mem $comp_dir/program.mem;
   (make $@ > /dev/null) || exit;
-	(cd $comp_dir; make > /dev/null) || exit;
+	(cd $comp_dir; make ${@%syn} > /dev/null) || exit;      #Run comparator, but don't synthesize
 	diff -u -I '^#' $comp_dir/writeback.out writeback.out > results.txt; # Ignore extra comments
   if [ -f $comp_dir/memory.out -a -f memory.out ]; then   # Compare the memories if possible, append the result
   	diff -u -I '^#' $comp_dir/memory.out memory.out >> results.txt; # Ignore extra comments

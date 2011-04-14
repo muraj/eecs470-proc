@@ -54,19 +54,19 @@ module icache(// inputs
   assign {current_tag, current_index} = proc2Icache_addr[63:3];
 
 
-  reg [`NUM_MEM_TAGS-1:0] valid;
-  reg [63:0] requested_PC [`NUM_MEM_TAGS-1:0];
+  reg [`NUM_MEM_TAGS:0] valid;
+  reg [63:0] requested_PC [`NUM_MEM_TAGS:0];
 
   reg  [63:0] prefetch_PC;
   wor current_requested;
   wire [63:0] tag_PC = requested_PC[Imem2proc_tag];
   wire mem_forward = (valid[Imem2proc_tag] && ((Imem2proc_tag != 0 && tag_PC == {proc2Icache_addr[63:3], 3'b0})));
-  wire [63:0] next_PC = (!current_requested && !cachemem_valid && !mem_forward) ? {proc2Icache_addr[63:3], 3'b0} : prefetch_PC + 8;
+  wire [63:0] next_PC = (!current_requested && !cachemem_valid) ? {proc2Icache_addr[63:3], 3'b0} : prefetch_PC + 8;
 
   assign Icache_data_out = mem_forward ? Imem2proc_data : cachemem_data;
   assign Icache_valid_out = mem_forward | cachemem_valid; 
 
-  assign proc2Imem_addr = prefetch_PC;                  //Always ask for the next address to request
+  assign proc2Imem_addr = next_PC;                  //Always ask for the next address to request
   assign proc2Imem_command = reset ? `BUS_NONE : `BUS_LOAD;               //Always load unless we're reset
 
   wire data_write_enable = valid[Imem2proc_tag];      //Write to icache if this is one of the tags we're looking for
@@ -76,7 +76,7 @@ module icache(// inputs
 
   generate
   genvar i;
-  for(i=0;i<`NUM_MEM_TAGS;i=i+1) begin : ICACHE_COMPARE  //Very ineffiecent, but works
+  for(i=0;i<=`NUM_MEM_TAGS;i=i+1) begin : ICACHE_COMPARE  //Very ineffiecent, but works
     assign current_requested = valid[i] ? {proc2Icache_addr[63:3], 3'b0} == requested_PC[i] : 1'b0;
   end
   endgenerate
@@ -94,7 +94,7 @@ module icache(// inputs
       if(Imem2proc_response != 0 && !stall_icache) begin
         prefetch_PC                      <= `SD next_PC;
         valid[Imem2proc_response]        <= `SD 1'b1;
-        requested_PC[Imem2proc_response] <= `SD prefetch_PC;
+        requested_PC[Imem2proc_response] <= `SD next_PC;
       end
     end
   end
