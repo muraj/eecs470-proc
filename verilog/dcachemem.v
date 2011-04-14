@@ -106,6 +106,10 @@ module dcachemem_set (clock, reset, access,
 		if(reset) begin
 			recent	<= `SD 0;
 			valids	<= `SD 0;
+			tags[0]	<= `SD 0;
+			tags[1]	<= `SD 0;
+			data[0]	<= `SD 0;
+			data[1]	<= `SD 0;
 		end // if (reset)
 		else if(access) begin
 			if(wr_en) begin // if WRITE

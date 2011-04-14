@@ -44,10 +44,15 @@ module dcache(clock, reset,
 		else if (reset_addr_valid) addr_reg_valid[Dmem2Dcache_tag] <= `SD 1'b0;
 	end
 
+	integer idx;
 
 	always @(posedge clock) begin
-		if(rd_miss) addr_reg[Dmem2Dcache_response]	<= `SD next_addr_reg; // in case of READ MISS, store the missed address.
-	end // always @(posedge clock)
+		if(reset) begin
+			for(idx=0; idx<16; idx=idx+1) addr_reg[idx]	<= `SD 0;
+		end
+		else if(rd_miss) addr_reg[Dmem2Dcache_response]	<= `SD next_addr_reg; // in case of READ MISS, store the missed address.
+	end
+
 
 	always @* begin
 		// Default Values
