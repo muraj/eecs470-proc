@@ -64,35 +64,16 @@ module testbench;
   wire [`SCALAR*32-1:0] rob_retire_IR;
   wire [`SCALAR-1:0]    rob_retire_valid_inst;
 
+  reg [6:0] commit_count;
+  function check_error;
+    input dummy;
+    begin
+       check_error = commit_count > 100 || pipeline_error_status != `NO_ERROR;
+    end
+  endfunction
+
 //DEBUG SIGNALS
 `ifndef SYNTH
-//*** PREFETCH DEBUG ***//
-  integer prefetch_fileno;
-initial begin
-  prefetch_fileno = $fopen("prefetch.out");
-end
-always @(posedge clock) begin
-  $fdisplay(prefetch_fileno, "CYCLE: %d", clock_count);
-  $fdisplay(prefetch_fileno, "%d: %h", 00, pipeline_0.icache_0.requested_PC[00]);
-  $fdisplay(prefetch_fileno, "%d: %h", 01, pipeline_0.icache_0.requested_PC[01]);
-  $fdisplay(prefetch_fileno, "%d: %h", 02, pipeline_0.icache_0.requested_PC[02]);
-  $fdisplay(prefetch_fileno, "%d: %h", 03, pipeline_0.icache_0.requested_PC[03]);
-  $fdisplay(prefetch_fileno, "%d: %h", 04, pipeline_0.icache_0.requested_PC[04]);
-  $fdisplay(prefetch_fileno, "%d: %h", 05, pipeline_0.icache_0.requested_PC[05]);
-  $fdisplay(prefetch_fileno, "%d: %h", 06, pipeline_0.icache_0.requested_PC[06]);
-  $fdisplay(prefetch_fileno, "%d: %h", 07, pipeline_0.icache_0.requested_PC[07]);
-  $fdisplay(prefetch_fileno, "%d: %h", 08, pipeline_0.icache_0.requested_PC[08]);
-  $fdisplay(prefetch_fileno, "%d: %h", 09, pipeline_0.icache_0.requested_PC[09]);
-  $fdisplay(prefetch_fileno, "%d: %h", 10, pipeline_0.icache_0.requested_PC[10]);
-  $fdisplay(prefetch_fileno, "%d: %h", 11, pipeline_0.icache_0.requested_PC[11]);
-  $fdisplay(prefetch_fileno, "%d: %h", 12, pipeline_0.icache_0.requested_PC[12]);
-  $fdisplay(prefetch_fileno, "%d: %h", 13, pipeline_0.icache_0.requested_PC[13]);
-  $fdisplay(prefetch_fileno, "%d: %h", 14, pipeline_0.icache_0.requested_PC[14]);
-  if(pipeline_error_status != `NO_ERROR)
-    $fclose(prefetch_fileno);
-end
-
-
 //*** RS DEBUG ***//
   integer rs_fileno;
   wire [31:0] rs1_IR[`RS_SZ-1:0];
@@ -162,7 +143,7 @@ always @(posedge clock) begin
   `DISPLAY_RS(9) `DISPLAY_RS(10) `DISPLAY_RS(11)
   `DISPLAY_RS(12) `DISPLAY_RS(13) `DISPLAY_RS(14)
   `DISPLAY_RS(15)
-  if(pipeline_error_status != `NO_ERROR)
+  if(check_error(1'b1))
     #(`VERILOG_CLOCK_PERIOD/2)
     $fclose(rs_fileno);
  end
@@ -230,7 +211,7 @@ always @(posedge clock) begin
    `DISPLAY_ROB(30)
    `DISPLAY_ROB(31)
  end
- if(pipeline_error_status != `NO_ERROR)
+ if(check_error(1'b1))
    #(`VERILOG_CLOCK_PERIOD/2)
    $fclose(rob_fileno);
 end
@@ -303,7 +284,7 @@ always @(posedge clock) begin
   $fdisplay(rat_fileno, "Valid List:        %b", pipeline_0.rat0.valid_list);
   $fwrite(rat_fileno,   "               ");
  end
-  if(pipeline_error_status != `NO_ERROR)
+  if(check_error(1'b1))
     #(`VERILOG_CLOCK_PERIOD/2)
     $fclose(rat_fileno);
 end
@@ -328,7 +309,7 @@ always @(negedge clock) begin
       $fdisplay(reg_fileno, "%2d | %h", reg_iter, pipeline_0.PRF.registers[reg_iter]);
     end
   end
-  if(pipeline_error_status != `NO_ERROR)
+  if(check_error(1'b1))
     #(`VERILOG_CLOCK_PERIOD/2)
     $fclose(reg_fileno);
 end
@@ -392,7 +373,7 @@ always @(negedge clock) begin
 						 );
 		$fdisplay(lsq_fileno,"====================================================\n");
   end
-  if(pipeline_error_status != `NO_ERROR)
+  if(check_error(1'b1))
     $fclose(lsq_fileno);
 end
 
@@ -448,7 +429,7 @@ always @(negedge clock) begin
     `DISPLAY_MULT2_STAGE(6)
     `DISPLAY_MULT2_STAGE(7)
   end
-  if(pipeline_error_status != `NO_ERROR)
+  if(check_error(1'b1))
     #(`VERILOG_CLOCK_PERIOD/2)
     $fclose(ex_fileno);
 end
@@ -528,7 +509,7 @@ always @(negedge clock) begin
      $fwrite(pipe_fileno, "RETURN %d", mem2proc_tag);
    $fwrite(pipe_fileno, "\n");
  end
- if(pipeline_error_status != `NO_ERROR)
+ if(check_error(1'b1))
    #(`VERILOG_CLOCK_PERIOD/2)
    $fclose(pipe_fileno);
 end
@@ -605,8 +586,12 @@ end
     #(`VERILOG_CLOCK_PERIOD/2.0);
     clock = ~clock;
     if(~reset) begin
-      $write("%c@@ %10d mispredicts / %10d branches = %5.2f%% Branch Accuracy  %10d cycles / %10d instrs = %8.4f CPI",
-        8'd13, branches_mispredicted, branches_executed, 100.0*(1.0 - (1.0*branches_mispredicted) / branches_executed), //Branches
+      $write("%c## ", 8'd13);  //Line feed (keeps it on the same line)
+      `ifndef SYNTH
+        $write("%10d mispredicts / %10d branches = %5.2f%% Branch Accuracy", 
+         branches_mispredicted, branches_executed, 100.0*(1.0 - (1.0*branches_mispredicted) / branches_executed)); //Branches
+      `endif
+      $write("%10d cycles / %10d instrs = %8.4f CPI",
         clock_count+1, instr_count, (clock_count+1.0) / instr_count);                                 //CPI
     end
   end
@@ -618,7 +603,7 @@ end
         begin
      cpi = (clock_count + 1.0) / (instr_count + (pipeline_error_status == `HALTED_ON_HALT));
      accuracy =  100.0*(1.0 - (1.0*branches_mispredicted) / branches_executed);
-     $display("@@ %0d mispredicts / %0d branches = %0.2f%% Branch Accuracy",
+     $display("## %0d mispredicts / %0d branches = %0.2f%% Branch Accuracy",
         branches_mispredicted, branches_executed, accuracy); //Branches
      $display("@@  %0d cycles / %0d instrs = %f CPI\n@@",
              clock_count+1, instr_count, cpi);        
@@ -684,7 +669,6 @@ end
 
   end
 
-
   // Count the number of posedges and number of instructions completed
   // till simulation ends
   always @(posedge clock or posedge reset)
@@ -693,19 +677,15 @@ end
     begin
       clock_count <= `SD 0;
       instr_count <= `SD 0;
+      commit_count <= `SD 0;
     end
     else
     begin
       clock_count <= `SD (clock_count + 1);
       instr_count <= `SD (instr_count + pipeline_completed_insts);
-      `ifdef DEBUG_QUIT
-      if(clock_count > `DEBUG_QUIT) begin
-          $display("Debug quit");
-          #(`VERILOG_CLOCK_PERIOD/2)
-          $fclose(wb_fileno);
-          $finish;
-      end
-      `endif //DEBUG_QUIT
+      if(pipeline_completed_insts != 0) commit_count <= `SD 0;
+      //check_error handles if commit_count > 100, and is used throughout the testbench
+      else commit_count <= `SD commit_count + 1;
     end
   end  
 
@@ -716,41 +696,13 @@ end
       $display("@@\n@@  %t : System STILL at reset, can't show anything\n@@",
                $realtime);
     else
-
-	`ifdef DEBUG_CLOCK_CYCLE	 
     begin
       if(pipeline_completed_insts>0) begin
-        /*$fdisplay(wb_fileno, "# SCALAR 1, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
+        `ifdef DEBUG_CLOCK_CYCLE
+        $fdisplay(wb_fileno, "# SCALAR 1, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
                   co_instr_str[0], pipeline_commit_IR[`SEL(32,1)], clock_count,
-                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]);*/
-        if(pipeline_commit_wr_en[0])
-          $fdisplay(wb_fileno, "cycle=%d, PC=%x, REG[%d]=%x", clock_count,
-                    pipeline_commit_NPC[`SEL(64, 1)]-4,
-                    pipeline_commit_wr_idx[`SEL(5,1)],
-                    pipeline_commit_wr_data[`SEL(64,1)]);
-        else
-          $fdisplay(wb_fileno, "cycle=%d, PC=%x, ---", clock_count, pipeline_commit_NPC[`SEL(64,1)]-4);
-      end
-      `ifdef SUPERSCALAR
-      if(pipeline_completed_insts>1) begin
-        /*$fdisplay(wb_fileno, "# SCALAR 2, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
-                  co_instr_str[1], pipeline_commit_IR[`SEL(32,2)], clock_count,
-                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]);*/
-        if(pipeline_commit_wr_en[1])
-          $fdisplay(wb_fileno, "cycle=%d, PC=%x, REG[%d]=%x", clock_count,
-                    pipeline_commit_NPC[`SEL(64, 2)]-4,
-                    pipeline_commit_wr_idx[`SEL(5,2)],
-                    pipeline_commit_wr_data[`SEL(64,2)]);
-        else
-          $fdisplay(wb_fileno, "cycle=%d, PC=%x, ---", clock_count, pipeline_commit_NPC[`SEL(64,2)]-4);
-      end
-      `endif //SUPERSCALAR
-	`else
-    begin
-      if(pipeline_completed_insts>0) begin
-        /*$fdisplay(wb_fileno, "# SCALAR 1, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
-                  co_instr_str[0], pipeline_commit_IR[`SEL(32,1)], clock_count,
-                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]);*/
+                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]);
+        `endif
         if(pipeline_commit_wr_en[0])
           $fdisplay(wb_fileno, "PC=%x, REG[%d]=%x",
                     pipeline_commit_NPC[`SEL(64, 1)]-4,
@@ -761,9 +713,11 @@ end
       end
       `ifdef SUPERSCALAR
       if(pipeline_completed_insts>1) begin
-        /*$fdisplay(wb_fileno, "# SCALAR 2, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
+        `ifdef DEBUG_CLOCK_CYCLE
+        $fdisplay(wb_fileno, "# SCALAR 2, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
                   co_instr_str[1], pipeline_commit_IR[`SEL(32,2)], clock_count,
-                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]);*/
+                  pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]);
+        `endif
         if(pipeline_commit_wr_en[1])
           $fdisplay(wb_fileno, "PC=%x, REG[%d]=%x", 
                     pipeline_commit_NPC[`SEL(64, 2)]-4,
@@ -773,12 +727,11 @@ end
           $fdisplay(wb_fileno, "PC=%x, ---", pipeline_commit_NPC[`SEL(64,2)]-4);
       end
       `endif //SUPERSCALAR
-	`endif // DEBUG_CLOCK_CYCLE
 
 
 
       // deal with any halting conditions
-      if(pipeline_error_status!=`NO_ERROR)
+      if(check_error(1'b1))
       begin
         mem_fileno = $fopen("memory.out");
         $fdisplay(mem_fileno, "@@@ Unified Memory contents hex on left, decimal on right: ");
@@ -795,6 +748,8 @@ end
               $display("@@@ System halted on HALT instruction");
           `HALTED_ON_ILLEGAL:
               $display("@@@ System halted on illegal instruction");
+          `NO_ERROR:
+              $display("@@@ Failed to commit within 100 cycles");
           default: 
               $display("@@@ System halted on unknown error code %x",
                        pipeline_error_status);

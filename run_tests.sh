@@ -56,7 +56,7 @@ do
   	diff -u -I '^#' $comp_dir/memory.out memory.out >> results.txt; # Ignore extra comments
   fi
 	printf "%-40s " "$(basename $f)";
-  printf "%7s " `grep "^@.\+Branch Accuracy$" ${prefix}program.out | cut -d " " -f 8`
+  printf "%7s " `grep "^#.\+Branch Accuracy$" ${prefix}program.out | cut -d " " -f 8`
 	printf "%9.6f " `grep "^@.\+CPI$" ${prefix}program.out | cut -d " " -f 9`;
 	printf "%9.6f" `grep "^@.\+CPI$" ${comp_dir}/program.out | cut -d " " -f 9`;
 	if [ -s results.txt ]; then
