@@ -27,9 +27,9 @@ module icache(// inputs
 
   input         clock;
   input         reset;
-  input   [3:0] Imem2proc_response;
+  input   [`NUM_MEM_TAG_BITS-1:0] Imem2proc_response;
   input  [63:0] Imem2proc_data;
-  input   [3:0] Imem2proc_tag;
+  input   [`NUM_MEM_TAG_BITS-1:0] Imem2proc_tag;
 
   input  [63:0] proc2Icache_addr;
   input  [63:0] cachemem_data;
@@ -76,17 +76,20 @@ module icache(// inputs
 
   generate
   genvar i;
-  for(i=0;i<=`NUM_MEM_TAGS;i=i+1) begin : ICACHE_COMPARE  //Very ineffiecent, but works
+  for(i=0;i<`NUM_MEM_TAGS+1;i=i+1) begin : ICACHE_COMPARE  //Very ineffiecent, but works
     assign current_requested = valid[i] ? {proc2Icache_addr[63:3], 3'b0} == requested_PC[i] : 1'b0;
   end
   endgenerate
+
+	integer idx;
 
   always @(posedge clock)
   begin
     if(reset)
     begin
       prefetch_PC       <= `SD 0;
-      valid             <= `SD {`NUM_MEM_TAGS{1'b0}};
+      valid             <= `SD 0;
+			for(idx=0; idx<`NUM_MEM_TAGS+1; idx=idx+1) requested_PC[idx] <= `SD 0;
     end
     else
     begin

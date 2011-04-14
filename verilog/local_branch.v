@@ -54,9 +54,16 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
   assign next_predictor[1] = pred_rob[1] + (ROB_taken[1] ? predictor_plus_one[1] : predictor_minus_one[1]);
  `endif
 
+	integer idx;
+
 	always @(posedge clk) begin
     if(reset) begin
       clr <= `SD {PRED_SZ{1'b1}};
+			for(idx=0; idx<PRED_SZ; idx=idx+1) begin
+				predictor[idx]	<= `SD 0;
+				BTB_addr[idx]		<= `SD 0;
+				BTB_npc[idx]		<= `SD 0;
+			end
     end
 		else begin
 			if(ROB_br_en[0]) begin

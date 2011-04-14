@@ -32,15 +32,21 @@ assign rd1_valid = valids[rd1_idx]&&(tags[rd1_idx] == rd1_tag);
 
 always @(posedge clock)
 begin
-  if(reset) valids <= `SD {`ICACHE_LINES-1{1'b0}};
+  if(reset) valids <= `SD 0;
   else if(wr1_en) 
     valids[wr1_idx] <= `SD 1'b1;
 end
 
+integer idx;
 always @(posedge clock)
 begin
-  if(wr1_en)
-  begin
+		if(reset) begin
+			for(idx=0; idx<`ICACHE_LINES; idx=idx+1) begin
+				data[idx]	<= `SD 0;
+				tags[idx]	<= `SD 0;
+			end
+		end
+  if(wr1_en) begin
     data[wr1_idx] <= `SD wr1_data;
     tags[wr1_idx] <= `SD wr1_tag;
   end
