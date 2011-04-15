@@ -16,6 +16,8 @@
 */
         data = 0x1000
 				lda	$r0,data
+        lda $r5, 0x00
+        nop           /*Required to cause data to be aligned properly*/
         br	$r1,start
 	.quad 	2862933555777941757
 	.quad 	3037000493

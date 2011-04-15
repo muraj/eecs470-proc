@@ -198,7 +198,7 @@ module pipeline (// Inputs
   assign proc2mem_command =
            (proc2Dmem_command==`BUS_NONE)?proc2Imem_command:proc2Dmem_command;
   assign proc2mem_addr =
-           (proc2Dmem_command==`BUS_NONE)?proc2Imem_addr:proc2Dmem_addr;
+           (proc2Dmem_command==`BUS_NONE)?{proc2Imem_addr[63:3], 3'b000}: {proc2Dmem_addr[63:3], 3'b000};
   assign Dmem2proc_response = 
       (proc2Dmem_command==`BUS_NONE) ? 0 : mem2proc_response;
   assign Imem2proc_response =

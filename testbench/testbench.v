@@ -585,6 +585,7 @@ end
   begin
     #(`VERILOG_CLOCK_PERIOD/2.0);
     clock = ~clock;
+    `ifdef DEBUG
     if(~reset) begin
       $write("%c## ", 8'd13);  //Line feed (keeps it on the same line)
       `ifndef SYNTH
@@ -594,6 +595,7 @@ end
       $write("%10d cycles / %10d instrs = %8.4f CPI",
         clock_count+1, instr_count, (clock_count+1.0) / instr_count);                                 //CPI
     end
+    `endif
   end
 
   // Task to display # of elapsed clock edges
@@ -602,9 +604,11 @@ end
         real accuracy;
         begin
      cpi = (clock_count + 1.0) / (instr_count + (pipeline_error_status == `HALTED_ON_HALT));
+     `ifdef DEBUG
      accuracy =  100.0*(1.0 - (1.0*branches_mispredicted) / branches_executed);
      $display("## %0d mispredicts / %0d branches = %0.2f%% Branch Accuracy",
         branches_mispredicted, branches_executed, accuracy); //Branches
+     `endif
      $display("@@  %0d cycles / %0d instrs = %f CPI\n@@",
              clock_count+1, instr_count, cpi);        
      $display("@@  %4.2f ns total time to execute\n@@\n",
@@ -698,7 +702,7 @@ end
     else
     begin
       if(pipeline_completed_insts>0) begin
-        `ifdef DEBUG_CLOCK_CYCLE
+        `ifdef DEBUG
         $fdisplay(wb_fileno, "# SCALAR 1, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
                   co_instr_str[0], pipeline_commit_IR[`SEL(32,1)], clock_count,
                   pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,1)]);
@@ -713,7 +717,7 @@ end
       end
       `ifdef SUPERSCALAR
       if(pipeline_completed_insts>1) begin
-        `ifdef DEBUG_CLOCK_CYCLE
+        `ifdef DEBUG
         $fdisplay(wb_fileno, "# SCALAR 2, IR=%s %h Cycle=%0d rob_pdest_idx: %2d",
                   co_instr_str[1], pipeline_commit_IR[`SEL(32,2)], clock_count,
                   pipeline_0.rob_retire_pdest_idx[`SEL(`PRF_IDX,2)]);
@@ -728,12 +732,14 @@ end
       end
       `endif //SUPERSCALAR
 
-
-
       // deal with any halting conditions
       if(check_error(1'b1))
       begin
+        `ifdef DEBUG
         mem_fileno = $fopen("memory.out");
+        `else
+        mem_fileno = 1;
+        `endif
         $fdisplay(mem_fileno, "@@@ Unified Memory contents hex on left, decimal on right: ");
         show_mem_with_decimal(0,`MEM_64BIT_LINES - 1, mem_fileno); 
         $fclose(mem_fileno);
@@ -749,7 +755,7 @@ end
           `HALTED_ON_ILLEGAL:
               $display("@@@ System halted on illegal instruction");
           `NO_ERROR:
-              $display("@@@ Failed to commit within 100 cycles");
+              $display("@@@ System failed to commit within 100 cycles");
           default: 
               $display("@@@ System halted on unknown error code %x",
                        pipeline_error_status);
