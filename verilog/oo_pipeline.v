@@ -389,11 +389,6 @@ module oo_pipeline (// Inputs
   //                                              //
   //////////////////////////////////////////////////
 
-`ifdef BRANCH_NOT_TAKEN
-// Always predict not taken
-	assign bp_taken = 0;
-	assign bp_pc = 0;
-`else
   branch_predictor bp0(.clk (clock),
                        .reset(reset),
                        //** IF_STAGE **//
@@ -405,8 +400,6 @@ module oo_pipeline (// Inputs
                        .ROB_taken(rob_bt_out),
                        .ROB_taken_address(rob_ba_out),
                        .ROB_NPC(rob_retire_NPC));
-`endif
-
 
   if_stage if_stage_0 (// Inputs
                        .clock (clock),

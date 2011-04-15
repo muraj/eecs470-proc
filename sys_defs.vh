@@ -340,9 +340,10 @@
 
 
 // Branch Predicator
-//`define BRANCH_NOT_TAKEN
-`define PRED_BITS (2)   //Size of the predictor counters
-`define PRED_IDX  (4)   //Size of the BTB and indexing
+`ifndef BRANCH_PREDICTION
+  `define BRANCH_PREDICTION (2)  //Number of bits for predictor, 0 = turn it off
+`endif
+`define PRED_IDX  (4)         //Size of the BTB and indexing
 
 
 // log2 function

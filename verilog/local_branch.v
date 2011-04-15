@@ -1,6 +1,6 @@
 module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_taken_address, paddress, ptaken); //Branch Table
  //synopsys template
-  parameter PRED_BITS =   `PRED_BITS;
+  parameter PRED_BITS =   `BRANCH_PREDICTION;
   parameter PRED_IDX  =   `PRED_IDX;
   parameter PRED_SZ   =   1 << PRED_IDX;
 
@@ -10,7 +10,11 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 	input   wire   [`SCALAR*64-1:0] ROB_NPC, ROB_taken_address;
 	output  wire	[`SCALAR*64-1:0] paddress;
 	output  wire	[`SCALAR-1:0]    ptaken;
-	//output	[PRED_SZ-1:0] clr;	
+
+  generate
+   if (PRED_BITS <= 0)    //Turn off branch prediction if bits <= 0
+     assign ptaken = {`SCALAR{1'b0}};
+   else begin
 
   reg    [PRED_SZ-1:0]   clr; //If set, the corresponding predictor has never been set, output zero
   reg    [PRED_BITS-1:0] predictor[PRED_SZ-1:0];
@@ -82,4 +86,6 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 	`endif
     end
 	end
+  end
+  endgenerate
 endmodule
