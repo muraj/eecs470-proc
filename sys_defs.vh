@@ -16,7 +16,7 @@
 // Should be pulled from the program dynamically perhaps, anything less than 40000 causes 06-mult-lda.s to fail
 
 `ifndef SYNTH   //Don't output debug in synthesis
-//`define DEBUG   // comment this out if not for debugging or analysis (comment out for submission)
+`define DEBUG   // comment this out if not for debugging or analysis (comment out for submission)
 `endif
 `define NUM_MEM_TAGS           15
 `define NUM_MEM_TAG_BITS				4
@@ -334,7 +334,9 @@
 
 // D-cache Defines
 `define DCACHE_2WAY	// comment this out if direct-mapped
+//`define DCACHE_VICTIM // comment this out if you do NOT want the Victim cache. only working with 2-way Dcache
 `define DCACHE_IDX_BITS	(7)      
+
 `define DCACHE_SETS		(1<<`DCACHE_IDX_BITS)
 `ifdef DCACHE_2WAY
 	`define DCACHE_TAG_BITS (`MEM_ADDR_BITS+1-`DCACHE_IDX_BITS)	
