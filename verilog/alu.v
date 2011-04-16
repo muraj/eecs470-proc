@@ -78,12 +78,12 @@ module ALU (clk, reset,
       					end
     endcase
   end
-
+	//synopsys sync_set_reset "reset"
 	always @(posedge clk) begin
 		if(reset)	gnt_reg	<= `SD 0;
 		else			gnt_reg	<= `SD next_gnt; 
 	end
-			
+    //synopsys sync_set_reset "reset"
 	always @(posedge clk) begin
 		if(reset) begin
 			result_reg					<= `SD 0;

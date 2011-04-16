@@ -60,6 +60,7 @@ module branch_predictor(clk, reset, IF_NPC, ROB_br_en, ROB_NPC, ROB_taken, ROB_t
 
 	integer idx;
 
+    //synopsys sync_set_reset "reset"
 	always @(posedge clk) begin
     if(reset) begin
       clr <= `SD {PRED_SZ{1'b1}};

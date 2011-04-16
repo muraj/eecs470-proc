@@ -254,6 +254,7 @@ module EX_input_logic (//Inputs
 	reg [`SCALAR-1:0]							ALU_free, MULT_free;
 	wire [`SCALAR-1:0]						MEM_inst = rd_mem | wr_mem;
 
+    //synopsys sync_set_reset "reset"
 	always @(posedge clk) begin
 		if(reset) begin
 			ALU_free	<= `SD {`SCALAR{1'b1}};

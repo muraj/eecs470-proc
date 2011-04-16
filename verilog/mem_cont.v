@@ -53,11 +53,13 @@ module MEM_CONT ( clk, reset,
 	assign	MEM_ADDR 			= mem_disp + pregb_in;
 	assign	MEM_reg_value = prega_in;
 
+    //synopsys sync_set_reset "reset"
 	always @(posedge clk) begin
 		if(reset)	gnt_reg	<= `SD 0;
 		else			gnt_reg	<= `SD next_gnt; 
 	end
 
+    //synopsys sync_set_reset "reset"
 	always @(posedge clk) begin
 		if(reset) begin
 			result_reg				<= `SD 0;

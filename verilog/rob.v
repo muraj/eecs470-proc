@@ -207,6 +207,7 @@ module rob (clk, reset,
 	// ===================================================
 	integer idx;
 
+    //synopsys sync_set_reset "reset"
 	always @(posedge clk) begin
 		if (reset) begin
 			head 					<= `SD {`ROB_IDX{1'b0}};

@@ -38,6 +38,7 @@ module dcache(clock, reset,
 	reg	[63:0]	next_addr_reg, wr_addr;
 	reg					rd_miss, set_addr_valid, reset_addr_valid;
 
+    //synopsys sync_set_reset "reset"
 	always @(posedge clock) begin
 		if(reset) addr_reg_valid <= `SD 0;
 		else if (set_addr_valid) addr_reg_valid[Dmem2Dcache_response] <= `SD 1'b1;
@@ -46,6 +47,7 @@ module dcache(clock, reset,
 
 	integer idx;
 
+    //synopsys sync_set_reset "reset"
 	always @(posedge clock) begin
 		if(reset) begin
 			for(idx=0; idx<`NUM_MEM_TAGS+1; idx=idx+1) addr_reg[idx]	<= `SD 0;

@@ -114,6 +114,7 @@ module rat_rrat_entry (clock, reset, copy,
   assign commit_d_out[`SEL(DATA_WIDTH,2)] = commit_d_en[1] ? commit_reg : {DATA_WIDTH{1'b0}};
   `endif
 
+  //synopsys sync_set_reset "reset"
   always @(posedge clock) begin
     if(reset) begin
       issue_reg <= `SD RESET_TO;

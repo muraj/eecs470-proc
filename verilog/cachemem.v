@@ -29,7 +29,7 @@ reg [`ICACHE_LINES-1:0] valids;
 
 assign rd1_data = data[rd1_idx];
 assign rd1_valid = valids[rd1_idx]&&(tags[rd1_idx] == rd1_tag);
-
+//synopsys sync_set_reset "reset"
 always @(posedge clock)
 begin
   if(reset) valids <= `SD 0;
@@ -38,6 +38,7 @@ begin
 end
 
 integer idx;
+//synopsys sync_set_reset "reset"
 always @(posedge clock)
 begin
 		if(reset) begin

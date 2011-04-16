@@ -72,6 +72,7 @@ module regfile(rda_idx, rda_out,                // read port A
   `endif
   end
 
+  //synopsys sync_set_reset "reset"
   always @(posedge clock) begin
 	    if(wr_en[0])
   	    registers[wr_idx[`SEL(IDX_WIDTH,1)]] <= `SD wr_data[`SEL(DATA_WIDTH,1)];

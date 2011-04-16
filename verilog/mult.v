@@ -117,6 +117,7 @@ module mult_stage(clk, reset, next_gnt_in, stall_in,
   assign next_mplier = {8'b0,mplier_in[63:8]};
   assign next_mcand = {mcand_in[55:0],8'b0};
 
+  //synopsys sync_set_reset "reset"
   always @(posedge clk)
   begin
 		if(reset) begin
@@ -143,6 +144,7 @@ module mult_stage(clk, reset, next_gnt_in, stall_in,
 		end
   end
 
+  //synopsys sync_set_reset "reset"
   always @(posedge clk)
   begin
     if(reset)	gnt_reg <= `SD 1'b0;

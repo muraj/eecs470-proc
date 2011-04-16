@@ -152,6 +152,7 @@ module rat (clk, reset, flush,
 	pe #(.OUT_WIDTH(`PRF_IDX)) free_encode0(.gnt(fl_sel0), .enc(free_prf[`SEL(`PRF_IDX,1)])); 
 	pe #(.OUT_WIDTH(`PRF_IDX)) free_encode1(.gnt(fl_sel1_rev), .enc(free_prf[`SEL(`PRF_IDX,2)])); 
 
+    //synopsys sync_set_reset "reset"
 	always @(posedge clk) begin
 		
 		if (reset) begin

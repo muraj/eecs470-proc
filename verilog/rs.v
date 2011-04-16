@@ -237,6 +237,7 @@ module rs_entry(clk, reset,
     end
   end
    
+  //synopsys sync_set_reset "reset"
   always @(posedge clk)
   begin
     if (reset) begin

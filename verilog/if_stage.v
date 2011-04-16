@@ -88,6 +88,7 @@ module if_stage(// Inputs
 //                                !if_valid_inst_out;
 
   // This register holds the PC value
+  //synopsys sync_set_reset "reset"
   always @(posedge clock)
   begin
     if(reset)

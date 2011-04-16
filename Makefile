@@ -98,11 +98,11 @@ clean:
 	@rm -rf syn_simv syn_simv.daidir syn_program.out
 	@rm -rf int_simv int_simv.daidir syn_int_simv syn_int_simv.daidir
 	@rm -rf synsimv synsimv.daidir csrc vcdplus.vpd vcs.key synprog.out pipeline.out writeback.out vc_hdrs.h
-	@(cd llvsimp4; make clean)
+	@-test -d llvsimp4 && (cd llvsimp4; make clean)
 
 nuke:	clean
 	@rm -rf *.out results.txt
 	@rm -f synth/*.vg synth/*.rep synth/*.db synth/*.chk synth/command.log
 	@rm -f synth/*.out synth/*.ddc command.log
 	@rm -f synth/*.syn synth/*.mr synth/*.pvl synth/*.svf .vcsmx_rebuild
-	@(cd llvsimp4; make nuke)
+	@-test -d llvsimp4 && (cd llvsimp4; make nuke);

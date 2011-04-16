@@ -427,6 +427,7 @@ module oo_pipeline (// Inputs
   //////////////////////////////////////////////////
   assign if_id_enable = ~|stall_id;
 
+  //synopsys sync_set_reset "reset"
   always @(posedge clock)
   begin
     if(reset | rob_mispredict)
@@ -490,6 +491,7 @@ module oo_pipeline (// Inputs
 
   assign id_dp_enable = stall_id == 0;
 
+  //synopsys sync_set_reset "reset"
   always @(posedge clock)
   begin
     if (reset | rob_mispredict)
@@ -668,6 +670,7 @@ module oo_pipeline (// Inputs
                           `endif
                           dp_pregb_value[`SEL(64,2)]);
 
+  //synopsys sync_set_reset "reset"
   always @(posedge clock)
   begin
     if (reset | rob_mispredict)

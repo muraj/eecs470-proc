@@ -83,6 +83,7 @@ module icache(// inputs
 
 	integer idx;
 
+  //synopsys sync_set_reset "reset"
   always @(posedge clock)
   begin
     if(reset)

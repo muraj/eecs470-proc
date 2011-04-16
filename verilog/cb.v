@@ -89,7 +89,7 @@ module cb (clk, reset,
 	end
 
 	integer idx;
-
+	//synopsys sync_set_reset "reset"
 	always @(posedge clk) begin
 		if (reset) begin
 			head 					<= `SD {CB_IDX{1'b0}};
