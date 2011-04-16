@@ -303,7 +303,7 @@ module lsq (clk, reset,
 				ir       [idx] <= `SD 0;
 			end
 			
-			for (idx=1;idx<`NUM_MEM_TAGS;idx=idx+1) begin
+			for (idx=1;idx<=`NUM_MEM_TAGS;idx=idx+1) begin
 				lsq_map[idx] <= `SD 0;
 			end
 
@@ -353,7 +353,6 @@ module lsq (clk, reset,
 					ready_launch[lsq_idx_in[`SEL(`LSQ_IDX,2)]] <= `SD 1'b1;
 				end
 			end
-
 			
 			// ticket => lsq mapping
 			if (dcache_miss) begin
