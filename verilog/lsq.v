@@ -347,11 +347,12 @@ module lsq (clk, reset,
 				data_addr[lsq_idx_in[`SEL(`LSQ_IDX,1)]] <= `SD addr_in[`SEL(64,1)];
 				data_regv[lsq_idx_in[`SEL(`LSQ_IDX,1)]] <= `SD regv_in[`SEL(64,1)];
 				ready_launch[lsq_idx_in[`SEL(`LSQ_IDX,1)]] <= `SD 1'b1;
-				if (up_req[1]) begin
+			end
+
+			if (up_req[1]) begin
 					data_addr[lsq_idx_in[`SEL(`LSQ_IDX,2)]] <= `SD addr_in[`SEL(64,2)];
 					data_regv[lsq_idx_in[`SEL(`LSQ_IDX,2)]] <= `SD regv_in[`SEL(64,2)];
 					ready_launch[lsq_idx_in[`SEL(`LSQ_IDX,2)]] <= `SD 1'b1;
-				end
 			end
 			
 			// ticket => lsq mapping
