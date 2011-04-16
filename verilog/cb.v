@@ -100,7 +100,7 @@ module cb (clk, reset,
 			empty					<= `SD 1'b0;
 			empty_almost	<= `SD 1'b0;
 			
-			for (idx=1;idx<CB_LENGTH;idx=idx+1) begin
+			for (idx=0;idx<CB_LENGTH;idx=idx+1) begin
 				data[idx] <= `SD 0;
 			end
 

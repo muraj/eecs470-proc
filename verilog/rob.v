@@ -220,7 +220,7 @@ module rob (clk, reset,
       data_bt_ex    <= `SD {`ROB_SZ{1'b0}};
       illegal       <= `SD {`ROB_SZ{1'b0}};
 			
-			for (idx=1;idx<`ROB_SZ;idx=idx+1) begin
+			for (idx=0;idx<`ROB_SZ;idx=idx+1) begin
 				data_ba_ex[idx] <= `SD 0;
 			end
 
