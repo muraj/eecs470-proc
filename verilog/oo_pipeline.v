@@ -481,7 +481,7 @@ module oo_pipeline (// Inputs
   //////////////////////////////////////////////////
 
     // structural hazard
-	assign stall_id[0] = (&rs_stall) | rob_full | (lsq_full && (id_dp_rd_mem[0]&id_dp_valid_inst[0] | id_dp_wr_mem[0]&id_dp_valid_inst[0]));
+	assign stall_id[0] = (&rs_stall) | rob_full | (lsq_full & |((id_dp_rd_mem|id_dp_wr_mem)&id_dp_valid_inst));
 	`ifdef SUPERSCALAR
 	assign stall_id[1] = stall_id[0] | (|rs_stall) | rob_full_almost | (lsq_full_almost && (id_dp_rd_mem[1]&id_dp_valid_inst[1] | id_dp_wr_mem[1]&id_dp_valid_inst[1]));
 	`endif
