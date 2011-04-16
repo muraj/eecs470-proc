@@ -21,6 +21,11 @@
 `define NUM_MEM_TAGS           15
 `define NUM_MEM_TAG_BITS				4
 
+`define MEM_CONT_PIPELINE	// Comment it out if you do NOT want the additional pipeline in MEM_CONT
+
+// Memory Address Space
+`define MEM_ADDR_BITS	(13)
+
 `define MEM_SIZE_IN_BYTES      (64*1024)
 `define MEM_64BIT_LINES        (`MEM_SIZE_IN_BYTES/8)
 
@@ -321,8 +326,6 @@
 `define EX_MULT	2'b10
 `define EX_ALU	2'b11
 
-// Memory Address Space
-`define MEM_ADDR_BITS	(13)
 
 // I-cache Defines
 `define ICACHE_IDX_BITS	(7)
@@ -344,7 +347,7 @@
 `ifndef BRANCH_PREDICTION
   `define BRANCH_PREDICTION (2)  //Number of bits for predictor, 0 = turn it off
 `endif
-//`define PRED_IDX  (4)         //Size of the BTB and indexing
+`define PRED_IDX  (4)         //Size of the BTB and indexing
 
 
 // log2 function
@@ -356,4 +359,3 @@ function integer log2;
 	end
 endfunction
 */
-`define PRED_IDX (4)

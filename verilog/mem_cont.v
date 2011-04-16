@@ -1,6 +1,5 @@
 
 // Memory-Controller
-// Have to make a fake LSQ inside the testbench. (Remove this line after all things are done)
 module MEM_CONT ( clk, reset,
 									//Inputs from the Input Logic 
 									LSQ_idx, prega_in, pregb_in, rd_in, wr_in, 
@@ -45,13 +44,78 @@ module MEM_CONT ( clk, reset,
 	output reg								result_valid_reg, done_reg, gnt_reg;
 	output										done;
 
-	assign done = LSQ_done;
+	// to LSQ
 	assign MEM_valid = EX_en_in;
-
 	wire [63:0]	mem_disp 	= { {48{IR_in[15]}}, IR_in[15:0]};
 	assign	MEM_LSQ_idx		= LSQ_idx;
 	assign	MEM_ADDR 			= mem_disp + pregb_in;
 	assign	MEM_reg_value = prega_in;
+
+`ifdef MEM_CONT_PIPELINE
+	// from LSQ
+	reg [`ROB_IDX-1:0]	LSQ_rob_idx_reg;
+	reg [`PRF_IDX-1:0]	LSQ_pdest_idx_reg;
+	reg [63:0]					LSQ_mem_value_reg;
+	reg 								LSQ_done_reg, LSQ_rd_mem_reg, LSQ_wr_mem_reg;
+	reg [31:0]					LSQ_IR_reg;
+	reg [63:0]					LSQ_npc_reg;
+
+    //synopsys sync_set_reset "reset"
+	always @(posedge clk) begin
+		if(reset) begin
+			LSQ_rob_idx_reg	<= `SD 0;
+			LSQ_pdest_idx_reg	<= `SD `ZERO_PRF;
+			LSQ_mem_value_reg	<= `SD 0;
+			LSQ_done_reg		<= `SD 0;
+			LSQ_rd_mem_reg		<= `SD 0;
+			LSQ_wr_mem_reg		<= `SD 0;
+			LSQ_IR_reg			<= `SD `NOOP_INST;
+			LSQ_npc_reg			<= `SD 0;
+		end
+		else begin
+			LSQ_rob_idx_reg	<= `SD LSQ_rob_idx;
+			LSQ_pdest_idx_reg	<= `SD LSQ_pdest_idx;
+			LSQ_mem_value_reg	<= `SD LSQ_mem_value;
+			LSQ_done_reg		<= `SD LSQ_done;
+			LSQ_rd_mem_reg		<= `SD LSQ_rd_mem;
+			LSQ_wr_mem_reg		<= `SD LSQ_wr_mem;
+			LSQ_IR_reg			<= `SD LSQ_IR;
+			LSQ_npc_reg			<= `SD LSQ_npc;
+		end
+	end
+
+
+	assign done = LSQ_done_reg;
+
+    //synopsys sync_set_reset "reset"
+	always @(posedge clk) begin
+		if(reset)	gnt_reg	<= `SD 0;
+		else			gnt_reg	<= `SD next_gnt; 
+	end
+
+    //synopsys sync_set_reset "reset"
+	always @(posedge clk) begin
+		if(reset) begin
+			result_reg				<= `SD 0;
+			result_valid_reg	<= `SD 0;
+			pdest_idx_reg			<= `SD `ZERO_PRF;
+			IR_reg						<= `SD `NOOP_INST;
+			npc_reg						<= `SD 0;
+			rob_idx_reg				<= `SD 0;
+			done_reg					<= `SD 0;
+		end
+		else begin
+			result_reg				<= `SD LSQ_mem_value_reg;
+			result_valid_reg	<= `SD LSQ_done_reg & (LSQ_rd_mem_reg | LSQ_wr_mem_reg);
+			pdest_idx_reg			<= `SD (!LSQ_done_reg) ? `ZERO_PRF : LSQ_pdest_idx_reg;
+			IR_reg						<= `SD (!LSQ_done_reg) ? `NOOP_INST : LSQ_IR_reg;
+			npc_reg						<= `SD LSQ_npc_reg; 
+			rob_idx_reg				<= `SD LSQ_rob_idx_reg;
+			done_reg					<= `SD LSQ_done_reg;
+		end
+	end
+`else
+	assign done = LSQ_done;
 
     //synopsys sync_set_reset "reset"
 	always @(posedge clk) begin
@@ -75,11 +139,12 @@ module MEM_CONT ( clk, reset,
 			result_valid_reg	<= `SD LSQ_done & (LSQ_rd_mem | LSQ_wr_mem);
 			pdest_idx_reg			<= `SD (!LSQ_done) ? `ZERO_PRF : LSQ_pdest_idx;
 			IR_reg						<= `SD (!LSQ_done) ? `NOOP_INST : LSQ_IR;
-			npc_reg						<= `SD LSQ_npc; // FIXME
+			npc_reg						<= `SD LSQ_npc; 
 			rob_idx_reg				<= `SD LSQ_rob_idx;
 			done_reg					<= `SD LSQ_done;
 		end
 	end
+`endif
 
 endmodule // MEM_CONT
 

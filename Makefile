@@ -14,20 +14,20 @@
 # 
 
 # Makefile processor customizations
-MEM_SIZE=65536
-EXTRA_DEFINES=+define+MEM_SIZE_IN_BYTES=$(MEM_SIZE)
-ifdef MEM_LATENCY
-	EXTRA_DEFINES+= +define+MEM_LATENCY_IN_CYCLES=$(MEM_LATENCY)
-endif
-ifdef BRANCH_PREDICTION
-	EXTRA_DEFINES+= +define+BRANCH_PREDICTION=$(BRANCH_PREDICTION)
-endif
-ifdef ASSOC_DCACHE
-	EXTRA_DEFINES+= +define+DCACHE_2WAY
-endif
-ifdef DEBUG_QUIT
-	EXTRA_DEFINES+= +define+DEBUG_QUIT=$(DEBUG_QUIT)
-endif
+#MEM_SIZE=65536
+#EXTRA_DEFINES=+define+MEM_SIZE_IN_BYTES=$(MEM_SIZE)
+#ifdef MEM_LATENCY
+#	EXTRA_DEFINES+= +define+MEM_LATENCY_IN_CYCLES=$(MEM_LATENCY)
+#endif
+#ifdef BRANCH_PREDICTION
+#	EXTRA_DEFINES+= +define+BRANCH_PREDICTION=$(BRANCH_PREDICTION)
+#endif
+#ifdef ASSOC_DCACHE
+#	EXTRA_DEFINES+= +define+DCACHE_2WAY
+#endif
+#ifdef DEBUG_QUIT
+#	EXTRA_DEFINES+= +define+DEBUG_QUIT=$(DEBUG_QUIT)
+#endif
 VCS = vcs +v2k +vc -Mupdate -line -full64 +vcs+loopreport $(EXTRA_DEFINES)
 LIB = /usr/caen/generic/mentor_lib-D.1/public/eecs470/verilog/lec25dscc25.v
 INTFLAGS = -I +memcbk
