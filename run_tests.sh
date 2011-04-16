@@ -51,9 +51,9 @@ do
 	cp -f ./program.mem $comp_dir/program.mem;
   (make $@ > /dev/null) || exit;
 	(cd $comp_dir; make ${@%syn} > /dev/null) || exit;      #Run comparator, but don't synthesize
-	diff -u -I '^#' $comp_dir/writeback.out writeback.out > results.txt; # Ignore extra comments
+	diff -u -I '^#.*$' $comp_dir/writeback.out writeback.out > results.txt; # Ignore extra comments
   if [ -f $comp_dir/memory.out -a -f memory.out ]; then   # Compare the memories if possible, append the result
-  	diff -u -I '^#' $comp_dir/memory.out memory.out >> results.txt; # Ignore extra comments
+  	diff -u -I '^#.*$' $comp_dir/memory.out memory.out >> results.txt; # Ignore extra comments
   fi
 	printf "%-40s " "$(basename $f)";
   printf "%7s " `grep "^#.\+Branch Accuracy$" ${prefix}program.out | cut -d " " -f 8`

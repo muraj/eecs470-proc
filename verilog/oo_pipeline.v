@@ -480,9 +480,9 @@ module oo_pipeline (// Inputs
   //////////////////////////////////////////////////
 
     // structural hazard
-	assign stall_id[0] = &rs_stall | rob_full | lsq_full;
+	assign stall_id[0] = (&rs_stall) | rob_full | (lsq_full && (id_dp_rd_mem[0] | id_dp_wr_mem[0]));
 	`ifdef SUPERSCALAR
-	assign stall_id[1] = stall_id[0] | (^rs_stall | rob_full_almost | lsq_full | lsq_full_almost);
+	assign stall_id[1] = (|rs_stall) | rob_full_almost | (lsq_full_almost && (id_dp_rd_mem[1] | id_dp_wr_mem[1]));
 	`endif
     
   // isbranch generation
@@ -550,7 +550,7 @@ module oo_pipeline (// Inputs
 			// mark ir2 as invalid
         id_dp_valid_inst    [`SEL(1,2)]  <= `SD 1'b0;  
 		   // mark ir2 as legal (this is because we use illegal | valid to command issue)
-		  id_dp_illegal		 [`SEL(1,2)]  <= `SD 1'b0;
+  		  id_dp_illegal		 [`SEL(1,2)]  <= `SD 1'b0;
         `endif //SUPERSCALAR
 			end
     end // else: !if(reset)

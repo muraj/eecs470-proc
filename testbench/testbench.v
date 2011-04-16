@@ -126,7 +126,7 @@ end
 always @(posedge clock) begin
  if(~reset) begin
   $fdisplay(rs_fileno, "|============================================== Cycle: %10d ============================================================|", clock_count);
-  $fdisplay(rs_fileno, "id_dp_valid_inst: %b stall_id: %b rs0.inst_valid: %b", pipeline_0.id_dp_valid_inst, pipeline_0.stall_id, pipeline_0.rs0.inst_valid);
+  $fdisplay(rs_fileno, "rs_free: %b stall_id: %b rs0.inst_valid: %b rs_stall: %b lsq_full: %b rob_full: %b rd_mem_in: %b wr_mem_in: %b", pipeline_0.id_dp_valid_inst, pipeline_0.stall_id, pipeline_0.rs0.inst_valid, pipeline_0.rs_stall, pipeline_0.lsq_full, pipeline_0.rob_full, pipeline_0.lsq0.rd_mem_in, pipeline_0.lsq0.wr_mem_in);
   $fdisplay(rs_fileno, "|                               RS0                               |                              RS1                          |");
   $fdisplay(rs_fileno, "| IDX |   IR    |       NPC      | LSQ | ROB | RA | RB | RD | R/F |    IR   |       NPC      | LSQ | ROB | RA | RB | RD | R/F |");
   $fdisplay(rs_fileno, "|=============================================================================================================================|");
@@ -138,11 +138,11 @@ always @(posedge clock) begin
                 `endif  \
                 );
   `DISPLAY_RS(0) `DISPLAY_RS(1) `DISPLAY_RS(2)
-  `DISPLAY_RS(3) `DISPLAY_RS(4) `DISPLAY_RS(5)
+  `DISPLAY_RS(3) /*`DISPLAY_RS(4) `DISPLAY_RS(5)
   `DISPLAY_RS(6) `DISPLAY_RS(7) `DISPLAY_RS(8)
   `DISPLAY_RS(9) `DISPLAY_RS(10) `DISPLAY_RS(11)
   `DISPLAY_RS(12) `DISPLAY_RS(13) `DISPLAY_RS(14)
-  `DISPLAY_RS(15)
+  `DISPLAY_RS(15)*/
   if(check_error(1'b1))
     #(`VERILOG_CLOCK_PERIOD/2)
     $fclose(rs_fileno);

@@ -22,7 +22,7 @@ read_file -f verilog [concat "../sys_defs.vh" $syn_files]
 set design_name oo_pipeline
 set clock_name clock
 set reset_name reset
-set CLK_PERIOD 20
+set CLK_PERIOD 11
 
 
 #/***********************************************************/

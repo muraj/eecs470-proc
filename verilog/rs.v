@@ -116,8 +116,8 @@ generate
                           //OUTPUT
                                   .entry_free(entry_free[i]), 
                                   .ALU_rdy(entry_ALU_rdy[i]),
-								  .mem_rdy(entry_mem_rdy[i]),
-								  .mult_rdy(entry_mult_rdy[i]),
+				                				  .mem_rdy(entry_mem_rdy[i]),
+                								  .mult_rdy(entry_mult_rdy[i]),
                                   .pdest_idx_out(pdest_idx_int[i]), 
                                   .prega_idx_out(prega_idx_int[i]), 
                                   .pregb_idx_out(pregb_idx_int[i]), 

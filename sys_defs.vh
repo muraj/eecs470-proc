@@ -15,8 +15,9 @@
 
 // Should be pulled from the program dynamically perhaps, anything less than 40000 causes 06-mult-lda.s to fail
 
-`define DEBUG   // comment this out if not for debugging or analysis
-
+`ifndef SYNTH   //Don't output debug in synthesis
+`define DEBUG   // comment this out if not for debugging or analysis (comment out for submission)
+`endif
 `define NUM_MEM_TAGS           15
 `define NUM_MEM_TAG_BITS				4
 
@@ -302,7 +303,7 @@
 `define PRF_SZ (1<<`PRF_IDX)
 `define ROB_IDX (5)
 `define ROB_SZ (1<<`ROB_IDX)
-`define RS_IDX (4)
+`define RS_IDX (2)
 `define RS_SZ (1<<`RS_IDX)
 `define ZERO_PRF ({`PRF_IDX{1'b0}})
 `define SEL(WIDTH, WHICH) WIDTH*(WHICH)-1:WIDTH*(WHICH - 1)
