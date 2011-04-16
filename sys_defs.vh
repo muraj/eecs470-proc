@@ -16,7 +16,7 @@
 // Should be pulled from the program dynamically perhaps, anything less than 40000 causes 06-mult-lda.s to fail
 
 `ifndef SYNTH   //Don't output debug in synthesis
-`define DEBUG   // comment this out if not for debugging or analysis (comment out for submission)
+//`define DEBUG   // comment this out if not for debugging or analysis (comment out for submission)
 `endif
 `define NUM_MEM_TAGS           15
 `define NUM_MEM_TAG_BITS				4
@@ -309,7 +309,7 @@
 `define SEL(WIDTH, WHICH) WIDTH*(WHICH)-1:WIDTH*(WHICH - 1)
 `define IF_ID_IDX (3)
 `define IF_ID_SZ (1<<`IF_ID_IDX)
-`define LSQ_IDX (3)
+`define LSQ_IDX (5)
 `define LSQ_SZ (1<<`LSQ_IDX)
 `define RAT_IDX (`ARF_IDX)
 `define RAT_SZ (1<<`RAT_IDX)
