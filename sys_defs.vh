@@ -308,7 +308,7 @@
 `define PRF_SZ (1<<`PRF_IDX)
 `define ROB_IDX (5)
 `define ROB_SZ (1<<`ROB_IDX)
-`define RS_IDX (4)
+`define RS_IDX (3)
 `define RS_SZ (1<<`RS_IDX)
 `define ZERO_PRF ({`PRF_IDX{1'b0}})
 `define SEL(WIDTH, WHICH) WIDTH*(WHICH)-1:WIDTH*(WHICH - 1)

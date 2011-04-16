@@ -18,6 +18,7 @@ module testbench;
   reg [31:0] clock_count;
   reg [31:0] instr_count;
   integer    branches_executed, branches_mispredicted;
+  integer    rob_full, rs0_full, rs1_full, mult_full, alu_full, lsq_full, stall_one, stall_two;
   reg [31:0] wb_fileno, mem_fileno;
 
   wire [1:0]  proc2mem_command;
@@ -462,17 +463,33 @@ always @(posedge clock) begin
   if(reset) begin
     branches_executed <= `SD 0;
     branches_mispredicted <= `SD 0;
+    rob_full  <= `SD 0;
+    rs0_full  <= `SD 0;
+    rs1_full  <= `SD 0;
+    mult_full <= `SD 0;
+    alu_full  <= `SD 0;
+    lsq_full  <= `SD 0;
+    stall_one <= `SD 0;
+    stall_two <= `SD 0;
   end
   else begin
     if(rob_retire_valid_inst[0] && pipeline_0.rob_retire_isbranch[0]) begin
       branches_executed <= `SD branches_executed + 1;
       branches_mispredicted <= `SD branches_mispredicted + (pipeline_0.rob_mispredict);
     end
+    rob_full <= `SD rob_full + pipeline_0.rob_full;
+    lsq_full <= `SD lsq_full + pipeline_0.lsq_full;
+    mult_full <= `SD mult_full + (~&pipeline_0.ex_MULT_free);
+    alu_full <= `SD alu_full + (~&pipeline_0.ex_ALU_free);
+    stall_one   <= `SD stall_one + (^pipeline_0.stall_id);
+    stall_two   <= `SD stall_two + (|pipeline_0.stall_id);
+    rs0_full <= `SD rs0_full + pipeline_0.rs_stall[0];
   `ifdef SUPERSCALAR
     if(rob_retire_valid_inst[1] && pipeline_0.rob_retire_isbranch[1]) begin
       branches_executed <= `SD branches_executed + 1;
       branches_mispredicted <= `SD branches_mispredicted + (pipeline_0.rob_mispredict);
     end
+    rs1_full <= `SD rs1_full + pipeline_0.rs_stall[1];
   `endif
   end
 end
@@ -627,7 +644,8 @@ end
         real cpi;
         real accuracy;
         begin
-     cpi = (clock_count + 1.0) / (instr_count + (pipeline_error_status == `HALTED_ON_HALT));
+     `define PERCENT_TIME(x) (x*100.0)/(clock_count)
+     cpi = (clock_count + 1.0) / (instr_count + (pipeline_error_status == `HALTED_ON_HALT));  //Halt counts as an instruction in CPI
      `ifdef DEBUG
      accuracy =  100.0*(1.0 - (1.0*branches_mispredicted) / branches_executed);
      $display("## %0d mispredicts / %0d branches = %0.2f%% Branch Accuracy",
@@ -637,6 +655,10 @@ end
              clock_count+1, instr_count, cpi);        
      $display("@@  %4.2f ns total time to execute\n@@\n",
         clock_count*`VIRTUAL_CLOCK_PERIOD);
+     `ifdef DEBUG
+     $display("## rob_full: %4.2f%% rs0_full: %4.2f%% rs1_full: %4.2f%% mult_full: %4.2f%% alu_full: %4.2f%% lsq_full: %4.2f%% stall_one: %4.2f%% stall_two: %4.2f%%",
+        `PERCENT_TIME(rob_full), `PERCENT_TIME(rs0_full), `PERCENT_TIME(rs1_full), `PERCENT_TIME(mult_full), `PERCENT_TIME(alu_full), `PERCENT_TIME(lsq_full), `PERCENT_TIME(stall_one), `PERCENT_TIME(stall_two));
+     `endif
         end
         
   endtask  // task show_clk_count 
