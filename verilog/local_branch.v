@@ -67,6 +67,7 @@ module history_table(clk, reset, rd_idx, rd_out, wr_en, wr_idx, wr_in, wr_out);
   assign wr_out[`SEL(DATA_SZ,2)] = cntr[wr_idx[`SEL(IDX,2)]];
   `endif
   integer i;
+  //synopsys sync_set_reset "reset"
   always @(posedge clk) begin
     if(reset) begin
       for(i=0;i<SZ;i=i+1)
@@ -108,6 +109,7 @@ module saturating_counter(clk, reset, rd_idx, rd_t, wr_en, wr_idx, wr_t);
   assign plus_one[1] = (~& cntr[wr_idx[`SEL(IDX,2)]]);  //Max out at 1111
   assign minus_one[1] = (| cntr[wr_idx[`SEL(IDX,2)]]);  //Min out at 0000
   `endif
+  //synopsys sync_set_reset "reset"
   always @(posedge clk) begin
     if(reset) begin
       for(i=0;i<SZ;i=i+1)
@@ -144,6 +146,7 @@ module btb(clk, reset, rd_pc, rd_addr, rd_valid, wr_en, wr_pc, wr_addr);
   `endif
 
   integer i;
+  //synopsys sync_set_reset "reset"
   always @(posedge clk) begin
     if(reset) begin
       for(i=0;i<SZ;i=i+1) begin
