@@ -75,6 +75,32 @@ module testbench;
 
 //DEBUG SIGNALS
 `ifndef SYNTH
+//*** Branch prediction DEBUG ***//
+/*
+integer br_fileno;
+initial begin
+  br_fileno = $fopen("bp.out");
+end
+always @(posedge clock) begin
+ if(~reset) begin
+  $fdisplay(br_fileno, "|============================================== Cycle: %10d ============================================================|", clock_count);
+  $fdisplay(br_fileno, "| IDX | BTB TAG | BTB ADDR | PRED CNTR | HIST CNTR |");
+  `define DISPLAY_BR(i) \
+      $fdisplay(br_fileno, "| %3d | %7h | %16h | %9b | %9b |", i, pipeline_0.bp0.btb0.tag[i], pipeline_0.bp0.btb0.buffer[i], pipeline_0.bp0.cnt0.cntr[i], pipeline_0.bp0.hist0.cntr[i]);
+  `DISPLAY_BR(0) `DISPLAY_BR(1) `DISPLAY_BR(2)
+  `DISPLAY_BR(3) `DISPLAY_BR(4) `DISPLAY_BR(5)
+  `DISPLAY_BR(6) `DISPLAY_BR(7) `DISPLAY_BR(8)
+  `DISPLAY_BR(9) `DISPLAY_BR(10) `DISPLAY_BR(11)
+  `DISPLAY_BR(12) `DISPLAY_BR(13) `DISPLAY_BR(14)
+  `DISPLAY_BR(15)
+  if(check_error(1'b1))
+    #(`VERILOG_CLOCK_PERIOD/2)
+    $fclose(rs_fileno);
+ end
+end
+*/
+
+
 //*** RS DEBUG ***//
   integer rs_fileno;
   wire [31:0] rs1_IR[`RS_SZ-1:0];
@@ -139,11 +165,11 @@ always @(posedge clock) begin
                 `endif  \
                 );
   `DISPLAY_RS(0) `DISPLAY_RS(1) `DISPLAY_RS(2)
-  `DISPLAY_RS(3) /*`DISPLAY_RS(4) `DISPLAY_RS(5)
+  `DISPLAY_RS(3) `DISPLAY_RS(4) `DISPLAY_RS(5)
   `DISPLAY_RS(6) `DISPLAY_RS(7) `DISPLAY_RS(8)
   `DISPLAY_RS(9) `DISPLAY_RS(10) `DISPLAY_RS(11)
   `DISPLAY_RS(12) `DISPLAY_RS(13) `DISPLAY_RS(14)
-  `DISPLAY_RS(15)*/
+  `DISPLAY_RS(15)
   if(check_error(1'b1))
     #(`VERILOG_CLOCK_PERIOD/2)
     $fclose(rs_fileno);

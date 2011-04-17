@@ -25,8 +25,11 @@ endif
 ifdef ASSOC_DCACHE
 	EXTRA_DEFINES+= +define+DCACHE_2WAY
 endif
-ifdef DEBUG_QUIT
-	EXTRA_DEFINES+= +define+DEBUG_QUIT=$(DEBUG_QUIT)
+ifdef PRED_IDX
+	EXTRA_DEFINES+= +define+PRED_IDX=$(PRED_IDX)
+endif
+ifdef BTB_IDX
+	EXTRA_DEFINES+= +define+BTB_IDX=$(BTB_IDX)
 endif
 VCS = vcs +v2k +vc -Mupdate -line -full64 +vcs+loopreport $(EXTRA_DEFINES)
 LIB = /usr/caen/generic/mentor_lib-D.1/public/eecs470/verilog/lec25dscc25.v

@@ -269,13 +269,6 @@ module oo_pipeline (// Inputs
 	wire dcache2lsq_st_received;
 
 
-  // From the original version
-  // assign pipeline_completed_insts = rob_retire_valid_inst[0] + rob_retire_valid_inst[1];
-
-
-	// Handling the exceptions (illegal instructions)
-	// Illegal instructions are not counted in pipeline_completed_insts.
-	/*
 	always @* begin
 		pipeline_completed_insts = 0;
 		case (rob_illegal_out)
@@ -285,32 +278,6 @@ module oo_pipeline (// Inputs
 			default: pipeline_completed_insts = 0;
 		endcase
 	end
-	*/
-			
-	always @* begin
-		pipeline_completed_insts = 0;
-		case (rob_illegal_out)
-			2'b00:	pipeline_completed_insts = rob_retire_valid_inst[0] + rob_retire_valid_inst[1];	
-			2'bx1:	pipeline_completed_insts = 0 ; //rob_retire_valid_inst[0];
-			2'b10:	pipeline_completed_insts = rob_retire_valid_inst[0]; //+ rob_retire_valid_inst[1];
-			default: pipeline_completed_insts = 0;
-		endcase
-	end
-
-  // FIXME
-  //  assign pipeline_error_status = 
-  //  (id_dp_illegal & id_dp_valid_inst != 0) ? `HALTED_ON_ILLEGAL :  //Illegal instructions are just ignored by the pipeline.
-  //  ((rob_retire_valid_inst[0] && pipeline_commit_IR[`SEL(32,1)] == 32'h555) ? `HALTED_ON_HALT :
-  //  ((rob_retire_valid_inst[1] && pipeline_commit_IR[`SEL(32,2)] == 32'h555) ? `HALTED_ON_HALT : `NO_ERROR));
-/*
-  always @* begin
-		if (pipeline_commit_IR[`SEL(32,1)] == 32'h555) pipeline_error_status = `HALTED_ON_HALT;
-		else if (rob_illegal_out[0]) pipeline_error_status = `HALTED_ON_ILLEGAL;
-	   else if (pipeline_commit_IR[`SEL(32,2)] == 32'h555) pipeline_error_status = `HALTED_ON_HALT;
-		else if (rob_illegal_out[1]) pipeline_error_status = `HALTED_ON_ILLEGAL;
-		else pipeline_error_status = `NO_ERROR;
-  end
-*/
 
 	wire [1:0] valid_halt;
 	assign valid_halt = {(rob_retire_valid_inst[1] & (pipeline_commit_IR[`SEL(32,2)] == 32'h555)), (rob_retire_valid_inst[0] & (pipeline_commit_IR[`SEL(32,1)] == 32'h555))};
@@ -778,7 +745,7 @@ ex_co_stage ex_co_stage0 (.clk(clock), .reset(reset | rob_mispredict),
            			  // outputs
      			        .Dcache2Dmem_command(proc2Dmem_command), .Dcache2Dmem_addr(proc2Dmem_addr), .Dcache2Dmem_data(proc2mem_data),	// To Dmem
           		    .Dcache2proc_data(dcache2lsq_data), .Dcache2proc_valid(dcache2lsq_valid), .Dcache2proc_tag(dcache2lsq_tag), 		// To Proc(LSQ)
-						 .Dcache2proc_st_received(dcache2lsq_st_received),
+      						.Dcache2proc_st_received(dcache2lsq_st_received),
              			.rd_idx(dcachemem_rd_idx), .rd_tag(dcachemem_rd_tag), .wr_idx(dcachemem_wr_idx), .wr_tag(dcachemem_wr_tag), .wr_data(dcachemem_wr_data), .wr_en(dcachemem_wr_en), .en(dcachemem_en)	// To Dcachemem
         			    );
 
