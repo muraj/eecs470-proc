@@ -90,14 +90,16 @@ module testbench;
 			cache_addr_in = 0; cache_command_in = 0; cache_data_in = 0;
   	end
   endtask
-/*
+
 	task show_cache_out;
 		begin
 			case ({dcache0.Dcache2proc_valid, (dcache0.Dcache2proc_tag!=4'b0)})
 				2'b00:	if(cache_command_in == `BUS_LOAD) 
 								$fdisplay (cache_fileno, "@@@ Output     at Cycle = %6.1f,    READ MISS!!    No Available Tickets. \n", cycle);
-				2'b01: 	$fdisplay (cache_fileno, "@@@ Output     at Cycle = %6.1f,    READ MISS!!    Ticket_ID: %h \n", cycle, mem_response);
-				2'b10:	$fdisplay (cache_fileno, "@@@ Output     at Cycle = %6.1f,    READ HIT!!    DATA: %16h \n", cycle, dcache0.Dcache2proc_data);
+				2'b01: 	if(cache_command_in == `BUS_LOAD) 
+								$fdisplay (cache_fileno, "@@@ Output     at Cycle = %6.1f,    READ MISS!!    Ticket_ID: %h \n", cycle, mem_response);
+				2'b10:	if(cache_command_in == `BUS_LOAD) 
+								$fdisplay (cache_fileno, "@@@ Output     at Cycle = %6.1f,    READ HIT!!    DATA: %16h \n", cycle, dcache0.Dcache2proc_data);
 				2'b11:	$fdisplay (cache_fileno, "@@@ Output     at Cycle = %6.1f,    MISSED VALUE HAS COME!!    Ticket_ID: %h    DATA: %16h \n", cycle, dcache0.Dcache2proc_tag, dcache0.Dcache2proc_data);
 			endcase
 		end
@@ -109,6 +111,9 @@ module testbench;
 				`define DISPLAY_ENTRY(i) $fdisplay(cache_fileno, "  %3h  |  %3h  |  %00000000000016h  |  %d / %d\n       |  %3h  |  %00000000000016h  |  %d / %d", i, dcachemem0.sets[i].sets.tags[0], dcachemem0.sets[i].sets.data[0], dcachemem0.sets[i].sets.valids[0], dcachemem0.sets[i].sets.recent[0], dcachemem0.sets[i].sets.tags[1], dcachemem0.sets[i].sets.data[1], dcachemem0.sets[i].sets.valids[1], dcachemem0.sets[i].sets.recent[1]);  
 			`else
 				`define DISPLAY_ENTRY(i) $fdisplay(cache_fileno, "  %3h  |  %3h  |  %00000000000016h  |  %d", i, dcachemem0.tags[i], dcachemem0.data[i], dcachemem0.valids[i]);  
+			`endif
+			`ifdef DCACHE_VICTIM
+				`define DISPLAY_VICTIM $fdisplay(cache_fileno,   "  %04h |  %3h  |  %00000000000016h  |  %d / %d\n  %04h |  %3h  |  %00000000000016h  |  %d / %d", dcachemem0.victims.index[0], dcachemem0.victims.tags[0], dcachemem0.victims.data[0], dcachemem0.victims.valids[0], dcachemem0.victims.recent[0], dcachemem0.victims.index[1], dcachemem0.victims.tags[1], dcachemem0.victims.data[1], dcachemem0.victims.valids[1], dcachemem0.victims.recent[1]);
 			`endif
 
 			`ifdef DCACHE_2WAY
@@ -131,6 +136,9 @@ module testbench;
 				`DISPLAY_ENTRY(13)
 				`DISPLAY_ENTRY(14)
 				`DISPLAY_ENTRY(15)
+				`ifdef DCACHE_VICTIM
+					`DISPLAY_VICTIM
+				`endif
 				$fdisplay(cache_fileno, "===================================================\n\n");  
 
 			`else
@@ -279,9 +287,6 @@ initial begin
 	$display("@@@ Testbench Finished at Cycle %4d ==================\n", full_cycle);
 
 	$fclose(cache_fileno);
-*/
-initial
-begin
   $finish; 
 
 end

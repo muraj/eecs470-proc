@@ -21,7 +21,7 @@
 `define NUM_MEM_TAGS           15
 `define NUM_MEM_TAG_BITS				4
 
-`define MEM_CONT_PIPELINE	// Comment it out if you do NOT want the additional pipeline in MEM_CONT
+//`define MEM_CONT_PIPELINE	// Comment it out if you do NOT want the additional pipeline in MEM_CONT
 
 // Memory Address Space
 `define MEM_ADDR_BITS	(13)
@@ -36,7 +36,7 @@
 `ifndef MEM_LATENCY_IN_CYCLES
 `define MEM_LATENCY_IN_CYCLES ($rtoi(100.0/`VIRTUAL_CLOCK_PERIOD+0.99999))
 `endif
-//`define MEM_LATENCY_IN_CYCLES 20
+//`define MEM_LATENCY_IN_CYCLES 50
 // the 0.99999 is to force ceiling(100/period).  The default behavior for
 // float to integer conversion is round down or truncate
 
@@ -334,7 +334,6 @@
 
 // D-cache Defines
 `define DCACHE_2WAY	// comment this out if direct-mapped
-//`define DCACHE_VICTIM // comment this out if you do NOT want the Victim cache. only working with 2-way Dcache
 `define DCACHE_IDX_BITS	(7)      
 
 `define DCACHE_SETS		(1<<`DCACHE_IDX_BITS)

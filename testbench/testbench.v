@@ -69,7 +69,7 @@ module testbench;
   function check_error;
     input dummy;
     begin
-       check_error = commit_count > 100 || pipeline_error_status != `NO_ERROR;
+       check_error = commit_count > 2000 || pipeline_error_status != `NO_ERROR;
     end
   endfunction
 

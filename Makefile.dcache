@@ -27,7 +27,7 @@ all:    simv
 
 
 TESTBENCH = 	sys_defs.vh	    \
-		testbench/testbench_dcache.v testbench/mem.v verilog/dcachemem.v
+		testbench/testbench_dcache.v testbench/mem.v verilog/dcachemem.v verilog/pe.v
 SIMFILES =	verilog/dcache.v 
 SYNFILES = synth/dcache.vg
 
