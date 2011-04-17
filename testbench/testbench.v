@@ -266,7 +266,7 @@ end
 
 generate
 genvar rat_iter;
-  for(rat_iter=0;rat_iter<`ROB_SZ;rat_iter=rat_iter+1) begin : RAT_DEBUG
+  for(rat_iter=0;rat_iter<32;rat_iter=rat_iter+1) begin : RAT_DEBUG
     assign rat_value[rat_iter] = pipeline_0.rat0.rat_rrat.ENTRIES[rat_iter].entry.issue_reg;
     assign rrat_value[rat_iter] = pipeline_0.rat0.rat_rrat.ENTRIES[rat_iter].entry.commit_reg;
   end

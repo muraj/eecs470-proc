@@ -24,7 +24,7 @@
 //`define MEM_CONT_PIPELINE	// Comment it out if you do NOT want the additional pipeline in MEM_CONT
 
 // Memory Address Space
-`define MEM_ADDR_BITS	(13)
+`define MEM_ADDR_BITS	(13) // If MEM_SIZE_IN_BYTES changes, change this accordingly and re-synthesize
 
 `define MEM_SIZE_IN_BYTES      (64*1024)
 `define MEM_64BIT_LINES        (`MEM_SIZE_IN_BYTES/8)
@@ -308,13 +308,13 @@
 `define PRF_SZ (1<<`PRF_IDX)
 `define ROB_IDX (5)
 `define ROB_SZ (1<<`ROB_IDX)
-`define RS_IDX (4)
+`define RS_IDX (3)
 `define RS_SZ (1<<`RS_IDX)
 `define ZERO_PRF ({`PRF_IDX{1'b0}})
 `define SEL(WIDTH, WHICH) WIDTH*(WHICH)-1:WIDTH*(WHICH - 1)
-`define IF_ID_IDX (3)
+`define IF_ID_IDX (4)
 `define IF_ID_SZ (1<<`IF_ID_IDX)
-`define LSQ_IDX (3)
+`define LSQ_IDX (4)
 `define LSQ_SZ (1<<`LSQ_IDX)
 `define RAT_IDX (`ARF_IDX)
 `define RAT_SZ (1<<`RAT_IDX)
@@ -352,7 +352,7 @@
 `define PRED_IDX  (4)         //Size of the BTB and indexing
 `endif
 `ifndef BTB_IDX
-`define BTB_IDX   (4)
+`define BTB_IDX   (5)
 `endif
 
 
