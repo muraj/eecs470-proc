@@ -61,9 +61,9 @@ module oo_pipeline (// Inputs
   input         clock;             // System clock
   input         reset;             // System reset
 
-  input  [3:0]  mem2proc_response; // Tag from memory about current request
+  input  [`NUM_MEM_TAG_BITS-1:0]  mem2proc_response; // Tag from memory about current request
   input  [63:0] mem2proc_data;     // Data coming back from memory
-  input  [3:0]  mem2proc_tag;      // Tag from memory about current reply
+  input  [`NUM_MEM_TAG_BITS-1:0]  mem2proc_tag;      // Tag from memory about current reply
 
   output [1:0]  proc2mem_command;  // command sent to memory
   output [63:0] proc2mem_addr;     // Address sent to memory
@@ -204,7 +204,7 @@ module oo_pipeline (// Inputs
   // Memory interface/arbiter wires
   wire [63:0] proc2Dmem_addr, proc2Imem_addr;
   wire [1:0]  proc2Dmem_command, proc2Imem_command;
-  wire [3:0]  Imem2proc_response, Dmem2proc_response;
+  wire [`NUM_MEM_TAG_BITS-1:0]  Imem2proc_response, Dmem2proc_response;
 
   // Icache wires
   wire [63:0] cachemem_data;
@@ -261,9 +261,9 @@ module oo_pipeline (// Inputs
 	wire dcachemem_en;
 	wire dcachemem_wr_en;
 	wire dcachemem_rd_valid;
-	wire [3:0]	dcache2lsq_tag;
+	wire [`NUM_MEM_TAG_BITS-1:0]	dcache2lsq_tag;
 	wire [63:0]	dcache2lsq_data;
-	wire [3:0]	Dmem2proc_tag;
+	wire [`NUM_MEM_TAG_BITS-1:0]	Dmem2proc_tag;
 	wire [63:0]	Dmem2proc_data;
 	wire				dcache2lsq_valid;
 	wire dcache2lsq_st_received;

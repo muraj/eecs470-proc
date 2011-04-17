@@ -21,14 +21,12 @@ output rd1_valid;
 
 
 	reg wr_en;
-	reg [`DCACHE_TAG_BITS-1:0] wr_tag;
-	reg [63:0] wr_data;
 
 	generate
 		genvar i;
 		for(i=0; i<`DCACHE_SETS; i=i+1) begin : sets
 			dcachemem_set sets (.clock(clock), .reset(reset), .access(set_access[i]),
-													.wr_en(wr_en), .wr_tag(wr_tag), .wr_data(wr_data),
+													.wr_en(wr_en), .wr_tag(wr1_tag), .wr_data(wr1_data),
 													.rd_tag(rd1_tag), .rd_data(set_rd_data[i]), .rd_valid(set_rd_valid[i])
 													);
 		end
@@ -41,8 +39,6 @@ output rd1_valid;
 					if(wr1_en) 	begin
 						set_access[wr1_idx] = 1'b1;
 						wr_en = 1'b1;
-						wr_tag = wr1_tag;
-						wr_data = wr1_data;
 					end
 					else				set_access[rd1_idx] = 1'b1;
 				end

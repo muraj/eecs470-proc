@@ -19,12 +19,12 @@
 `define DEBUG   // comment this out if not for debugging or analysis (comment out for submission)
 `endif
 `define NUM_MEM_TAGS           15
-`define NUM_MEM_TAG_BITS				4
+`define NUM_MEM_TAG_BITS				4  // Should be at least log2(NUM_MEM_TAGS)
 
-//`define MEM_CONT_PIPELINE	// Comment it out if you do NOT want the additional pipeline in MEM_CONT
+`define MEM_CONT_PIPELINE	// Comment it out if you do NOT want the additional pipeline in MEM_CONT
 
 // Memory Address Space
-`define MEM_ADDR_BITS	(13) // If MEM_SIZE_IN_BYTES changes, change this accordingly and re-synthesize
+`define MEM_ADDR_BITS	(64-3)
 
 `define MEM_SIZE_IN_BYTES      (64*1024)
 `define MEM_64BIT_LINES        (`MEM_SIZE_IN_BYTES/8)
@@ -337,11 +337,7 @@
 `define DCACHE_IDX_BITS	(7)      
 
 `define DCACHE_SETS		(1<<`DCACHE_IDX_BITS)
-`ifdef DCACHE_2WAY
-	`define DCACHE_TAG_BITS (`MEM_ADDR_BITS+1-`DCACHE_IDX_BITS)	
-`else
-	`define DCACHE_TAG_BITS (`MEM_ADDR_BITS-`DCACHE_IDX_BITS)
-`endif
+`define DCACHE_TAG_BITS (`MEM_ADDR_BITS-`DCACHE_IDX_BITS)
 
 
 // Branch Predicator
@@ -356,12 +352,3 @@
 `endif
 
 
-// log2 function
-/*
-function integer log2;
-	input[31:0] value;
-	begin
-		for(log2=0; value>0; log2=log2+1) value= value>>1;
-	end
-endfunction
-*/

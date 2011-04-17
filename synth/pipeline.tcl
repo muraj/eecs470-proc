@@ -22,7 +22,7 @@ read_file -f verilog [concat "../sys_defs.vh" $syn_files]
 set design_name oo_pipeline
 set clock_name clock
 set reset_name reset
-set CLK_PERIOD 10.5
+set CLK_PERIOD 8.2
 
 
 #/***********************************************************/
@@ -40,7 +40,7 @@ set auto_wire_load_selection "false"
 set compile_seqmap_synchronous_extraction "true"
 
 # uncomment this and change number appropriately if on multi-core machine
-set_host_options -max_cores 16
+set_host_options -max_cores 4
 
 #/***********************************************************/
 #/*  Clk Periods/uncertainty/transition                     */
