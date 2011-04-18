@@ -1,13 +1,17 @@
+README for EECS 470 W11 Group 4
+
 1) a)  Run Simulation - make simv
        Run Synthesis  - make syn
        Run in Debug   - make DEBUG=1 [simv|syn]
-       Run all tests against in order processor - run_tests.sh --help
+       Run all tests and compare against in order processor: run_tests.sh --help
             Read help for more details, requires an in-order
             processor to compare against (to compare memory,
             inorder needs to output memory to memory.out)
    b)  synth/oo_pipeline.out
        synth/oo_pipeline.rep
        synth/pipeline.vg
-   c)  Final clock period is 10.2 ns
+   c)  Final clock period is 7.7ns
    d)  All tests in test_progs report same results as in order processor.
        Therefore all tests pass.
+
+
