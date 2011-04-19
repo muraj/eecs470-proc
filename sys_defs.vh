@@ -13,10 +13,9 @@
 //
 //////////////////////////////////////////////
 
-// Should be pulled from the program dynamically perhaps, anything less than 40000 causes 06-mult-lda.s to fail
 
 `ifndef SYNTH   //Don't output debug in synthesis
-`define DEBUG   // comment this out if not for debugging or analysis (comment out for submission)
+//`define DEBUG   // comment this out if not for debugging or analysis (comment out for submission)
 `endif
 `define NUM_MEM_TAGS           15
 `define NUM_MEM_TAG_BITS				4  // Should be at least log2(NUM_MEM_TAGS)
@@ -30,8 +29,8 @@
 `define MEM_64BIT_LINES        (`MEM_SIZE_IN_BYTES/8)
 
 // probably not a good idea to change this second one
-`define VIRTUAL_CLOCK_PERIOD   30.0 // Clock period from dc_shell
-`define VERILOG_CLOCK_PERIOD   10.0 // Clock period from test bench
+`define VIRTUAL_CLOCK_PERIOD   30 // Clock period from dc_shell
+`define VERILOG_CLOCK_PERIOD   10 // Clock period from test bench
 
 `ifndef MEM_LATENCY_IN_CYCLES
 `define MEM_LATENCY_IN_CYCLES ($rtoi(100.0/`VIRTUAL_CLOCK_PERIOD+0.99999))

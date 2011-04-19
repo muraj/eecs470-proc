@@ -57,7 +57,7 @@ module history_table(clk, reset, rd_idx, rd_out, wr_en, wr_idx, wr_in, wr_out);
   parameter SZ=1<<IDX;
   input wire clk, reset;
   input wire [`SCALAR*IDX-1:0] rd_idx, wr_idx;
-  input wire [`SCALAR*DATA_SZ-1:0] rd_out, wr_out;
+  output wire [`SCALAR*DATA_SZ-1:0] rd_out, wr_out;
   output wire [`SCALAR-1:0] wr_en, wr_in;
   reg [DATA_SZ-1:0] cntr [SZ-1:0];
   assign rd_out[`SEL(DATA_SZ,1)] = cntr[rd_idx[`SEL(IDX,1)]];
@@ -113,7 +113,7 @@ module saturating_counter(clk, reset, rd_idx, rd_t, wr_en, wr_idx, wr_t);
   always @(posedge clk) begin
     if(reset) begin
       for(i=0;i<SZ;i=i+1)
-        cntr[i] <= `SD {1'b0, {CNT_SZ-1{1'b1}}};
+        cntr[i] <= `SD {1'b0, {(CNT_SZ-1){1'b1}}};
     end
     else begin
       if(wr_en[0])
@@ -132,8 +132,10 @@ module btb(clk, reset, rd_pc, rd_addr, rd_valid, wr_en, wr_pc, wr_addr);
   parameter ADDR_SZ=64;
   parameter SZ=1<<IDX_SZ;
   input wire clk, reset;
-  input wire [`SCALAR-1:0] rd_valid, wr_en;
-  input wire [`SCALAR*ADDR_SZ-1:0] rd_pc, rd_addr, wr_pc, wr_addr;
+  input wire [`SCALAR-1:0] wr_en;
+  output wire [`SCALAR-1:0] rd_valid;
+  input wire [`SCALAR*ADDR_SZ-1:0] rd_pc, wr_pc, wr_addr;
+  output wire [`SCALAR*ADDR_SZ-1:0] rd_addr;
 
   reg [ADDR_SZ-1:0] tag[SZ-1:0];
   reg [ADDR_SZ-1:0] buffer[SZ-1:0];

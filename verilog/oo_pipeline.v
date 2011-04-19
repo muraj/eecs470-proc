@@ -273,7 +273,8 @@ module oo_pipeline (// Inputs
 		pipeline_completed_insts = 0;
 		case (rob_illegal_out)
 			2'b00:	pipeline_completed_insts = rob_retire_valid_inst[0] + rob_retire_valid_inst[1];	
-			2'bx1:	pipeline_completed_insts = 0 ; //rob_retire_valid_inst[0];
+			2'b01:	pipeline_completed_insts = 0 ; //rob_retire_valid_inst[0];
+			2'b11:	pipeline_completed_insts = 0 ; //rob_retire_valid_inst[0];
 			2'b10:	pipeline_completed_insts = rob_retire_valid_inst[0]; //+ rob_retire_valid_inst[1];
 			default: pipeline_completed_insts = 0;
 		endcase
